@@ -1,9 +1,9 @@
-function! simple_skk#is_enable() abort
+function! skk#is_enable() abort
   return &iminsert != 0
 endfunction
 
-function! simple_skk#toggle_iminsert() abort
-  if simple_skk#is_enable()
+function! skk#toggle_iminsert() abort
+  if skk#is_enable()
     set iminsert=0
   else
     set iminsert=1
@@ -12,7 +12,7 @@ function! simple_skk#toggle_iminsert() abort
   return "\<c-^>"
 endfunction
 
-function! simple_skk#initialize(opts = {}) abort
+function! skk#initialize(opts = {}) abort
   let raw = json_decode(join(readfile(a:opts.json_path), "\n"))
   let s:kana_table = {}
 
@@ -82,8 +82,8 @@ function! s:lang_map(char) abort
   return repeat("\<bs>", keylen) .. result
 endfunction
 
-call simple_skk#initialize({'json_path': expand('~/dotfiles/kana_table.json')})
-inoremap <expr> <c-j> simple_skk#toggle_iminsert()
+call skk#initialize({'json_path': expand('~/dotfiles/kana_table.json')})
+inoremap <expr> <c-j> skk#toggle_iminsert()
 
 function! s:kata_to_hira(str) abort
   let chars = split(a:str, '\zs')
@@ -172,9 +172,9 @@ function! s:kanji_to_hira(str) abort
   return kana_list[selected-1]
 endfunction
 
-function! simple_skk#operator_to_hira(type = '') abort
+function! skk#operator_to_hira(type = '') abort
   if a:type == ''
-    set operatorfunc=function('simple_skk#operator_to_hira')
+    set operatorfunc=function('skk#operator_to_hira')
     return 'g@'
   endif
   let save_reg = getreginfo('z')
@@ -185,9 +185,9 @@ function! simple_skk#operator_to_hira(type = '') abort
   call setreg('z', save_reg)
 endfunction
 
-function! simple_skk#operator_to_kata(type = '') abort
+function! skk#operator_to_kata(type = '') abort
   if a:type == ''
-    set operatorfunc=function('simple_skk#operator_to_kata')
+    set operatorfunc=function('skk#operator_to_kata')
     return 'g@'
   endif
   let save_reg = getreginfo('z')
@@ -197,9 +197,9 @@ function! simple_skk#operator_to_kata(type = '') abort
   call setreg('z', save_reg)
 endfunction
 
-function! simple_skk#operator_to_kanji(type = '') abort
+function! skk#operator_to_kanji(type = '') abort
   if a:type == ''
-    set operatorfunc=function('simple_skk#operator_to_kanji')
+    set operatorfunc=function('skk#operator_to_kanji')
     return 'g@'
   endif
   let save_reg = getreginfo('z')
@@ -263,15 +263,15 @@ endfunction
 "   endif
 " endfunction
 
-nnoremap <expr> skh simple_skk#operator_to_hira()
-xnoremap <expr> skh simple_skk#operator_to_hira()
-nnoremap <expr> skk simple_skk#operator_to_kata()
-xnoremap <expr> skk simple_skk#operator_to_kata()
-nnoremap <expr> skj simple_skk#operator_to_kanji()
-xnoremap <expr> skj simple_skk#operator_to_kanji()
+nnoremap <expr> skh skk#operator_to_hira()
+xnoremap <expr> skh skk#operator_to_hira()
+nnoremap <expr> skk skk#operator_to_kata()
+xnoremap <expr> skk skk#operator_to_kata()
+nnoremap <expr> skj skk#operator_to_kanji()
+xnoremap <expr> skj skk#operator_to_kanji()
 
-augroup simple_skk
+augroup skk
   autocmd!
-  autocmd InsertEnter * if simple_skk#is_enable() | call s:set_start_point() | endif
+  autocmd InsertEnter * if skk#is_enable() | call s:set_start_point() | endif
   autocmd InsertLeave,CmdlineLeave * set iminsert=0
 augroup END
