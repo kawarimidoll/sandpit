@@ -45,30 +45,64 @@ function! skk#initialize(opts = {}) abort
         \ }
 
   let raw = json_decode(join(readfile(kana_table_path), "\n"))
-  let s:kana_table = {}
 
   " use dictionary to unique keys
-  let map_targets = {}
-  let start_targets = {}
+  let s:start_keys = {}
+  let s:end_keys = {}
 
   for [key, val] in items(raw)
-    let key_except_last = slice(key, 0, -1)
-    let key_last = slice(key, -1)
-    if !has_key(s:kana_table, key_last)
-      let s:kana_table[key_last] = {}
+
+    " ex.1. 'gya': 'ぎゃ'
+    "   preceding_keys: gy
+    "   start_key: g
+    "   end_key: a
+    " g -> start_keysに入れる 入力開始位置になる可能性がある
+    " G -> 漢字変換スタートを行う
+    " a -> end_keysに入れる 直前の文字列(gy)を見て仮名変換を行う
+    " A -> *このペアにおいては*なにもしなくてよい
+    "
+    " start_keys = {
+    "   g: 1,
+    " },
+    " end_keys = {
+    "   a: {
+    "     gy: 'ぎゃ',
+    "   },
+    " }
+    "
+    " ex.2. 'a': 'あ',
+    "   preceding_keys: ''
+    "   start_key: a
+    "   end_key: a
+    " start_keys = {
+    "   g: 1,
+    "   a: 1
+    " },
+    " end_keys = {
+    "   a: {
+    "     gy: 'ぎゃ',
+    "     '': 'あ',
+    "   }
+    " }
+
+    let preceding_keys = slice(key, 0, -1)
+    let start_key = slice(key, 0, 1)
+    let end_key = slice(key, -1)
+
+    let s:start_keys[start_key] = 1
+    if !has_key(s:end_keys, end_key)
+      let s:end_keys[end_key] = {}
     endif
-    let s:kana_table[key_last][key_except_last] = val
-    let map_targets[key_last] = 1
-    let start_targets[slice(key, 0, 1)] = 1
+    let s:end_keys[end_key][preceding_keys] = val
   endfor
 
-  for key in keys(start_targets)
+  for key in keys(s:start_keys)
     execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point('%s')", key, key)
     execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point('%s')", substitute(key, '.', '\U\0', ''), key)
   endfor
-  for key in keys(map_targets)
+  for key in keys(s:end_keys)
     let capital_key = substitute(key, '.', '\U\0', '')
-    if has_key(start_targets, key)
+    if has_key(s:start_keys, key)
       execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point(<sid>lang_map('%s'))", key, key)
       execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", capital_key, key)
     else
@@ -90,7 +124,7 @@ endfunction
 function! s:lang_map(char) abort
   let idx = charcol('.') - 2
   let chars = split(getline('.'), '\zs')
-  let table = get(s:kana_table, a:char, {})
+  let table = get(s:end_keys, a:char, {})
 
   if idx < 0 || len(chars) == 0 || !s:is_before_start_point()
     return get(table, '', a:char)
