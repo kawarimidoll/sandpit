@@ -6,12 +6,24 @@ function! skk#is_enable() abort
 endfunction
 
 function! skk#enable() abort
+  if exists('#User#SkkEnablePre')
+    doautocmd User SkkEnablePre
+  endif
   set iminsert=1
   call s:set_start_point()
+  if exists('#User#SkkEnablePost')
+    doautocmd User SkkEnablePost
+  endif
   return "\<c-^>"
 endfunction
 function! skk#disable() abort
+  if exists('#User#SkkDisablePre')
+    doautocmd User SkkDisablePre
+  endif
   set iminsert=0
+  if exists('#User#SkkDisablePost')
+    doautocmd User SkkDisablePost
+  endif
   return "\<c-^>"
 endfunction
 
@@ -20,6 +32,9 @@ function! skk#toggle() abort
 endfunction
 
 function! skk#initialize(opts = {}) abort
+  if exists('#User#SkkInitializePre')
+    doautocmd User SkkInitializePre
+  endif
   let kana_table_path = get(a:opts, 'kana_table_path', './kana_table.json')
   let jisyo_path_list = get(a:opts, 'jisyo_path_list', [['/usr/share/skk/SKK-JISYO.L', 'euc-jp']])
 
@@ -63,6 +78,9 @@ function! skk#initialize(opts = {}) abort
   endfor
   lnoremap <buffer><script><expr> <space> <sid>henkan(' ')
   lnoremap <buffer><script><expr> <cr> <sid>kakutei("\<cr>")
+  if exists('#User#SkkInitializePost')
+    doautocmd User SkkInitializePost
+  endif
 endfunction
 
 function! s:key_max_length(table) abort
