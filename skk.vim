@@ -16,7 +16,16 @@ function! skk#toggle_iminsert() abort
 endfunction
 
 function! skk#initialize(opts = {}) abort
-  let raw = json_decode(join(readfile(a:opts.json_path), "\n"))
+  let kana_table_path = get(a:opts, 'kana_table_path', './kana_table.json')
+  let jisyo_path_list = get(a:opts, 'jisyo_path_list', [['/usr/share/skk/SKK-JISYO.L', 'euc-jp']])
+
+  " currently, only one jisyo is allowed
+  let s:jisyo_first = {
+        \ 'path': jisyo_path_list[0][0],
+        \ 'encoding': get(jisyo_path_list[0], 1, 'auto')
+        \ }
+
+  let raw = json_decode(join(readfile(kana_table_path), "\n"))
   let s:kana_table = {}
 
   " use dictionary to unique keys
@@ -85,8 +94,11 @@ function! s:lang_map(char) abort
   return repeat("\<bs>", keylen) .. result
 endfunction
 
-call skk#initialize({'json_path': expand('~/dotfiles/kana_table.json')})
-inoremap <expr> <c-j> skk#toggle_iminsert()
+call skk#initialize({
+      \ 'jisyo_path_list': [['/Users/kawarimidoll/.local/share/nvim/plugged/skk-dict/SKK-JISYO.L', 'euc-jp']]
+      \ })
+
+inoremap <expr> <c-j> skk#toggle()
 
 function! s:kata_to_hira(str) abort
   return a:str->substitute('[ァ-ヶ]',
@@ -99,12 +111,7 @@ function! s:hira_to_kata(str) abort
 endfunction
 
 function! s:hira_to_kanji(str) abort
-  let dict_opts = {
-        \ 'path': '/Users/kawarimidoll/.local/share/nvim/plugged/skk-dict/SKK-JISYO.L',
-        \ 'encode': 'euc-jp'
-        \ }
-
-  let cmd = printf("rg --encoding %s '^%s ' %s", dict_opts.encode, a:str, dict_opts.path)
+  let cmd = printf("rg --no-filename --no-line-number --encoding %s '^%s ' %s", s:jisyo_first.encoding, a:str, s:jisyo_first.path)
   let results = systemlist(cmd)
 
   if len(results) == 0
@@ -136,12 +143,7 @@ function! s:hira_to_kanji(str) abort
 endfunction
 
 function! s:kanji_to_hira(str) abort
-  let dict_opts = {
-        \ 'path': '/Users/kawarimidoll/.local/share/nvim/plugged/skk-dict/SKK-JISYO.L',
-        \ 'encode': 'euc-jp'
-        \ }
-
-  let cmd = printf("rg --encoding %s '^[^a-zA-Z]+ .*/%s/' %s", dict_opts.encode, a:str, dict_opts.path)
+  let cmd = printf("rg --no-filename --no-line-number --encoding %s '^[^a-zA-Z]+ .*/%s/' %s", s:jisyo_first.encoding, a:str, s:jisyo_first.path)
   let kana_list = map(copy(systemlist(cmd)), "substitute(v:val, ' .*', '', '')")
 
   if len(kana_list) == 0
