@@ -5,22 +5,45 @@ function! skk#is_enable() abort
   return &iminsert != 0
 endfunction
 
+function! s:capital(char) abort
+  return substitute(a:char, '.', '\U\0', '')
+endfunction
+
 function! skk#enable() abort
   if exists('#User#SkkEnablePre')
     doautocmd User SkkEnablePre
   endif
 
+  " start_keys 入力開始位置を設定する
+  " START_KEYS 入力開始位置を設定する 漢字変換切り替えを行う
+  " end_keys 仮名変換を行う
+  " both 入力開始位置を設定する 仮名変換を行う
+  " BOTH 入力開始位置を設定する 仮名変換を行う 漢字変換切り替えを行う
+  "
+  " start_keys = {
+  "   g: 1,
+  "   a: 1
+  " },
+  " end_keys = {
+  "   a: {
+  "     gy: 'ぎゃ',
+  "     '': 'あ',
+  "   }
+  " }
+
+  let cmd_prefix = 'lnoremap <buffer><script><expr>'
   for key in keys(s:start_keys)
-    execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point('%s')", key, key)
-    execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point('%s')", substitute(key, '.', '\U\0', ''), key)
+    execute cmd_prefix key printf("<sid>set_start_point('%s')", key)
+    execute cmd_prefix s:capital(key) printf("<sid>set_henkan_start_point('%s')", key)
   endfor
+
   for key in keys(s:end_keys)
-    let capital_key = substitute(key, '.', '\U\0', '')
+    let capital_key = s:capital(key)
     if has_key(s:start_keys, key)
-      execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point(<sid>lang_map('%s'))", key, key)
-      execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", capital_key, key)
+      execute cmd_prefix key printf("<sid>set_start_point(<sid>lang_map('%s'))", key)
+      execute cmd_prefix capital_key printf("<sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", key)
     else
-      execute printf("lnoremap <buffer><script><expr> %s <sid>lang_map('%s')", key, key)
+      execute cmd_prefix key printf("<sid>lang_map('%s')", key)
     endif
   endfor
   lnoremap <buffer><script><expr> <space> <sid>henkan(' ')
