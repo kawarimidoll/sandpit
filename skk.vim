@@ -33,17 +33,17 @@ function! skk#enable() abort
 
   let cmd_prefix = 'lnoremap <buffer><script><expr>'
   for key in keys(s:start_keys)
-    execute cmd_prefix key printf("<sid>set_start_point('%s')", key)
-    execute cmd_prefix s:capital(key) printf("<sid>set_henkan_start_point('%s')", key)
+    execute cmd_prefix key $"<sid>set_start_point('{key}')"
+    execute cmd_prefix s:capital(key) $"<sid>set_henkan_start_point('{key}')"
   endfor
 
   for key in keys(s:end_keys)
     let capital_key = s:capital(key)
     if has_key(s:start_keys, key)
-      execute cmd_prefix key printf("<sid>set_start_point(<sid>lang_map('%s'))", key)
-      execute cmd_prefix capital_key printf("<sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", key)
+      execute cmd_prefix key $"<sid>set_start_point(<sid>kana_conv('{key}'))"
+      execute cmd_prefix capital_key $"<sid>set_henkan_start_point(<sid>set_start_point(<sid>kana_conv('{key}')))"
     else
-      execute cmd_prefix key printf("<sid>lang_map('%s')", key)
+      execute cmd_prefix key $"<sid>kana_conv('{key}')"
     endif
   endfor
   lnoremap <buffer><script><expr> <space> <sid>henkan(' ')
@@ -145,7 +145,7 @@ function! s:key_max_length(table) abort
   return max(map(keys(a:table), 'strlen(v:val)'))
 endfunction
 
-function! s:lang_map(char) abort
+function! s:kana_conv(char) abort
   let idx = charcol('.') - 2
   let chars = split(getline('.'), '\zs')
   let table = get(s:end_keys, a:char, {})
