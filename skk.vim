@@ -88,23 +88,13 @@ call skk#initialize({'json_path': expand('~/dotfiles/kana_table.json')})
 inoremap <expr> <c-j> skk#toggle_iminsert()
 
 function! s:kata_to_hira(str) abort
-  let chars = split(a:str, '\zs')
-  let result = ''
-  for c in chars
-    let code = char2nr(c, v:true)
-    let result ..= (0x30A1 <= code && code <= 0x30F6) ? nr2char(code - 0x60, v:true) : c
-  endfor
-  return result
+  return a:str->substitute('[ァ-ヶ]',
+        \ '\=nr2char(char2nr(submatch(0), v:true) - 96, v:true)', 'g')
 endfunction
 
 function! s:hira_to_kata(str) abort
-  let chars = split(a:str, '\zs')
-  let result = ''
-  for c in chars
-    let code = char2nr(c, v:true)
-    let result ..= (0x3041 <= code && code <= 0x3096) ? nr2char(code + 0x60, v:true) : c
-  endfor
-  return result
+  return a:str->substitute('[ぁ-ゖ]',
+        \ '\=nr2char(char2nr(submatch(0), v:true) + 96, v:true)', 'g')
 endfunction
 
 function! s:hira_to_kanji(str) abort
