@@ -9,8 +9,25 @@ function! skk#enable() abort
   if exists('#User#SkkEnablePre')
     doautocmd User SkkEnablePre
   endif
+
+  for key in keys(s:start_keys)
+    execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point('%s')", key, key)
+    execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point('%s')", substitute(key, '.', '\U\0', ''), key)
+  endfor
+  for key in keys(s:end_keys)
+    let capital_key = substitute(key, '.', '\U\0', '')
+    if has_key(s:start_keys, key)
+      execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point(<sid>lang_map('%s'))", key, key)
+      execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", capital_key, key)
+    else
+      execute printf("lnoremap <buffer><script><expr> %s <sid>lang_map('%s')", key, key)
+    endif
+  endfor
+  lnoremap <buffer><script><expr> <space> <sid>henkan(' ')
+  lnoremap <buffer><script><expr> <cr> <sid>kakutei("\<cr>")
+
   set iminsert=1
-  call s:set_start_point()
+  " call s:set_start_point()
   if exists('#User#SkkEnablePost')
     doautocmd User SkkEnablePost
   endif
@@ -96,22 +113,6 @@ function! skk#initialize(opts = {}) abort
     let s:end_keys[end_key][preceding_keys] = val
   endfor
 
-  for key in keys(s:start_keys)
-    execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point('%s')", key, key)
-    execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point('%s')", substitute(key, '.', '\U\0', ''), key)
-  endfor
-  for key in keys(s:end_keys)
-    let capital_key = substitute(key, '.', '\U\0', '')
-    if has_key(s:start_keys, key)
-      execute printf("lnoremap <buffer><script><expr> %s <sid>set_start_point(<sid>lang_map('%s'))", key, key)
-      execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point(<sid>set_start_point(<sid>lang_map('%s')))", capital_key, key)
-    else
-      execute printf("lnoremap <buffer><script><expr> %s <sid>lang_map('%s')", key, key)
-      execute printf("lnoremap <buffer><script><expr> %s <sid>set_henkan_start_point(<sid>lang_map('%s'))", capital_key, key)
-    endif
-  endfor
-  lnoremap <buffer><script><expr> <space> <sid>henkan(' ')
-  lnoremap <buffer><script><expr> <cr> <sid>kakutei("\<cr>")
   if exists('#User#SkkInitializePost')
     doautocmd User SkkInitializePost
   endif
@@ -321,6 +322,6 @@ xnoremap <expr> skj skk#operator_to_kanji()
 
 augroup skk
   autocmd!
-  autocmd InsertEnter * if skk#is_enable() | call s:set_start_point() | endif
-  autocmd InsertLeave,CmdlineLeave * set iminsert=0
+  " autocmd InsertEnter * if skk#is_enable() | call s:set_start_point() | endif
+  autocmd InsertLeave * call skk#disable()
 augroup END
