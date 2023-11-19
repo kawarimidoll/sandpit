@@ -5,14 +5,18 @@ function! skk#is_enable() abort
   return &iminsert != 0
 endfunction
 
-function! skk#toggle_iminsert() abort
-  if skk#is_enable()
-    set iminsert=0
-  else
-    set iminsert=1
-    call s:set_start_point()
-  endif
+function! skk#enable() abort
+  set iminsert=1
+  call s:set_start_point()
   return "\<c-^>"
+endfunction
+function! skk#disable() abort
+  set iminsert=0
+  return "\<c-^>"
+endfunction
+
+function! skk#toggle() abort
+  return skk#is_enable() ? skk#disable() : skk#enable()
 endfunction
 
 function! skk#initialize(opts = {}) abort
