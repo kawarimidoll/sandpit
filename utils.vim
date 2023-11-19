@@ -3,7 +3,7 @@
 " left < right -> 1
 " left = right -> 0
 " left > right -> -1
-function! utils#compare_pos(left, right) abort
+function! s:compare_pos(left, right) abort
   return a:left[0] < a:right[0] ? 1
         \ : a:left[0] > a:right[0] ? -1
         \ : a:left[1] == a:right[1] ? 0
@@ -11,12 +11,12 @@ function! utils#compare_pos(left, right) abort
         \ : -1
 endfunction
 
-function! utils#getcharpos(pos = '.') abort
+function! s:getcharpos(pos = '.') abort
   return getcharpos(a:pos)[1:2]
 endfunction
 
-function! utils#get_string(from, to, auto_swap = v:false) abort
-  let compared = utils#compare_pos(a:from, a:to)
+function! s:get_string(from, to, auto_swap = v:false) abort
+  let compared = s:compare_pos(a:from, a:to)
   if compared == 0 || (compared < 0 && !a:auto_swap)
     return ''
   endif
@@ -29,4 +29,10 @@ function! utils#get_string(from, to, auto_swap = v:false) abort
   return join(lines, "\n")
 endfunction
 
-" xnoremap sp <cmd>echo utils#get_string(utils#getcharpos("v"), utils#getcharpos("."), v:true)<cr>
+xnoremap <script> sp <cmd>echo <sid>get_string(<sid>getcharpos("v"), <sid>getcharpos("."), v:true)<cr>
+
+" export
+let utils#export = {}
+let utils#export.compare_pos = function('s:compare_pos')
+let utils#export.getcharpos = function('s:getcharpos')
+let utils#export.get_string = function('s:get_string')

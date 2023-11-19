@@ -1,4 +1,5 @@
 source ./utils.vim
+let s:utils = utils#export
 
 function! skk#is_enable() abort
   return &iminsert != 0
@@ -203,16 +204,16 @@ endfunction
 
 let s:start_point = [0, 0]
 function! s:set_start_point(char = '') abort
-  let s:start_point = utils#getcharpos()
+  let s:start_point = s:utils.getcharpos()
   return a:char
 endfunction
 function! s:is_before_start_point() abort
-  return utils#compare_pos(s:start_point, utils#getcharpos()) > 0
+  return s:utils.compare_pos(s:start_point, s:utils.getcharpos()) > 0
 endfunction
 
 let s:henkan_point = []
 function! s:set_henkan_start_point(char = '') abort
-  let s:henkan_point = utils#getcharpos()
+  let s:henkan_point = s:utils.getcharpos()
   echo s:start_point
   return a:char
 endfunction
@@ -222,7 +223,7 @@ function! s:henkan(fallback) abort
     return a:fallback
   endif
 
-  let current_point = utils#getcharpos()
+  let current_point = s:utils.getcharpos()
   let line_chars = split(getline('.'), '\zs')
   let src_chars = line_chars[s:henkan_point[1]-1 : current_point[1]-1]
   let src_str = join(src_chars, '')
