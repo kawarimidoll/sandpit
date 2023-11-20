@@ -145,8 +145,8 @@ function! s:to_kanji(str) abort
   let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
   let results = systemlist(cmd)
 
-  if len(results) == 0
-    echomsg 'No Kanji'
+  if empty(results)
+    echomsg 'okuri-nashi: No Kanji'
     return ''
   endif
 
