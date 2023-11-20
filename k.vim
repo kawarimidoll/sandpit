@@ -32,7 +32,15 @@ function! k#enable() abort
     endif
     execute $"inoremap <expr> {k} k#ins('{k}')"
     if k =~ '\l'
-      execute $"inoremap <expr> {s:capital(k)} k#ins('{k}',1)"
+      let ck = s:capital(k)
+      execute $"inoremap <expr> {ck} k#ins('{k}',1)"
+
+      let current_map = maparg(ck, 'i', 0, 1)
+      if empty(current_map)
+        call add(s:keys_to_unmaps, ck)
+      else
+        call add(s:keys_to_remaps, current_map)
+      endif
     endif
   endfor
 
