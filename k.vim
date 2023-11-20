@@ -1,3 +1,10 @@
+function! s:capital(char) abort
+  return substitute(a:char, '.', '\U\0', '')
+endfunction
+function! s:is_capital(char) abort
+  return '[A-Z]' =~# a:char
+endfunction
+
 let s:kana_start_pos = [0, 0]
 
 let s:is_enable = v:false
@@ -9,6 +16,10 @@ function! k#is_enable() abort
 endfunction
 
 function! k#enable() abort
+  if s:is_enable
+    return ''
+  endif
+
   let s:keys_to_remaps = []
   let s:keys_to_unmaps = []
 
@@ -20,7 +31,15 @@ function! k#enable() abort
       call add(s:keys_to_remaps, current_map)
     endif
     execute $"inoremap <expr> {k} k#ins('{k}')"
+    if k =~ '\l'
+      execute $"inoremap <expr> {s:capital(k)} k#ins('{k}',1)"
+    endif
   endfor
+
+  inoremap <expr> <space> k#henkan(" ")
+  call add(s:keys_to_unmaps, "<space>")
+  inoremap <expr> <cr> k#kakutei("\n")
+  call add(s:keys_to_unmaps, "<cr>")
 
   let s:is_enable = v:true
   return ''
@@ -68,10 +87,16 @@ function! k#initialize() abort
   endfor
 endfunction
 
-function! k#ins(key) abort
+let s:henkan_start_pos = [0, 0]
+
+function! k#ins(key, henkan = v:false) abort
   let current_pos = getcharpos('.')[1:2]
   if s:kana_start_pos[0] != current_pos[0] || s:kana_start_pos[1] > current_pos[1]
     let s:kana_start_pos = current_pos
+  endif
+
+  if a:henkan
+    let s:henkan_start_pos = current_pos
   endif
 
   let kana_dict = get(s:end_keys, a:key, {})
@@ -89,6 +114,29 @@ function! k#ins(key) abort
   endif
 
   return get(kana_dict, '', a:key)
+endfunction
+
+function! k#henkan(fallback_key) abort
+  let current_pos = getcharpos('.')[1:2]
+  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    return a:fallback_key
+  endif
+
+  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+  echomsg preceding_str
+
+  let s:henkan_start_pos = [0, 0]
+  return ''
+endfunction
+
+function! k#kakutei(fallback_key) abort
+  let current_pos = getcharpos('.')[1:2]
+  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    return a:fallback_key
+  endif
+
+  let s:henkan_start_pos = [0, 0]
+  return ''
 endfunction
 
 augroup k_augroup
