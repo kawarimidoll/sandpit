@@ -163,27 +163,64 @@ function! s:to_kanji(str) abort
   return substitute(selected, ';.*', '', '')
 endfunction
 
-" echomsg s:to_kanji('にほんご')
-" " -> 日本語
-" echomsg s:to_kanji('かk')
-" " -> 書chomsg s:to_kanji('かk')
+function! k#get_henkan_list(str) abort
+  let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
+  let results = systemlist(cmd)
+
+  let kanji_list = []
+  for r in results
+    let tmp = split(r, '/')
+    call extend(kanji_list, tmp[1:])
+  endfor
+
+  return kanji_list
+endfunction
+
+function! k#completefunc()
+  " 補完の始点のcol
+  let preceding_str = getline('.')->slice(0, s:henkan_start_pos[1]-1)
+  echomsg 'completefunc preceding_str' preceding_str
+  let start_col = strlen(preceding_str)+1
+
+  let comp_list = []
+  " for k in k#get_henkan_list(a:base)
+  for k in s:latest_kanji_list
+    " ;があってもなくても良いよう_restを使う
+    let [word, info; _rest] = split(k, ';') + ['']
+    " :h complete-items
+    call add(comp_list, {
+          \ 'word': word,
+          \ 'menu': info,
+          \ 'info': info
+          \ })
+  endfor
+
+  call complete(start_col, comp_list)
+
+  return ''
+endfunction
 
 function! k#henkan(fallback_key) abort
+  if pumvisible()
+    return "\<c-n>"
+  endif
+
   let current_pos = getcharpos('.')[1:2]
   if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
     return a:fallback_key
   endif
 
   let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+        \->substitute("n$", "ん", "")
   echomsg preceding_str
 
-  let converted = s:to_kanji(preceding_str)
-  if converted ==# ''
+  let s:latest_kanji_list = k#get_henkan_list(preceding_str)
+  if empty(s:latest_kanji_list)
+    echomsg 'No Kanji'
     return ''
   endif
 
-  let s:henkan_start_pos = [0, 0]
-  return repeat("\<bs>", strcharlen(preceding_str)) .. converted
+  return "\<c-r>=k#completefunc()\<cr>\<c-n>"
 endfunction
 
 function! k#kakutei(fallback_key) abort
@@ -199,6 +236,9 @@ endfunction
 augroup k_augroup
   autocmd!
   autocmd InsertLeave * call k#disable()
+  autocmd CompleteDonePre * if get(complete_info(), 'selected', -1) >= 0
+        \ |   let s:henkan_start_pos = [0, 0]
+        \ | endif
 augroup END
 
 call k#initialize()
