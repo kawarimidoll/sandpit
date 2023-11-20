@@ -108,15 +108,15 @@ function! k#ins(key, henkan = v:false) abort
       let s:henkan_start_pos = current_pos
     else
       let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
-      echomsg preceding_str .. a:key
+      echomsg 'okuri-ari:' preceding_str .. a:key
 
-      let converted = s:to_kanji(preceding_str .. a:key)
-      if converted ==# ''
+      let s:latest_kanji_list = k#get_henkan_list(preceding_str .. a:key)
+      if empty(s:latest_kanji_list)
+        echomsg 'okuri-ari: No Kanji'
         return get(kana_dict, '', a:key)
       endif
 
-      let s:henkan_start_pos = [0, 0]
-      return repeat("\<bs>", strcharlen(preceding_str)) .. converted .. get(kana_dict, '', a:key)
+      return $"\<c-r>=k#completefunc('{a:key}')\<cr>\<c-n>"
     endif
   endif
 
@@ -175,7 +175,7 @@ function! k#get_henkan_list(str) abort
   return kanji_list
 endfunction
 
-function! k#completefunc()
+function! k#completefunc(suffix_key = '')
   " 補完の始点のcol
   let preceding_str = getline('.')->slice(0, s:henkan_start_pos[1]-1)
   echomsg 'completefunc preceding_str' preceding_str
@@ -188,7 +188,7 @@ function! k#completefunc()
     let [word, info; _rest] = split(k, ';') + ['']
     " :h complete-items
     call add(comp_list, {
-          \ 'word': word,
+          \ 'word': word .. a:suffix_key,
           \ 'menu': info,
           \ 'info': info
           \ })
