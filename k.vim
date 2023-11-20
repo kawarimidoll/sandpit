@@ -95,16 +95,24 @@ function! k#ins(key, henkan = v:false) abort
     let s:kana_start_pos = current_pos
   endif
 
+  let kana_dict = get(s:end_keys, a:key, {})
   if a:henkan
     if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
       let s:henkan_start_pos = current_pos
     else
       let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
       echomsg preceding_str .. a:key
+
+      let converted = s:to_kanji(preceding_str .. a:key)
+      if converted ==# ''
+        return get(kana_dict, '', a:key)
+      endif
+
+      let s:henkan_start_pos = [0, 0]
+      return repeat("\<bs>", strcharlen(preceding_str)) .. converted .. get(kana_dict, '', a:key)
     endif
   endif
 
-  let kana_dict = get(s:end_keys, a:key, {})
   if !empty(kana_dict)
     let preceding_str = getline('.')->slice(s:kana_start_pos[1]-1, charcol('.')-1)
 
@@ -161,8 +169,13 @@ function! k#henkan(fallback_key) abort
   let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
   echomsg preceding_str
 
+  let converted = s:to_kanji(preceding_str)
+  if converted ==# ''
+    return ''
+  endif
+
   let s:henkan_start_pos = [0, 0]
-  return ''
+  return repeat("\<bs>", strcharlen(preceding_str)) .. converted
 endfunction
 
 function! k#kakutei(fallback_key) abort
