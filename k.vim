@@ -96,7 +96,12 @@ function! k#ins(key, henkan = v:false) abort
   endif
 
   if a:henkan
-    let s:henkan_start_pos = current_pos
+    if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+      let s:henkan_start_pos = current_pos
+    else
+      let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+      echomsg preceding_str .. a:key
+    endif
   endif
 
   let kana_dict = get(s:end_keys, a:key, {})
