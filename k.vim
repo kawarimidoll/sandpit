@@ -192,8 +192,8 @@ function! s:get_insert_spec(key, henkan = v:false) abort
       let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
       echomsg 'okuri-ari:' preceding_str .. a:key
 
-      let s:latest_kanji_list = k#get_henkan_list(preceding_str .. a:key)
-      if empty(s:latest_kanji_list)
+      let s:latest_henkan_list = k#get_henkan_list(preceding_str .. a:key)
+      if empty(s:latest_henkan_list)
         echomsg 'okuri-ari: No Kanji'
         return get(kana_dict, '', a:key)
       endif
@@ -233,13 +233,13 @@ function! k#get_henkan_list(str) abort
   let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
   let results = systemlist(cmd)
 
-  let kanji_list = []
+  let henkan_list = []
   for r in results
     let tmp = split(r, '/')
-    call extend(kanji_list, tmp[1:])
+    call extend(henkan_list, tmp[1:])
   endfor
 
-  return kanji_list
+  return henkan_list
 endfunction
 
 function! k#completefunc(suffix_key = '')
@@ -249,7 +249,7 @@ function! k#completefunc(suffix_key = '')
   let start_col = s:char_col_to_byte_col(lnum, char_col)
 
   let comp_list = []
-  for k in s:latest_kanji_list
+  for k in s:latest_henkan_list
     " ;があってもなくても良いよう_restを使う
     let [word, info; _rest] = split(k, ';') + ['']
     " :h complete-items
@@ -326,8 +326,8 @@ function! k#henkan(fallback_key) abort
         \->substitute("n$", "ん", "")
   echomsg preceding_str
 
-  let s:latest_kanji_list = k#get_henkan_list(preceding_str)
-  if empty(s:latest_kanji_list)
+  let s:latest_henkan_list = k#get_henkan_list(preceding_str)
+  if empty(s:latest_henkan_list)
     echomsg 'No Kanji'
     return ''
   endif
