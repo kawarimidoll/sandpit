@@ -116,7 +116,7 @@ function! k#ins(key, henkan = v:false) abort
         return get(kana_dict, '', a:key)
       endif
 
-      return $"\<c-r>=k#completefunc('{a:key}')\<cr>\<c-n>"
+      return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>\<c-n>"
     endif
   endif
 
