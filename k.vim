@@ -53,6 +53,10 @@ function! k#enable() abort
   inoremap <expr> <cr> k#kakutei("\n")
   call add(s:keys_to_unmaps, "<cr>")
 
+  inoremap <expr> q k#zen_kata('q')
+  call add(s:keys_to_unmaps, 'q')
+
+  call s:set_inner_mode('hira')
   let s:is_enable = v:true
   return ''
 endfunction
@@ -102,7 +106,40 @@ endfunction
 
 let s:henkan_start_pos = [0, 0]
 
+" hira / zen_kata / han_kata / abbrev
+let s:inner_mode = 'hira'
+
+function! s:set_inner_mode(mode) abort
+  let s:inner_mode = a:mode
+endfunction
+function! s:toggle_inner_mode(mode) abort
+  call s:set_inner_mode(s:inner_mode == 'hira' ? a:mode : 'hira')
+endfunction
+
+function! k#zen_kata(...) abort
+  let current_pos = getcharpos('.')[1:2]
+  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    call s:toggle_inner_mode('zen_kata')
+    return ''
+  endif
+
+  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+        \->substitute("n$", "ん", "")
+  call s:clear_henkan_start_pos()
+  return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_kata(preceding_str)
+endfunction
+
 function! k#ins(key, henkan = v:false) abort
+  let char = s:get_insert_char(a:key, a:henkan)
+  if s:inner_mode == 'zen_kata'
+    return s:hira_to_kata(char)
+  endif
+
+  " TODO: implement other modes
+  return char
+endfunction
+
+function! s:get_insert_char(key, henkan = v:false) abort
   let current_pos = getcharpos('.')[1:2]
   if s:kana_start_pos[0] != current_pos[0] || s:kana_start_pos[1] > current_pos[1]
     let s:kana_start_pos = current_pos
@@ -181,6 +218,16 @@ function! k#completefunc(suffix_key = '')
   call complete(start_col, comp_list)
 
   return ''
+endfunction
+
+function! s:kata_to_hira(str) abort
+  return a:str->substitute('[ァ-ヶ]',
+        \ '\=nr2char(char2nr(submatch(0), v:true) - 96, v:true)', 'g')
+endfunction
+
+function! s:hira_to_kata(str) abort
+  return a:str->substitute('[ぁ-ゖ]',
+        \ '\=nr2char(char2nr(submatch(0), v:true) + 96, v:true)', 'g')
 endfunction
 
 function! s:char_col_to_byte_col(lnum, char_col) abort
