@@ -113,7 +113,7 @@ function! s:set_inner_mode(mode) abort
   let s:inner_mode = a:mode
 endfunction
 function! s:toggle_inner_mode(mode) abort
-  call s:set_inner_mode(s:inner_mode == 'hira' ? a:mode : 'hira')
+  call s:set_inner_mode(s:inner_mode == a:mode ? 'hira' : a:mode)
 endfunction
 
 function! k#zen_kata(...) abort
