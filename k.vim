@@ -1,3 +1,5 @@
+source ./inline_mark.vim
+
 function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
 endfunction
@@ -10,6 +12,9 @@ let s:kana_start_pos = [0, 0]
 let s:is_enable = v:false
 let s:keys_to_remaps = []
 let s:keys_to_unmaps = []
+
+let s:henkan_marker = "▽"
+let s:select_marker = "▼"
 
 function! k#is_enable() abort
   return s:is_enable
@@ -53,6 +58,7 @@ function! k#enable() abort
 endfunction
 
 function! k#disable() abort
+  call inline_mark#clear()
   if !s:is_enable
     return ''
   endif
@@ -105,7 +111,7 @@ function! k#ins(key, henkan = v:false) abort
   let kana_dict = get(s:end_keys, a:key, {})
   if a:henkan
     if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
-      let s:henkan_start_pos = current_pos
+      call s:set_henkan_start_pos(current_pos)
     else
       let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
       echomsg 'okuri-ari:' preceding_str .. a:key
@@ -155,13 +161,12 @@ function! k#get_henkan_list(str) abort
 endfunction
 
 function! k#completefunc(suffix_key = '')
+  call s:set_henkan_select_mark()
   " 補完の始点のcol
-  let preceding_str = getline('.')->slice(0, s:henkan_start_pos[1]-1)
-  echomsg 'completefunc preceding_str' preceding_str
-  let start_col = strlen(preceding_str)+1
+  let [lnum, char_col] = s:henkan_start_pos
+  let start_col = s:char_col_to_byte_col(lnum, char_col)
 
   let comp_list = []
-  " for k in k#get_henkan_list(a:base)
   for k in s:latest_kanji_list
     " ;があってもなくても良いよう_restを使う
     let [word, info; _rest] = split(k, ';') + ['']
@@ -176,6 +181,30 @@ function! k#completefunc(suffix_key = '')
   call complete(start_col, comp_list)
 
   return ''
+endfunction
+
+function! s:char_col_to_byte_col(lnum, char_col) abort
+  return getline(a:lnum)->slice(0, a:char_col-1)->strlen()+1
+endfunction
+
+function! s:set_henkan_start_pos(pos) abort
+  let s:henkan_start_pos = a:pos
+
+  let [lnum, char_col] = s:henkan_start_pos
+  let byte_col = s:char_col_to_byte_col(lnum, char_col)
+  call inline_mark#display(lnum, byte_col, s:henkan_marker)
+endfunction
+
+function! s:set_henkan_select_mark() abort
+  call inline_mark#clear()
+  let [lnum, char_col] = s:henkan_start_pos
+  let byte_col = s:char_col_to_byte_col(lnum, char_col)
+  call inline_mark#display(lnum, byte_col, s:select_marker)
+endfunction
+
+function! s:clear_henkan_start_pos() abort
+  let s:henkan_start_pos = [0, 0]
+  call inline_mark#clear()
 endfunction
 
 function! k#henkan(fallback_key) abort
@@ -207,7 +236,7 @@ function! k#kakutei(fallback_key) abort
     return a:fallback_key
   endif
 
-  let s:henkan_start_pos = [0, 0]
+  call s:clear_henkan_start_pos()
   return ''
 endfunction
 
@@ -215,7 +244,7 @@ augroup k_augroup
   autocmd!
   autocmd InsertLeave * call k#disable()
   autocmd CompleteDonePre * if get(complete_info(), 'selected', -1) >= 0
-        \ |   let s:henkan_start_pos = [0, 0]
+        \ |   call s:clear_henkan_start_pos()
         \ | endif
 augroup END
 
