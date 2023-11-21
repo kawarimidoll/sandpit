@@ -79,36 +79,9 @@ function! k#toggle() abort
   return k#is_enable() ? k#disable() : k#enable()
 endfunction
 
+" e.g. <space> -> \<space>
 function! s:trans_special_key(str) abort
-  return a:str->substitute('<space>', "\<space>", 'g')
-        \ ->substitute('<s-space>', "\<s-space>", 'g')
-        \ ->substitute('<cr>', "\<cr>", 'g')
-        \ ->substitute('<bs>', "\<bs>", 'g')
-        \ ->substitute('<c-a>', "\<c-a>", 'g')
-        \ ->substitute('<c-b>', "\<c-b>", 'g')
-        \ ->substitute('<c-d>', "\<c-d>", 'g')
-        \ ->substitute('<c-e>', "\<c-e>", 'g')
-        \ ->substitute('<c-f>', "\<c-f>", 'g')
-        \ ->substitute('<c-g>', "\<c-g>", 'g')
-        \ ->substitute('<c-h>', "\<c-h>", 'g')
-        \ ->substitute('<c-i>', "\<c-i>", 'g')
-        \ ->substitute('<c-j>', "\<c-j>", 'g')
-        \ ->substitute('<c-k>', "\<c-k>", 'g')
-        \ ->substitute('<c-l>', "\<c-l>", 'g')
-        \ ->substitute('<c-m>', "\<c-m>", 'g')
-        \ ->substitute('<c-n>', "\<c-n>", 'g')
-        \ ->substitute('<c-o>', "\<c-o>", 'g')
-        \ ->substitute('<c-p>', "\<c-p>", 'g')
-        \ ->substitute('<c-q>', "\<c-q>", 'g')
-        \ ->substitute('<c-r>', "\<c-r>", 'g')
-        \ ->substitute('<c-s>', "\<c-s>", 'g')
-        \ ->substitute('<c-t>', "\<c-t>", 'g')
-        \ ->substitute('<c-u>', "\<c-u>", 'g')
-        \ ->substitute('<c-v>', "\<c-v>", 'g')
-        \ ->substitute('<c-w>', "\<c-w>", 'g')
-        \ ->substitute('<c-x>', "\<c-x>", 'g')
-        \ ->substitute('<c-y>', "\<c-y>", 'g')
-        \ ->substitute('<c-z>', "\<c-z>", 'g')
+  return substitute(a:str, '<[^>]*>', {m -> eval($'"\{m[0]}"')}, 'g')
 endfunction
 
 function! k#initialize() abort
