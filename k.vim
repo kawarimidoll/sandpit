@@ -228,13 +228,34 @@ function! k#completefunc(suffix_key = '')
 endfunction
 
 function! s:kata_to_hira(str) abort
-  return a:str->substitute('[ァ-ヶ]',
-        \ '\=nr2char(char2nr(submatch(0), v:true) - 96, v:true)', 'g')
+  return a:str->substitute('[ァ-ヶ]', {m->nr2char(char2nr(m[0], v:true) - 96, v:true)}, 'g')
 endfunction
 
 function! s:hira_to_kata(str) abort
-  return a:str->substitute('[ぁ-ゖ]',
-        \ '\=nr2char(char2nr(submatch(0), v:true) + 96, v:true)', 'g')
+  return a:str->substitute('[ぁ-ゖ]', {m->nr2char(char2nr(m[0], v:true) + 96, v:true)}, 'g')
+endfunction
+
+" たまにsplit文字列の描画がおかしくなるので注意
+let s:hankana_list = ('ｧｱｨｲｩｳｪｴｫｵｶｶﾞｷｷﾞｸｸﾞｹｹﾞｺｺﾞ'
+      \ .. 'ｻｻﾞｼｼﾞｽｽﾞｾｾﾞｿｿﾞﾀﾀﾞﾁﾁﾞｯﾂﾂﾞﾃﾃﾞﾄﾄﾞ'
+      \ .. 'ﾅﾆﾇﾈﾉﾊﾊﾞﾊﾟﾋﾋﾞﾋﾟﾌﾌﾞﾌﾟﾍﾍﾞﾍﾟﾎﾎﾞﾎﾟ'
+      \ .. 'ﾏﾐﾑﾒﾓｬﾔｭﾕｮﾖﾗﾘﾙﾚﾛﾜﾜｲｴｦﾝｳﾞｰｶｹ')
+      \ ->split('.[ﾞﾟ]\?\zs')
+let s:zen_kata_origin = char2nr('ァ', v:true)
+let s:griph_map = {
+      \ 'ー': '-',
+      \ '〜': '~',
+      \ '、': '､',
+      \ '。': '｡',
+      \ '「': '｢',
+      \ '」': '｣',
+      \ '・': '･'
+      \ }
+
+function! s:zen_kata_to_han_kata(str) abort
+  return a:str->substitute('.', {m->get(s:griph_map,m[0],m[0])}, 'g')
+        \ ->substitute('[ァ-ヶ]', {m->get(s:hankana_list, char2nr(m[0], v:true) - s:zen_kata_origin, m[0])}, 'g')
+        \ ->substitute('[！-～]', {m->nr2char(char2nr(m[0], v:true) - 65248, v:true)}, 'g')
 endfunction
 
 function! s:char_col_to_byte_col(lnum, char_col) abort
