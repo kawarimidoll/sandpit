@@ -18,16 +18,16 @@ if has('nvim')
     let s:ns_id = -1
   endfunction
 
-  function! inline_mark#display(pos, text) abort
+  function! inline_mark#display(lnum, col, text) abort
     if s:ns_id < 0
       let s:ns_id = nvim_create_namespace(s:file_name)
     endif
 
-    let [lnum, col] = a:pos
     " nvim_buf_set_extmarkは0-basedなので、1を引く
-    call nvim_buf_set_extmark(0, s:ns_id, lnum - 1, col - 1, {
+    call nvim_buf_set_extmark(0, s:ns_id, a:lnum - 1, a:col - 1, {
           \   'virt_text': [[a:text, s:hl]],
           \   'virt_text_pos': 'inline',
+          \   'right_gravity': v:false
           \ })
   endfunction
 else
@@ -35,13 +35,12 @@ else
     call prop_type_delete(s:file_name, {})
   endfunction
 
-  function! inline_mark#display(pos, text) abort
+  function! inline_mark#display(lnum, col, text) abort
     if empty(prop_type_get(s:file_name))
-      call prop_type_add(s:file_name, {'highlight': s:hl})
+      call prop_type_add(s:file_name, {'highlight': s:hl, 'start_incl':1})
     endif
 
-    let [lnum, col] = a:pos
-    call prop_add(lnum, col, {
+    call prop_add(a:lnum, a:col, {
           \   'type': s:file_name,
           \   'text': a:text,
           \ })
