@@ -344,7 +344,7 @@ function! k#kakutei(fallback_key) abort
   endif
 
   call s:clear_henkan_start_pos()
-  return ''
+  return pumvisible() ? "\<c-y>" : ''
 endfunction
 
 augroup k_augroup
