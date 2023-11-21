@@ -129,17 +129,49 @@ function! k#zen_kata(...) abort
   return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_kata(preceding_str)
 endfunction
 
+function! k#han_kata(...) abort
+  let current_pos = getcharpos('.')[1:2]
+  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    call s:toggle_inner_mode('han_kata')
+    return ''
+  endif
+
+  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+        \->substitute("n$", "ん", "")
+  call s:clear_henkan_start_pos()
+  return repeat("\<bs>", strcharlen(preceding_str)) .. s:zen_kata_to_han_kata(s:hira_to_kata(preceding_str))
+endfunction
+
+function! k#dakuten(...) abort
+  let current_pos = getcharpos('.')[1:2]
+  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    call s:toggle_inner_mode('dakuten')
+    return ''
+  endif
+
+  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+        \->substitute("n$", "ん", "")
+  call s:clear_henkan_start_pos()
+  return repeat("\<bs>", strcharlen(preceding_str)) .. substitute(preceding_str, '.\ze', {m -> m[0] .. '゛'}, 'g')
+endfunction
+
 function! k#ins(key, henkan = v:false) abort
   let spec = s:get_insert_spec(a:key, a:henkan)
 
   if type(spec) == v:t_dict
-    return call($'k#{spec.func}', [a:key])
+    return get(spec, 'prefix', '') .. call($'k#{spec.func}', [a:key])
   endif
 
   let char = spec
 
   if s:inner_mode == 'zen_kata'
     return s:hira_to_kata(char)
+  endif
+  if s:inner_mode == 'han_kata'
+    return s:zen_kata_to_han_kata(s:hira_to_kata(char))
+  endif
+  if s:inner_mode == 'dakuten'
+    return char2nr(char, v:true) < 128 ? char : char .. '゛'
   endif
 
   " TODO: implement other modes
@@ -177,7 +209,13 @@ function! s:get_insert_spec(key, henkan = v:false) abort
     while i > 0
       let tail_str = slice(preceding_str, -i)
       if has_key(kana_dict, tail_str)
-        return repeat("\<bs>", i) .. kana_dict[tail_str]
+        if type(kana_dict[tail_str]) == v:t_dict
+          let result = { 'prefix': repeat("\<bs>", i) }
+          call extend(result, kana_dict[tail_str])
+          return result
+        else
+          return repeat("\<bs>", i) .. kana_dict[tail_str]
+        endif
       endif
       let i -= 1
     endwhile
@@ -242,15 +280,7 @@ let s:hankana_list = ('ｧｱｨｲｩｳｪｴｫｵｶｶﾞｷｷﾞｸｸﾞ
       \ .. 'ﾏﾐﾑﾒﾓｬﾔｭﾕｮﾖﾗﾘﾙﾚﾛﾜﾜｲｴｦﾝｳﾞｰｶｹ')
       \ ->split('.[ﾞﾟ]\?\zs')
 let s:zen_kata_origin = char2nr('ァ', v:true)
-let s:griph_map = {
-      \ 'ー': '-',
-      \ '〜': '~',
-      \ '、': '､',
-      \ '。': '｡',
-      \ '「': '｢',
-      \ '」': '｣',
-      \ '・': '･'
-      \ }
+let s:griph_map = { 'ー': '-', '〜': '~', '、': '､', '。': '｡', '「': '｢', '」': '｣', '・': '･' }
 
 function! s:zen_kata_to_han_kata(str) abort
   return a:str->substitute('.', {m->get(s:griph_map,m[0],m[0])}, 'g')
