@@ -141,27 +141,6 @@ let s:jisyo = {
       \ 'encoding': 'euc-jp'
       \ }
 
-function! s:to_kanji(str) abort
-  let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
-  let results = systemlist(cmd)
-
-  if empty(results)
-    echomsg 'okuri-nashi: No Kanji'
-    return ''
-  endif
-
-  let kanji_list = []
-  for r in results
-    let tmp = split(r, '/')
-    call extend(kanji_list, tmp[1:])
-  endfor
-
-  " TODO: create UI to select one
-  let selected = kanji_list[0]
-
-  return substitute(selected, ';.*', '', '')
-endfunction
-
 function! k#get_henkan_list(str) abort
   let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
   let results = systemlist(cmd)
