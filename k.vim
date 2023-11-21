@@ -28,15 +28,16 @@ function! k#enable() abort
   let s:keys_to_remaps = []
   let s:keys_to_unmaps = []
 
-  for k in extendnew(s:start_keys, s:end_keys)->keys()
+  for key in extendnew(s:start_keys, s:end_keys)->keys()
+    let k = keytrans(key)
     let current_map = maparg(k, 'i', 0, 1)
     if empty(current_map)
       call add(s:keys_to_unmaps, k)
     else
       call add(s:keys_to_remaps, current_map)
     endif
-    execute $"inoremap <expr> {k} k#ins('{k}')"
-    if k =~ '\l'
+    execute $"inoremap <expr> {k} k#ins('{key}')"
+    if key =~ '^\l$'
       let ck = s:capital(k)
       let current_map = maparg(ck, 'i', 0, 1)
       if empty(current_map)
@@ -48,13 +49,6 @@ function! k#enable() abort
     endif
   endfor
 
-  inoremap <expr> <space> k#henkan(" ")
-  call add(s:keys_to_unmaps, "<space>")
-  inoremap <expr> <cr> k#kakutei("\n")
-  call add(s:keys_to_unmaps, "<cr>")
-
-  inoremap <expr> q k#zen_kata('q')
-  call add(s:keys_to_unmaps, 'q')
 
   call s:set_inner_mode('hira')
   let s:is_enable = v:true
@@ -85,13 +79,46 @@ function! k#toggle() abort
   return k#is_enable() ? k#disable() : k#enable()
 endfunction
 
+function! s:trans_special_key(str) abort
+  return a:str->substitute('<space>', "\<space>", 'g')
+        \ ->substitute('<s-space>', "\<s-space>", 'g')
+        \ ->substitute('<cr>', "\<cr>", 'g')
+        \ ->substitute('<bs>', "\<bs>", 'g')
+        \ ->substitute('<c-a>', "\<c-a>", 'g')
+        \ ->substitute('<c-b>', "\<c-b>", 'g')
+        \ ->substitute('<c-d>', "\<c-d>", 'g')
+        \ ->substitute('<c-e>', "\<c-e>", 'g')
+        \ ->substitute('<c-f>', "\<c-f>", 'g')
+        \ ->substitute('<c-g>', "\<c-g>", 'g')
+        \ ->substitute('<c-h>', "\<c-h>", 'g')
+        \ ->substitute('<c-i>', "\<c-i>", 'g')
+        \ ->substitute('<c-j>', "\<c-j>", 'g')
+        \ ->substitute('<c-k>', "\<c-k>", 'g')
+        \ ->substitute('<c-l>', "\<c-l>", 'g')
+        \ ->substitute('<c-m>', "\<c-m>", 'g')
+        \ ->substitute('<c-n>', "\<c-n>", 'g')
+        \ ->substitute('<c-o>', "\<c-o>", 'g')
+        \ ->substitute('<c-p>', "\<c-p>", 'g')
+        \ ->substitute('<c-q>', "\<c-q>", 'g')
+        \ ->substitute('<c-r>', "\<c-r>", 'g')
+        \ ->substitute('<c-s>', "\<c-s>", 'g')
+        \ ->substitute('<c-t>', "\<c-t>", 'g')
+        \ ->substitute('<c-u>', "\<c-u>", 'g')
+        \ ->substitute('<c-v>', "\<c-v>", 'g')
+        \ ->substitute('<c-w>', "\<c-w>", 'g')
+        \ ->substitute('<c-x>', "\<c-x>", 'g')
+        \ ->substitute('<c-y>', "\<c-y>", 'g')
+        \ ->substitute('<c-z>', "\<c-z>", 'g')
+endfunction
+
 function! k#initialize() abort
   let raw = json_decode(join(readfile('./kana_table.json'), "\n"))
 
   let s:start_keys = {}
   let s:end_keys = {}
 
-  for [key, val] in items(raw)
+  for [k, val] in items(raw)
+    let key = s:trans_special_key(k)
     let preceding_keys = slice(key, 0, -1)
     let start_key = slice(key, 0, 1)
     let end_key = slice(key, -1)
@@ -130,7 +157,14 @@ function! k#zen_kata(...) abort
 endfunction
 
 function! k#ins(key, henkan = v:false) abort
-  let char = s:get_insert_char(a:key, a:henkan)
+  let spec = s:get_insert_spec(a:key, a:henkan)
+
+  if type(spec) == v:t_dict
+    return call($'k#{spec.func}', [a:key])
+  endif
+
+  let char = spec
+
   if s:inner_mode == 'zen_kata'
     return s:hira_to_kata(char)
   endif
@@ -139,7 +173,7 @@ function! k#ins(key, henkan = v:false) abort
   return char
 endfunction
 
-function! s:get_insert_char(key, henkan = v:false) abort
+function! s:get_insert_spec(key, henkan = v:false) abort
   let current_pos = getcharpos('.')[1:2]
   if s:kana_start_pos[0] != current_pos[0] || s:kana_start_pos[1] > current_pos[1]
     let s:kana_start_pos = current_pos

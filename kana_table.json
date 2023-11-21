@@ -211,5 +211,10 @@
   "!": "！",
   "?": "？",
   "/": "・",
-  "~": "～"
+  "~": "～",
+  "z<space>": "　",
+  "q": { "func": "zen_kata" },
+  "<cr>": { "func": "kakutei" },
+  "<space>": { "func": "henkan" },
+  "<c-q>": { "func": "han_kata" }
 }
