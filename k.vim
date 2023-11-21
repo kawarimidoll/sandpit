@@ -224,19 +224,21 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   return get(kana_dict, '', a:key)
 endfunction
 
-let s:jisyo = {
-      \ 'path': expand('~/.cache/vim/SKK-JISYO.L'),
-      \ 'encoding': 'euc-jp'
-      \ }
+let s:jisyo_list = [
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
+      \ ]
 
 function! k#get_henkan_list(str) abort
-  let cmd = $"rg --no-filename --no-line-number --encoding {s:jisyo.encoding} '^{a:str} ' {s:jisyo.path}"
-  let results = systemlist(cmd)
-
   let henkan_list = []
-  for r in results
-    let tmp = split(r, '/')
-    call extend(henkan_list, tmp[1:])
+  for jisyo in s:jisyo_list
+    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{a:str} ' {jisyo.path}"
+    let results = systemlist(cmd)
+    for r in results
+      let tmp = split(r, '/')
+      call extend(henkan_list, tmp[1:])
+    endfor
   endfor
 
   return henkan_list
