@@ -22,7 +22,7 @@ endfunction
 
 function! k#enable() abort
   if s:is_enable
-    return ''
+    return
   endif
 
   let s:keys_to_remaps = []
@@ -49,16 +49,14 @@ function! k#enable() abort
     endif
   endfor
 
-
   call s:set_inner_mode('hira')
   let s:is_enable = v:true
-  return ''
 endfunction
 
 function! k#disable() abort
   call inline_mark#clear()
   if !s:is_enable
-    return ''
+    return
   endif
 
   for m in s:keys_to_remaps
@@ -72,7 +70,6 @@ function! k#disable() abort
   let s:keys_to_unmaps = []
 
   let s:is_enable = v:false
-  return ''
 endfunction
 
 function! k#toggle() abort
@@ -400,5 +397,5 @@ function! k#cmd_buf() abort
 endfunction
 
 cnoremap <c-j> <cmd>call k#cmd_buf()<cr>
-inoremap <expr> <c-j> k#toggle()
+inoremap <c-j> <cmd>call k#toggle()<cr>
 call k#initialize()
