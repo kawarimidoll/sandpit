@@ -7,8 +7,6 @@ function! s:is_capital(char) abort
   return '[A-Z]' =~# a:char
 endfunction
 
-let s:kana_start_pos = [0, 0]
-
 let s:is_enable = v:false
 let s:keys_to_remaps = []
 let s:keys_to_unmaps = []
@@ -101,8 +99,6 @@ function! k#initialize() abort
   endfor
 endfunction
 
-let s:henkan_start_pos = [0, 0]
-
 " hira / zen_kata / han_kata / abbrev
 let s:inner_mode = 'hira'
 
@@ -113,41 +109,72 @@ function! s:toggle_inner_mode(mode) abort
   call s:set_inner_mode(s:inner_mode == a:mode ? 'hira' : a:mode)
 endfunction
 
-function! k#zen_kata(...) abort
+" 変数名を文字列連結で作ってしまうと後からgrepしづらくなるので
+" 行数が嵩むが直接記述する
+function! s:is_same_line_right_col(target) abort
+  let target_name = ''
+  if a:target ==# 'kana'
+    let target_name = 'kana_start_pos'
+  elseif a:target ==# 'henkan'
+    let target_name = 'henkan_start_pos'
+  else
+    throw 'wrong target name'
+  endif
+
+  let target = get(w:, target_name, [0, 0])
   let current_pos = getcharpos('.')[1:2]
-  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+
+  return target[0] ==# current_pos[0] && target[1] < current_pos[1]
+endfunction
+
+function! s:get_preceding_str(target, trim_trail_n = v:true) abort
+  let target_name = ''
+  if a:target ==# 'kana'
+    let target_name = 'kana_start_pos'
+  elseif a:target ==# 'henkan'
+    let target_name = 'henkan_start_pos'
+  else
+    throw 'wrong target name'
+  endif
+
+  let start_col = get(w:, target_name, [0, 0])[1]
+
+  let preceding_str = getline('.')->slice(start_col-1, charcol('.')-1)
+  if a:trim_trail_n
+    return preceding_str->substitute("n$", "ん", "")
+  endif
+  return preceding_str
+endfunction
+
+function! k#zen_kata(...) abort
+  if !s:is_same_line_right_col('henkan')
     call s:toggle_inner_mode('zen_kata')
     return ''
   endif
 
-  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
-        \->substitute("n$", "ん", "")
+  let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
   return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_kata(preceding_str)
 endfunction
 
 function! k#han_kata(...) abort
-  let current_pos = getcharpos('.')[1:2]
-  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+  if !s:is_same_line_right_col('henkan')
     call s:toggle_inner_mode('han_kata')
     return ''
   endif
 
-  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
-        \->substitute("n$", "ん", "")
+  let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
   return repeat("\<bs>", strcharlen(preceding_str)) .. s:zen_kata_to_han_kata(s:hira_to_kata(preceding_str))
 endfunction
 
 function! k#dakuten(...) abort
-  let current_pos = getcharpos('.')[1:2]
-  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+  if !s:is_same_line_right_col('henkan')
     call s:toggle_inner_mode('dakuten')
     return ''
   endif
 
-  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
-        \->substitute("n$", "ん", "")
+  let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
   return repeat("\<bs>", strcharlen(preceding_str)) .. substitute(preceding_str, '.\ze', {m -> m[0] .. '゛'}, 'g')
 endfunction
@@ -177,16 +204,16 @@ endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
   let current_pos = getcharpos('.')[1:2]
-  if s:kana_start_pos[0] != current_pos[0] || s:kana_start_pos[1] > current_pos[1]
-    let s:kana_start_pos = current_pos
+  if !s:is_same_line_right_col('kana')
+    let w:kana_start_pos = current_pos
   endif
 
   let kana_dict = get(s:end_keys, a:key, {})
   if a:henkan
-    if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+    if !s:is_same_line_right_col('henkan')
       call s:set_henkan_start_pos(current_pos)
     else
-      let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
+      let preceding_str = s:get_preceding_str('henkan', v:false)
       echomsg 'okuri-ari:' preceding_str .. a:key
 
       let s:latest_henkan_list = k#get_henkan_list(preceding_str .. a:key)
@@ -200,7 +227,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   endif
 
   if !empty(kana_dict)
-    let preceding_str = getline('.')->slice(s:kana_start_pos[1]-1, charcol('.')-1)
+    let preceding_str = s:get_preceding_str('kana', v:false)
 
     let i = len(preceding_str)
     while i > 0
@@ -244,7 +271,7 @@ endfunction
 function! k#completefunc(suffix_key = '')
   call s:set_henkan_select_mark()
   " 補完の始点のcol
-  let [lnum, char_col] = s:henkan_start_pos
+  let [lnum, char_col] = w:henkan_start_pos
   let start_col = s:char_col_to_byte_col(lnum, char_col)
 
   let comp_list = []
@@ -292,22 +319,22 @@ function! s:char_col_to_byte_col(lnum, char_col) abort
 endfunction
 
 function! s:set_henkan_start_pos(pos) abort
-  let s:henkan_start_pos = a:pos
+  let w:henkan_start_pos = a:pos
 
-  let [lnum, char_col] = s:henkan_start_pos
+  let [lnum, char_col] = w:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
   call inline_mark#display(lnum, byte_col, s:henkan_marker)
 endfunction
 
 function! s:set_henkan_select_mark() abort
   call inline_mark#clear()
-  let [lnum, char_col] = s:henkan_start_pos
+  let [lnum, char_col] = w:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
   call inline_mark#display(lnum, byte_col, s:select_marker)
 endfunction
 
 function! s:clear_henkan_start_pos() abort
-  let s:henkan_start_pos = [0, 0]
+  let w:henkan_start_pos = [0, 0]
   call inline_mark#clear()
 endfunction
 
@@ -316,13 +343,11 @@ function! k#henkan(fallback_key) abort
     return "\<c-n>"
   endif
 
-  let current_pos = getcharpos('.')[1:2]
-  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+  if !s:is_same_line_right_col('henkan')
     return a:fallback_key
   endif
 
-  let preceding_str = getline('.')->slice(s:henkan_start_pos[1]-1, charcol('.')-1)
-        \->substitute("n$", "ん", "")
+  let preceding_str = s:get_preceding_str('henkan')
   echomsg preceding_str
 
   let s:latest_henkan_list = k#get_henkan_list(preceding_str)
@@ -335,8 +360,7 @@ function! k#henkan(fallback_key) abort
 endfunction
 
 function! k#kakutei(fallback_key) abort
-  let current_pos = getcharpos('.')[1:2]
-  if s:henkan_start_pos[0] != current_pos[0] || s:henkan_start_pos[1] > current_pos[1]
+  if !s:is_same_line_right_col('henkan')
     return a:fallback_key
   endif
 
