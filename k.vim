@@ -112,14 +112,10 @@ endfunction
 " 変数名を文字列連結で作ってしまうと後からgrepしづらくなるので
 " 行数が嵩むが直接記述する
 function! s:is_same_line_right_col(target) abort
-  let target_name = ''
-  if a:target ==# 'kana'
-    let target_name = 'kana_start_pos'
-  elseif a:target ==# 'henkan'
-    let target_name = 'henkan_start_pos'
-  else
+  if a:target !=# 'kana' && a:target !=# 'henkan'
     throw 'wrong target name'
   endif
+  let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
 
   let target = get(w:, target_name, [0, 0])
   let current_pos = getcharpos('.')[1:2]
@@ -128,22 +124,15 @@ function! s:is_same_line_right_col(target) abort
 endfunction
 
 function! s:get_preceding_str(target, trim_trail_n = v:true) abort
-  let target_name = ''
-  if a:target ==# 'kana'
-    let target_name = 'kana_start_pos'
-  elseif a:target ==# 'henkan'
-    let target_name = 'henkan_start_pos'
-  else
+  if a:target !=# 'kana' && a:target !=# 'henkan'
     throw 'wrong target name'
   endif
+  let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
 
   let start_col = get(w:, target_name, [0, 0])[1]
 
   let preceding_str = getline('.')->slice(start_col-1, charcol('.')-1)
-  if a:trim_trail_n
-    return preceding_str->substitute("n$", "ん", "")
-  endif
-  return preceding_str
+  return a:trim_trail_n ? preceding_str->substitute("n$", "ん", "") : preceding_str
 endfunction
 
 function! k#zen_kata(...) abort
