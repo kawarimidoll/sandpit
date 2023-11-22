@@ -355,5 +355,50 @@ augroup k_augroup
         \ | endif
 augroup END
 
-call k#initialize()
+function! k#cmd_buf() abort
+  let cmdtype = getcmdtype()
+  if ':/?' !~# cmdtype
+    return
+  endif
+
+  let s:cb_ctx = {
+        \ 'type': cmdtype,
+        \ 'text': getcmdline(),
+        \ 'col': getcmdpos(),
+        \ 'view': winsaveview(),
+        \ 'winid': win_getid(),
+        \ }
+
+  botright 1new
+  setlocal buftype=nowrite bufhidden=wipe noswapfile
+
+  call feedkeys("\<c-c>", 'n')
+
+  call setline(1, s:cb_ctx.text)
+  call cursor(1, s:cb_ctx.col)
+
+  if strlen(s:cb_ctx.text) < s:cb_ctx.col
+    startinsert!
+  else
+    startinsert
+  endif
+  call k#enable()
+
+  augroup k_cmd_buf
+    autocmd!
+    autocmd InsertEnter <buffer> ++once
+          \ autocmd TextChanged,TextChangedI,TextChangedP,InsertLeave <buffer> ++nested
+          \   if line('$') > 1 || mode() !=# 'i'
+          \ |   stopinsert
+          \ |   let s:cb_ctx.line = s:cb_ctx.type .. getline(1, '$')->join('')
+          \ |   quit!
+          \ |   call win_gotoid(s:cb_ctx.winid)
+          \ |   call winrestview(s:cb_ctx.view)
+          \ |   call timer_start(1, {->feedkeys(s:cb_ctx.line, 'nt')})
+          \ | endif
+  augroup END
+endfunction
+
+cnoremap <c-j> <cmd>call k#cmd_buf()<cr>
 inoremap <expr> <c-j> k#toggle()
+call k#initialize()
