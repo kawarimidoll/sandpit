@@ -165,7 +165,7 @@ function! k#dakuten(...) abort
 
   let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
-  return repeat("\<bs>", strcharlen(preceding_str)) .. substitute(preceding_str, '.\ze', {m -> m[0] .. '゛'}, 'g')
+  return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_dakuten(preceding_str)
 endfunction
 
 function! k#ins(key, henkan = v:false) abort
@@ -184,7 +184,7 @@ function! k#ins(key, henkan = v:false) abort
     return s:zen_kata_to_han_kata(s:hira_to_kata(char))
   endif
   if s:inner_mode == 'dakuten'
-    return char2nr(char, v:true) < 128 ? char : char .. '゛'
+    return s:hira_to_dakuten(char)
   endif
 
   " TODO: implement other modes
@@ -286,6 +286,10 @@ endfunction
 
 function! s:hira_to_kata(str) abort
   return a:str->substitute('[ぁ-ゖ]', {m->nr2char(char2nr(m[0], v:true) + 96, v:true)}, 'g')
+endfunction
+
+function! s:hira_to_dakuten(str) abort
+  return a:str->substitute('[^[:alnum:][:graph:][:space:]]', {m->m[0] .. '゛'}, 'g')
 endfunction
 
 " たまにsplit文字列の描画がおかしくなるので注意
