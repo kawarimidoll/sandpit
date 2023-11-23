@@ -14,6 +14,15 @@ let s:keys_to_unmaps = []
 let s:henkan_marker = "▽"
 let s:select_marker = "▼"
 
+let s:user_jisyo_path = expand('~/.cache/vim/SKK-JISYO.user')
+
+let s:jisyo_list = [
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp' },
+      \   { 'path': s:user_jisyo_path, 'encoding': 'utf-8' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
+      \ ]
+
 function! k#is_enable() abort
   return s:is_enable
 endfunction
@@ -83,6 +92,20 @@ endfunction
 
 function! k#initialize() abort
   let raw = json_decode(join(readfile('./kana_table.json'), "\n"))
+
+  if glob(s:user_jisyo_path)->empty()
+    call fnamemodify(s:user_jisyo_path, ':p:h')
+          \ ->iconv(&encoding, &termencoding)
+          \ ->mkdir('p')
+    let user_jisyo_lines = [
+          \ ';; フォーマット',
+          \ ';; yomi /(henkan(;setsumei)?/)+',
+          \ ';;',
+          \ ';; okuri-ari entries.',
+          \ ';; okuri-nasi entries.',
+          \ ]
+    call writefile(user_jisyo_lines, s:user_jisyo_path)
+  endif
 
   let s:start_keys = {}
   let s:end_keys = {}
@@ -229,12 +252,6 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 
   return get(kana_dict, '', a:key)
 endfunction
-
-let s:jisyo_list = [
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp' },
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp' },
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
-      \ ]
 
 function! k#get_henkan_list(str) abort
   let henkan_list = []
