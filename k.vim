@@ -282,12 +282,24 @@ function! k#completefunc(suffix_key = '')
           \ 'user_data': { 'yomi': k.yomi }
           \ })
   endfor
+
+  let current_pos = getcharpos('.')[1:2]
+  let is_trailing = getline('.')->strcharlen() < current_pos[1]
   call add(comp_list, {
         \ 'word': preceding_str,
         \ 'abbr': '[辞書登録]',
         \ 'menu': preceding_str,
         \ 'info': preceding_str,
-        \ 'user_data': { 'yomi': preceding_str, 'func': 'jisyo_touroku' }
+        \ 'user_data': {
+        \   'yomi': preceding_str,
+        \   'jisyo_touroku': {
+        \     'yomi': preceding_str,
+        \     'start_pos': b:henkan_start_pos,
+        \     'cursor_pos': getcharpos('.')[1:2],
+        \     'is_trailing': is_trailing,
+        \     'suffix_key': a:suffix_key,
+        \   }
+        \   }
         \ })
 
   call complete(start_col, comp_list)
@@ -380,12 +392,47 @@ function! s:complete_done_pre(complete_info, completed_item) abort
   endif
 
   let user_data = get(a:completed_item, 'user_data', {})
-  if type(user_data) == v:t_dict
-    let func = get(user_data, 'func', '')
+  if type(user_data) != v:t_dict
+    return
+  endif
 
-    if func !=# ''
-      echomsg 'jisyo touroku'
-    endif
+  " TODO ユーザー辞書内で再度登録を呼び出したときの対処
+  if has_key(user_data, 'jisyo_touroku')
+    let jt = user_data.jisyo_touroku
+    let b:jisyo_touroku_ctx = jt
+
+    autocmd BufEnter <buffer> ++once call s:buf_enter_try_user_henkan()
+
+    let okuri = '+/okuri-' .. (jt.suffix_key ==# '' ? 'nasi' : 'ari')
+    execute 'botright 5new' okuri s:user_jisyo_path
+
+    call feedkeys($"\<c-o>o{jt.yomi} //\<c-g>U\<left>\<cmd>call k#enable()\<cr>", 'n')
+  endif
+endfunction
+
+function! s:buf_enter_try_user_henkan() abort
+  call setcursorcharpos(b:jisyo_touroku_ctx.cursor_pos)
+  if b:jisyo_touroku_ctx.is_trailing
+    startinsert!
+  else
+    startinsert
+  endif
+
+  call k#enable()
+
+  let s:latest_henkan_list = k#get_henkan_list(b:jisyo_touroku_ctx.yomi)
+  if empty(s:latest_henkan_list)
+    return
+  endif
+
+  let henkan_result = substitute(s:latest_henkan_list[0].henkan, ';.*', '', '')
+  call feedkeys(repeat("\<bs>", strcharlen(b:jisyo_touroku_ctx.yomi)) .. henkan_result, 'n')
+
+  if b:jisyo_touroku_ctx.suffix_key !=# ''
+    let tmp_pos = b:jisyo_touroku_ctx.start_pos
+    let tmp_pos[1] += strcharlen(henkan_result)
+    let b:kana_start_pos = tmp_pos
+    call feedkeys(b:jisyo_touroku_ctx.suffix_key, 'n')
   endif
 endfunction
 
