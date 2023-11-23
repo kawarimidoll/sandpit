@@ -222,10 +222,6 @@ function! s:get_insert_spec(key, henkan = v:false) abort
       echomsg 'okuri-ari:' preceding_str .. a:key
 
       let s:latest_henkan_list = k#get_henkan_list(preceding_str .. a:key)
-      if empty(s:latest_henkan_list)
-        echomsg 'okuri-ari: No Kanji'
-        return get(kana_dict, '', a:key)
-      endif
 
       return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>\<c-n>"
     endif
@@ -272,6 +268,7 @@ function! k#completefunc(suffix_key = '')
   " 補完の始点のcol
   let [lnum, char_col] = w:henkan_start_pos
   let start_col = s:char_col_to_byte_col(lnum, char_col)
+  let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
 
   let comp_list = []
   for k in s:latest_henkan_list
@@ -285,6 +282,13 @@ function! k#completefunc(suffix_key = '')
           \ 'user_data': { 'yomi': k.yomi }
           \ })
   endfor
+  call add(comp_list, {
+        \ 'word': preceding_str,
+        \ 'abbr': '[辞書登録]',
+        \ 'menu': preceding_str,
+        \ 'info': preceding_str,
+        \ 'user_data': { 'yomi': preceding_str, 'func': 'jisyo_touroku' }
+        \ })
 
   call complete(start_col, comp_list)
 
@@ -355,10 +359,6 @@ function! k#henkan(fallback_key) abort
   echomsg preceding_str
 
   let s:latest_henkan_list = k#get_henkan_list(preceding_str)
-  if empty(s:latest_henkan_list)
-    echomsg 'No Kanji'
-    return ''
-  endif
 
   return "\<c-r>=k#completefunc()\<cr>\<c-n>"
 endfunction
@@ -378,6 +378,8 @@ augroup k_augroup
   autocmd CompleteDonePre * if get(complete_info(), 'selected', -1) >= 0
         \ |   call s:clear_henkan_start_pos()
         \ | endif
+  " TODO: add register feature
+  autocmd CompleteDonePre * echomsg 'completed' v:completed_item
 augroup END
 
 function! k#cmd_buf() abort
