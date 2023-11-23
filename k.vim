@@ -372,14 +372,27 @@ function! k#kakutei(fallback_key) abort
   return pumvisible() ? "\<c-y>" : ''
 endfunction
 
+function! s:complete_done_pre(complete_info, completed_item) abort
+  echomsg a:complete_info a:completed_item
+  if get(a:complete_info, 'selected', -1) >= 0
+    echomsg 'complete_done_pre clear_henkan_start_pos'
+    call s:clear_henkan_start_pos()
+  endif
+
+  let user_data = get(a:completed_item, 'user_data', {})
+  if type(user_data) == v:t_dict
+    let func = get(user_data, 'func', '')
+
+    if func !=# ''
+      echomsg 'jisyo touroku'
+    endif
+  endif
+endfunction
+
 augroup k_augroup
   autocmd!
   autocmd InsertLeave * call k#disable()
-  autocmd CompleteDonePre * if get(complete_info(), 'selected', -1) >= 0
-        \ |   call s:clear_henkan_start_pos()
-        \ | endif
-  " TODO: add register feature
-  autocmd CompleteDonePre * echomsg 'completed' v:completed_item
+  autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
 augroup END
 
 function! k#cmd_buf() abort
