@@ -28,13 +28,15 @@ function! k#enable() abort
 
   for key in extendnew(s:start_keys, s:end_keys)->keys()
     let k = keytrans(key)
+    let k_lt = substitute(k, '<', '<lt>', 'g')
     let current_map = maparg(k, 'i', 0, 1)
     if empty(current_map)
       call add(s:keys_to_unmaps, k)
     else
       call add(s:keys_to_remaps, current_map)
     endif
-    execute $"inoremap <expr> {k} k#ins('{key}')"
+    execute $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"
+
     if key =~ '^\l$'
       let ck = s:capital(k)
       let current_map = maparg(ck, 'i', 0, 1)
@@ -43,7 +45,7 @@ function! k#enable() abort
       else
         call add(s:keys_to_remaps, current_map)
       endif
-      execute $"inoremap <expr> {ck} k#ins('{k}',1)"
+      execute $"inoremap {ck} <cmd>call k#ins('{k}',1)<cr>"
     endif
   endfor
 
@@ -169,14 +171,17 @@ function! k#dakuten(...) abort
 endfunction
 
 function! k#ins(key, henkan = v:false) abort
-  let spec = s:get_insert_spec(a:key, a:henkan)
+  let key = s:trans_special_key(a:key)
+  let spec = s:get_insert_spec(key, a:henkan)
 
-  return type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [a:key])
+  let result = type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [key])
         \ : s:inner_mode == 'zen_kata' ? s:hira_to_kata(spec)
         \ : s:inner_mode == 'han_kata' ? s:zen_kata_to_han_kata(s:hira_to_kata(spec))
         \ : s:inner_mode == 'dakuten' ? s:hira_to_dakuten(spec)
         \ : spec
   " implement other modes, maybe
+
+  call feedkeys(result, 'n')
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
