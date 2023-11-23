@@ -142,7 +142,7 @@ function! s:is_same_line_right_col(target) abort
   endif
   let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
 
-  let target = get(w:, target_name, [0, 0])
+  let target = get(b:, target_name, [0, 0])
   let current_pos = getcharpos('.')[1:2]
 
   return target[0] ==# current_pos[0] && target[1] < current_pos[1]
@@ -154,7 +154,7 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
   endif
   let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
 
-  let start_col = get(w:, target_name, [0, 0])[1]
+  let start_col = get(b:, target_name, [0, 0])[1]
 
   let preceding_str = getline('.')->slice(start_col-1, charcol('.')-1)
   return a:trim_trail_n ? preceding_str->substitute("n$", "ん", "") : preceding_str
@@ -210,7 +210,7 @@ endfunction
 function! s:get_insert_spec(key, henkan = v:false) abort
   let current_pos = getcharpos('.')[1:2]
   if !s:is_same_line_right_col('kana')
-    let w:kana_start_pos = current_pos
+    let b:kana_start_pos = current_pos
   endif
 
   let kana_dict = get(s:end_keys, a:key, {})
@@ -266,7 +266,7 @@ endfunction
 function! k#completefunc(suffix_key = '')
   call s:set_henkan_select_mark()
   " 補完の始点のcol
-  let [lnum, char_col] = w:henkan_start_pos
+  let [lnum, char_col] = b:henkan_start_pos
   let start_col = s:char_col_to_byte_col(lnum, char_col)
   let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
 
@@ -327,22 +327,22 @@ function! s:char_col_to_byte_col(lnum, char_col) abort
 endfunction
 
 function! s:set_henkan_start_pos(pos) abort
-  let w:henkan_start_pos = a:pos
+  let b:henkan_start_pos = a:pos
 
-  let [lnum, char_col] = w:henkan_start_pos
+  let [lnum, char_col] = b:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
   call inline_mark#display(lnum, byte_col, s:henkan_marker)
 endfunction
 
 function! s:set_henkan_select_mark() abort
   call inline_mark#clear()
-  let [lnum, char_col] = w:henkan_start_pos
+  let [lnum, char_col] = b:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
   call inline_mark#display(lnum, byte_col, s:select_marker)
 endfunction
 
 function! s:clear_henkan_start_pos() abort
-  let w:henkan_start_pos = [0, 0]
+  let b:henkan_start_pos = [0, 0]
   call inline_mark#clear()
 endfunction
 
