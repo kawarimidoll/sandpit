@@ -215,7 +215,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 
   let kana_dict = get(s:end_keys, a:key, {})
   if a:henkan
-    if !s:is_same_line_right_col('henkan')
+    if !s:is_same_line_right_col('henkan') || pumvisible()
       call s:set_henkan_start_pos(current_pos)
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
@@ -374,7 +374,7 @@ endfunction
 
 function! s:complete_done_pre(complete_info, completed_item) abort
   echomsg a:complete_info a:completed_item
-  if get(a:complete_info, 'selected', -1) >= 0
+  if get(a:complete_info, 'selected', -1) >= 0 && s:is_same_line_right_col('henkan')
     echomsg 'complete_done_pre clear_henkan_start_pos'
     call s:clear_henkan_start_pos()
   endif
