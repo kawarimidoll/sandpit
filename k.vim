@@ -171,24 +171,12 @@ endfunction
 function! k#ins(key, henkan = v:false) abort
   let spec = s:get_insert_spec(a:key, a:henkan)
 
-  if type(spec) == v:t_dict
-    return get(spec, 'prefix', '') .. call($'k#{spec.func}', [a:key])
-  endif
-
-  let char = spec
-
-  if s:inner_mode == 'zen_kata'
-    return s:hira_to_kata(char)
-  endif
-  if s:inner_mode == 'han_kata'
-    return s:zen_kata_to_han_kata(s:hira_to_kata(char))
-  endif
-  if s:inner_mode == 'dakuten'
-    return s:hira_to_dakuten(char)
-  endif
-
-  " TODO: implement other modes
-  return char
+  return type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [a:key])
+        \ : s:inner_mode == 'zen_kata' ? s:hira_to_kata(spec)
+        \ : s:inner_mode == 'han_kata' ? s:zen_kata_to_han_kata(s:hira_to_kata(spec))
+        \ : s:inner_mode == 'dakuten' ? s:hira_to_dakuten(spec)
+        \ : spec
+  " implement other modes, maybe
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
