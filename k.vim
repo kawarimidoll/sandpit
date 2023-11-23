@@ -260,7 +260,7 @@ function! k#get_henkan_list(str) abort
     let results = systemlist(cmd)
     for r in results
       let tmp = split(r, '/')
-      call extend(henkan_list, tmp[1:])
+      call extend(henkan_list, tmp[1:]->map({_,v->{ 'henkan':v, 'yomi': a:str }}))
     endfor
   endfor
 
@@ -276,12 +276,13 @@ function! k#completefunc(suffix_key = '')
   let comp_list = []
   for k in s:latest_henkan_list
     " ;があってもなくても良いよう_restを使う
-    let [word, info; _rest] = split(k, ';') + ['']
+    let [word, info; _rest] = split(k.henkan, ';') + ['']
     " :h complete-items
     call add(comp_list, {
           \ 'word': word .. a:suffix_key,
           \ 'menu': info,
-          \ 'info': info
+          \ 'info': info,
+          \ 'user_data': { 'yomi': k.yomi }
           \ })
   endfor
 
