@@ -286,6 +286,7 @@ function! k#completefunc(suffix_key = '')
   let start_col = s:char_col_to_byte_col(lnum, char_col)
   let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
 
+  let google_exists = v:false
   let comp_list = []
   for k in s:latest_henkan_list
     " ;があってもなくても良いよう_restを使う
