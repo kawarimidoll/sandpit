@@ -3,8 +3,11 @@ source ./inline_mark.vim
 function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
 endfunction
-function! s:is_capital(char) abort
-  return '[A-Z]' =~# a:char
+
+function! s:url_encode(str)
+  return range(0, strlen(a:str)-1)
+        \ ->map({i -> a:str[i] =~ '[-.~]\|\w' ? a:str[i] : printf("%%%02x", char2nr(a:str[i]))})
+        \ ->join('')
 endfunction
 
 let s:is_enable = v:false
@@ -294,25 +297,35 @@ function! k#completefunc(suffix_key = '')
           \ 'info': info .. k.mark,
           \ 'user_data': { 'yomi': k.yomi }
           \ })
+
+    let google_exists = google_exists || has_key(k, 'by_google')
   endfor
 
   let current_pos = getcharpos('.')[1:2]
   let is_trailing = getline('.')->strcharlen() < current_pos[1]
+  let context = {
+        \   'yomi': preceding_str,
+        \   'start_pos': b:henkan_start_pos,
+        \   'cursor_pos': getcharpos('.')[1:2],
+        \   'is_trailing': is_trailing,
+        \   'suffix_key': a:suffix_key,
+        \ }
+
+  if !google_exists
+    call add(comp_list, {
+          \ 'word': preceding_str,
+          \ 'abbr': '[Google変換]',
+          \ 'dup': 1,
+          \ 'user_data': { 'yomi': preceding_str, 'google_trans': context }
+          \ })
+  endif
   call add(comp_list, {
         \ 'word': preceding_str,
         \ 'abbr': '[辞書登録]',
         \ 'menu': preceding_str,
         \ 'info': preceding_str,
-        \ 'user_data': {
-        \   'yomi': preceding_str,
-        \   'jisyo_touroku': {
-        \     'yomi': preceding_str,
-        \     'start_pos': b:henkan_start_pos,
-        \     'cursor_pos': getcharpos('.')[1:2],
-        \     'is_trailing': is_trailing,
-        \     'suffix_key': a:suffix_key,
-        \   }
-        \   }
+        \ 'dup': 1,
+        \ 'user_data': { 'yomi': preceding_str, 'jisyo_touroku': context }
         \ })
 
   call complete(start_col, comp_list)
@@ -397,6 +410,20 @@ function! k#kakutei(fallback_key) abort
   return pumvisible() ? "\<c-y>" : ''
 endfunction
 
+function! k#google_henkan(str) abort
+  let url_base = 'http://www.google.com/transliterate?langpair=ja-Hira|ja&text='
+  let encoded = s:url_encode(a:str)
+  " echomsg encoded
+  let result = system($"curl -s '{url_base}{encoded}'")
+  " echomsg result
+  try
+    return json_decode(result)->map({_,v->v[1][0]})->join('')
+  catch
+    echomsg v:exception
+    return ''
+  endtry
+endfunction
+
 function! s:complete_done_pre(complete_info, completed_item) abort
   echomsg a:complete_info a:completed_item
   if get(a:complete_info, 'selected', -1) >= 0 && s:is_same_line_right_col('henkan')
@@ -406,6 +433,26 @@ function! s:complete_done_pre(complete_info, completed_item) abort
 
   let user_data = get(a:completed_item, 'user_data', {})
   if type(user_data) != v:t_dict
+    return
+  endif
+
+  " TODO google変換結果を自動でユーザー辞書へ追加する
+  if has_key(user_data, 'google_trans')
+    let gt = user_data.google_trans
+    let henkan_result = k#google_henkan(gt.yomi)
+    if henkan_result ==# ''
+      echomsg 'Google変換で結果が得られませんでした。'
+      return
+    endif
+    call insert(s:latest_henkan_list, {
+          \ 'henkan': henkan_result,
+          \ 'mark': '[Google]',
+          \ 'yomi': gt.yomi,
+          \ 'by_google': v:true
+          \ })
+
+    let b:henkan_start_pos = gt.start_pos
+    call feedkeys("\<c-r>=k#completefunc()\<cr>\<c-n>", 'n')
     return
   endif
 
