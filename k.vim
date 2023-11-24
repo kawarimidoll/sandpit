@@ -17,9 +17,9 @@ let s:select_marker = "▼"
 let s:user_jisyo_path = expand('~/.cache/vim/SKK-JISYO.user')
 
 let s:jisyo_list = [
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp' },
-      \   { 'path': s:user_jisyo_path, 'encoding': 'utf-8' },
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp', 'mark': 'L' },
+      \   { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': 'G' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \ ]
 
@@ -252,11 +252,16 @@ endfunction
 function! k#get_henkan_list(str) abort
   let henkan_list = []
   for jisyo in s:jisyo_list
+    let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
     let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{a:str} ' {jisyo.path}"
     let results = systemlist(cmd)
     for r in results
       let tmp = split(r, '/')
-      call extend(henkan_list, tmp[1:]->map({_,v->{ 'henkan':v, 'yomi': a:str }}))
+      call extend(henkan_list, tmp[1:]->map({_,v->{
+            \ 'henkan': v,
+            \ 'yomi': a:str,
+            \ 'mark': mark
+            \ }}))
     endfor
   endfor
 
@@ -277,8 +282,8 @@ function! k#completefunc(suffix_key = '')
     " :h complete-items
     call add(comp_list, {
           \ 'word': word .. a:suffix_key,
-          \ 'menu': info,
-          \ 'info': info,
+          \ 'menu': info .. k.mark,
+          \ 'info': info .. k.mark,
           \ 'user_data': { 'yomi': k.yomi }
           \ })
   endfor
