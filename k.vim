@@ -229,7 +229,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
       let preceding_str = s:get_preceding_str('henkan', v:false)
       echomsg 'okuri-ari:' preceding_str .. a:key
 
-      let s:latest_henkan_list = k#get_henkan_list(preceding_str .. a:key)
+      call k#update_henkan_list(preceding_str .. a:key)
 
       return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>\<c-n>"
     endif
@@ -257,7 +257,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   return get(kana_dict, '', a:key)
 endfunction
 
-function! k#get_henkan_list(str) abort
+function! k#update_henkan_list(str) abort
   let henkan_list = []
   for jisyo in s:jisyo_list
     let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
@@ -273,7 +273,7 @@ function! k#get_henkan_list(str) abort
     endfor
   endfor
 
-  return henkan_list
+  let s:latest_henkan_list = henkan_list
 endfunction
 
 function! k#completefunc(suffix_key = '')
@@ -383,7 +383,7 @@ function! k#henkan(fallback_key) abort
   let preceding_str = s:get_preceding_str('henkan')
   echomsg preceding_str
 
-  let s:latest_henkan_list = k#get_henkan_list(preceding_str)
+  call k#update_henkan_list(preceding_str)
 
   return "\<c-r>=k#completefunc()\<cr>\<c-n>"
 endfunction
@@ -433,7 +433,7 @@ function! s:buf_enter_try_user_henkan() abort
 
   call k#enable()
 
-  let s:latest_henkan_list = k#get_henkan_list(b:jisyo_touroku_ctx.yomi)
+  call k#update_henkan_list(b:jisyo_touroku_ctx.yomi)
   if empty(s:latest_henkan_list)
     return
   endif
