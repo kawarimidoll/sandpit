@@ -23,6 +23,7 @@ let s:jisyo_list = [
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp', 'mark': 'L' },
       \   { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': 'G' },
+      \   { 'path': expand('~/.local/share/nvim/plugged/skk-wiki-dict/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': 'W' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \ ]
 
@@ -39,6 +40,7 @@ function! k#enable() abort
     autocmd!
     autocmd InsertLeave * call k#disable()
     autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
+    autocmd TextChangedI * call s:auto_complete()
   augroup END
 
   let s:keys_to_remaps = []
@@ -260,23 +262,72 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   return get(kana_dict, '', a:key)
 endfunction
 
-function! k#update_henkan_list(str) abort
+function! k#update_henkan_list(str, exact_match = v:true) abort
+  let str = a:exact_match ? $'{a:str} ' : a:str
   let henkan_list = []
   for jisyo in s:jisyo_list
     let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
-    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{a:str} ' {jisyo.path}"
+    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{str}' {jisyo.path}"
     let results = systemlist(cmd)
     for r in results
       let tmp = split(r, '/')
       call extend(henkan_list, tmp[1:]->map({_,v->{
             \ 'henkan': v,
-            \ 'yomi': a:str,
+            \ 'yomi': tmp[0]->substitute(' *$', '', ''),
             \ 'mark': mark
             \ }}))
     endfor
   endfor
 
   let s:latest_henkan_list = henkan_list
+endfunction
+
+let s:latest_auto_complete_str = ''
+let s:min_auto_complete_length = 2
+function! s:auto_complete() abort
+  let preceding_str = s:get_preceding_str('henkan', v:false)
+        \ ->substitute('\a*$', '', '')
+
+  if strcharlen(preceding_str) < s:min_auto_complete_length
+    return
+  endif
+
+  echomsg 'auto_complete' preceding_str
+
+  " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
+  if slice(preceding_str, 0, s:min_auto_complete_length) !=# slice(s:latest_auto_complete_str, 0, s:min_auto_complete_length)
+    call k#update_henkan_list(preceding_str, 0)
+  endif
+
+  let s:latest_auto_complete_str = preceding_str
+
+  call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
+endfunction
+
+function! k#autocompletefunc()
+  let [lnum, char_col] = b:henkan_start_pos
+  let start_col = s:char_col_to_byte_col(lnum, char_col)
+
+  let comp_list = []
+  for k in s:latest_henkan_list
+    " 前方一致で絞り込む
+    if k.yomi !~# $'^{s:latest_auto_complete_str}'
+      continue
+    endif
+    " ;があってもなくても良いよう_restを使う
+    let [word, info; _rest] = split(k.henkan, ';') + ['']
+    " :h complete-items
+    call add(comp_list, {
+          \ 'word': word,
+          \ 'menu': info .. k.mark,
+          \ 'info': info .. k.mark,
+          \ 'user_data': { 'yomi': k.yomi }
+          \ })
+  endfor
+
+  call complete(start_col, comp_list)
+
+  return ''
 endfunction
 
 function! k#completefunc(suffix_key = '')
@@ -427,7 +478,13 @@ endfunction
 
 function! s:complete_done_pre(complete_info, completed_item) abort
   echomsg a:complete_info a:completed_item
-  if get(a:complete_info, 'selected', -1) >= 0 && s:is_same_line_right_col('henkan')
+
+  if get(a:complete_info, 'selected', -1) < 0
+    " not selected
+    return
+  endif
+
+  if s:is_same_line_right_col('henkan')
     echomsg 'complete_done_pre clear_henkan_start_pos'
     call s:clear_henkan_start_pos()
   endif
