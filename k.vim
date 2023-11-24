@@ -32,6 +32,12 @@ function! k#enable() abort
     return
   endif
 
+  augroup k_augroup
+    autocmd!
+    autocmd InsertLeave * call k#disable()
+    autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
+  augroup END
+
   let s:keys_to_remaps = []
   let s:keys_to_unmaps = []
 
@@ -67,6 +73,8 @@ function! k#disable() abort
   if !s:is_enable
     return
   endif
+
+  autocmd! k_augroup
 
   for m in s:keys_to_remaps
     call mapset('i', 0, m)
@@ -440,12 +448,6 @@ function! s:buf_enter_try_user_henkan() abort
     call feedkeys(b:jisyo_touroku_ctx.suffix_key, 'n')
   endif
 endfunction
-
-augroup k_augroup
-  autocmd!
-  autocmd InsertLeave * call k#disable()
-  autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
-augroup END
 
 function! k#cmd_buf() abort
   let cmdtype = getcmdtype()
