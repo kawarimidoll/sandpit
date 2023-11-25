@@ -273,7 +273,7 @@ function! k#update_henkan_list(str, exact_match = v:true) abort
   let henkan_list = []
   for jisyo in s:jisyo_list
     let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
-    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{str}' {jisyo.path}"
+    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{str}' {jisyo.path} 2>/dev/null"
     let results = systemlist(cmd)
     for r in results
       let tmp = split(r, '/')
