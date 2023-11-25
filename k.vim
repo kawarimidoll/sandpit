@@ -70,6 +70,10 @@ function! k#enable() abort
   endfor
 
   call s:set_inner_mode('hira')
+
+  call s:clear_henkan_start_pos()
+  let b:kana_start_pos = [0, 0]
+
   let s:is_enable = v:true
 endfunction
 
