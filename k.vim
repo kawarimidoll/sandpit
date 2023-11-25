@@ -431,10 +431,12 @@ function! s:set_henkan_select_mark() abort
   let [lnum, char_col] = b:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
   call inline_mark#display(lnum, byte_col, s:select_marker)
+  let b:select_start_pos = getcharpos('.')[1:2]
 endfunction
 
 function! s:clear_henkan_start_pos() abort
   let b:henkan_start_pos = [0, 0]
+  let b:select_start_pos = [0, 0]
   call inline_mark#clear()
 endfunction
 
