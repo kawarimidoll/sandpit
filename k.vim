@@ -232,15 +232,18 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   endif
 
   let kana_dict = get(s:end_keys, a:key, {})
-  if a:henkan
+  let next_okuri = get(s:, 'next_okuri', v:false)
+  if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
-    if !s:is_same_line_right_col('henkan') || pumvisible()
+    if !next_okuri && (!s:is_same_line_right_col('henkan') || pumvisible())
       call s:set_henkan_start_pos(current_pos)
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
       " echomsg 'okuri-ari:' preceding_str .. a:key
 
       call k#update_henkan_list(preceding_str .. a:key)
+
+      let s:next_okuri = v:false
 
       return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>\<c-n>"
     endif
@@ -442,6 +445,19 @@ function! s:clear_henkan_start_pos() abort
   let b:henkan_start_pos = [0, 0]
   let b:select_start_pos = [0, 0]
   call inline_mark#clear()
+endfunction
+
+" 変換中→送りあり変換を予約
+" それ以外→現在位置に変換ポイントを設定
+function! k#sticky(...) abort
+  if s:is_same_line_right_col('henkan')
+    let s:next_okuri = v:true
+    echomsg 'next okuri set'
+  else
+    let current_pos = getcharpos('.')[1:2]
+    call s:set_henkan_start_pos(current_pos)
+  endif
+  return ''
 endfunction
 
 function! k#henkan(fallback_key) abort

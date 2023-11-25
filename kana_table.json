@@ -215,6 +215,7 @@
   "/": "・",
   "~": "～",
   "z<space>": "　",
+  ";": { "func": "sticky" },
   "q": { "func": "zen_kata" },
   "<cr>": { "func": "kakutei" },
   "<space>": { "func": "henkan" },
