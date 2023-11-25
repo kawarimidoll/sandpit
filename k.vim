@@ -111,8 +111,9 @@ function! k#initialize() abort
           \ ->iconv(&encoding, &termencoding)
           \ ->mkdir('p')
     let user_jisyo_lines = [
-          \ ';; フォーマット',
+          \ ';; フォーマットは以下',
           \ ';; yomi /(henkan(;setsumei)?/)+',
+          \ ';; コメント行は変更しないでください',
           \ ';;',
           \ ';; okuri-ari entries.',
           \ ';; okuri-nasi entries.',
@@ -228,11 +229,12 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 
   let kana_dict = get(s:end_keys, a:key, {})
   if a:henkan
+    " echomsg 'get_insert_spec henkan'
     if !s:is_same_line_right_col('henkan') || pumvisible()
       call s:set_henkan_start_pos(current_pos)
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
-      echomsg 'okuri-ari:' preceding_str .. a:key
+      " echomsg 'okuri-ari:' preceding_str .. a:key
 
       call k#update_henkan_list(preceding_str .. a:key)
 
@@ -292,7 +294,7 @@ function! s:auto_complete() abort
     return
   endif
 
-  echomsg 'auto_complete' preceding_str
+  " echomsg 'auto_complete' preceding_str
 
   " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
   if slice(preceding_str, 0, s:min_auto_complete_length) !=# slice(s:latest_auto_complete_str, 0, s:min_auto_complete_length)
@@ -437,6 +439,7 @@ function! s:clear_henkan_start_pos() abort
 endfunction
 
 function! k#henkan(fallback_key) abort
+  " echomsg 'henkan'
   if pumvisible()
     return "\<c-n>"
   endif
@@ -446,7 +449,7 @@ function! k#henkan(fallback_key) abort
   endif
 
   let preceding_str = s:get_preceding_str('henkan')
-  echomsg preceding_str
+  " echomsg preceding_str
 
   call k#update_henkan_list(preceding_str)
 
@@ -477,7 +480,7 @@ function! k#google_henkan(str) abort
 endfunction
 
 function! s:complete_done_pre(complete_info, completed_item) abort
-  echomsg a:complete_info a:completed_item
+  " echomsg a:complete_info a:completed_item
 
   if get(a:complete_info, 'selected', -1) < 0
     " not selected
@@ -485,7 +488,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
   endif
 
   if s:is_same_line_right_col('henkan')
-    echomsg 'complete_done_pre clear_henkan_start_pos'
+    " echomsg 'complete_done_pre clear_henkan_start_pos'
     call s:clear_henkan_start_pos()
   endif
 
@@ -499,7 +502,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
     let gt = user_data.google_trans
     let henkan_result = k#google_henkan(gt.yomi)
     if henkan_result ==# ''
-      echomsg 'Google変換で結果が得られませんでした。'
+      " echomsg 'Google変換で結果が得られませんでした。'
       return
     endif
     call insert(s:latest_henkan_list, {
@@ -576,6 +579,7 @@ function! k#cmd_buf() abort
   call setline(1, s:cb_ctx.text)
   call cursor(1, s:cb_ctx.col)
 
+  " cmdlineには文字単位で位置を取得する関数がないのでstrlenを使用する
   if strlen(s:cb_ctx.text) < s:cb_ctx.col
     startinsert!
   else
