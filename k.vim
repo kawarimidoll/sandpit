@@ -265,7 +265,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 endfunction
 
 function! k#update_henkan_list(str, exact_match = v:true) abort
-  let str = a:exact_match ? $'{a:str} ' : a:str
+  let str = a:exact_match ? $'{a:str} ' : $'^{a:str}[^ -~]* '
   let henkan_list = []
   for jisyo in s:jisyo_list
     let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
