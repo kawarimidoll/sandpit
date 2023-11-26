@@ -5,12 +5,6 @@ function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
 endfunction
 
-function! s:url_encode(str)
-  return range(0, strlen(a:str)-1)
-        \ ->map({i -> a:str[i] =~ '[-.~]\|\w' ? a:str[i] : printf("%%%02x", char2nr(a:str[i]))})
-        \ ->join('')
-endfunction
-
 let s:is_enable = v:false
 let s:keys_to_remaps = []
 let s:keys_to_unmaps = []
@@ -466,20 +460,6 @@ function! k#kakutei(fallback_key) abort
   return pumvisible() ? "\<c-y>" : ''
 endfunction
 
-function! k#google_henkan(str) abort
-  let url_base = 'http://www.google.com/transliterate?langpair=ja-Hira|ja&text='
-  let encoded = s:url_encode(a:str)
-  " echomsg encoded
-  let result = system($"curl -s '{url_base}{encoded}'")
-  " echomsg result
-  try
-    return json_decode(result)->map({_,v->v[1][0]})->join('')
-  catch
-    echomsg v:exception
-    return ''
-  endtry
-endfunction
-
 function! s:complete_done_pre(complete_info, completed_item) abort
   " echomsg a:complete_info a:completed_item
 
@@ -500,7 +480,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
 
   if has_key(user_data, 'google_trans')
     let gt = user_data.google_trans
-    let henkan_result = k#google_henkan(gt.yomi)
+    let henkan_result = google_cgi#henkan(gt.yomi)
     if henkan_result ==# ''
       echomsg 'Google変換で結果が得られませんでした。'
       return
