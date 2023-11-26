@@ -9,19 +9,6 @@ let s:is_enable = v:false
 let s:keys_to_remaps = []
 let s:keys_to_unmaps = []
 
-let s:henkan_marker = "▽"
-let s:select_marker = "▼"
-
-let s:user_jisyo_path = expand('~/.cache/vim/SKK-JISYO.user')
-
-let s:jisyo_list = [
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp', 'mark': 'L' },
-      \   { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' },
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': 'G' },
-      \   { 'path': expand('~/.local/share/nvim/plugged/skk-wiki-dict/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': 'W' },
-      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
-      \ ]
-
 function! k#is_enable() abort
   return s:is_enable
 endfunction
@@ -102,28 +89,47 @@ function! s:trans_special_key(str) abort
   return substitute(a:str, '<[^>]*>', {m -> eval($'"\{m[0]}"')}, 'g')
 endfunction
 
-function! k#initialize() abort
-  let raw = json_decode(join(readfile('./kana_table.json'), "\n"))
+function! k#default_kana_table() abort
+  return json_decode(join(readfile('./kana_table.json'), "\n"))
+endfunction
 
+function! k#initialize(opts = {}) abort
+  " マーカー
+  let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
+  let s:select_marker = get(a:opts, 'select_marker', '▼')
+  " let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
+
+  " ユーザー辞書
+  let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
+  if s:user_jisyo_path !~ '^/'
+    echoerr '[k#initialize] user_jisyo_path must be start with /'
+    return
+  endif
+  " 指定されたパスにファイルがなければ作成する
   if glob(s:user_jisyo_path)->empty()
     call fnamemodify(s:user_jisyo_path, ':p:h')
           \ ->iconv(&encoding, &termencoding)
           \ ->mkdir('p')
-    let user_jisyo_lines = [
+    call writefile(user_jisyo_lines, [
           \ ';; フォーマットは以下',
           \ ';; yomi /(henkan(;setsumei)?/)+',
           \ ';; コメント行は変更しないでください',
           \ ';;',
           \ ';; okuri-ari entries.',
           \ ';; okuri-nasi entries.',
-          \ ]
-    call writefile(user_jisyo_lines, s:user_jisyo_path)
+          \ ])
   endif
+
+  " 変換辞書
+  let s:jisyo_list = get(a:opts, 'jisyo_list', [])
+
+  " かなテーブル
+  let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
 
   let s:start_keys = {}
   let s:end_keys = {}
 
-  for [k, val] in items(raw)
+  for [k, val] in items(kana_table)
     let key = s:trans_special_key(k)
     let preceding_keys = slice(key, 0, -1)
     let start_key = slice(key, 0, 1)
@@ -598,4 +604,15 @@ endfunction
 
 cnoremap <c-j> <cmd>call k#cmd_buf()<cr>
 inoremap <c-j> <cmd>call k#toggle()<cr>
-call k#initialize()
+
+let uj = expand('~/.cache/vim/SKK-JISYO.user')
+call k#initialize({
+      \ 'user_jisyo_path': uj,
+      \ 'jisyo_list':  [
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp', 'mark': 'L' },
+      \   { 'path': uj, 'encoding': 'utf-8', 'mark': 'U' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': 'G' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': 'W' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
+      \ ]
+      \ })
