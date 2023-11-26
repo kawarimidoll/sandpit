@@ -328,8 +328,8 @@ function! k#autocompletefunc()
     " :h complete-items
     call add(comp_list, {
           \ 'word': word,
-          \ 'menu': info .. k.mark,
-          \ 'info': info .. k.mark,
+          \ 'menu': k.mark .. info,
+          \ 'info': k.mark .. info,
           \ 'user_data': { 'yomi': k.yomi }
           \ })
   endfor
@@ -361,8 +361,8 @@ function! k#completefunc(suffix_key = '')
     " :h complete-items
     call add(comp_list, {
           \ 'word': word .. a:suffix_key,
-          \ 'menu': info .. k.mark,
-          \ 'info': info .. k.mark,
+          \ 'menu': k.mark .. info,
+          \ 'info': k.mark .. info,
           \ 'user_data': user_data
           \ })
   endfor
