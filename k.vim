@@ -351,15 +351,20 @@ function! k#completefunc(suffix_key = '')
   for k in s:latest_henkan_list
     " ;があってもなくても良いよう_restを使う
     let [word, info; _rest] = split(k.henkan, ';') + ['']
+    let user_data = { 'yomi': k.yomi }
+
+    if has_key(k, 'by_google')
+      let google_exists = v:true
+      let user_data['by_google'] = v:true
+    endif
+
     " :h complete-items
     call add(comp_list, {
           \ 'word': word .. a:suffix_key,
           \ 'menu': info .. k.mark,
           \ 'info': info .. k.mark,
-          \ 'user_data': { 'yomi': k.yomi }
+          \ 'user_data': user_data
           \ })
-
-    let google_exists = google_exists || has_key(k, 'by_google')
   endfor
 
   let current_pos = getcharpos('.')[1:2]
@@ -519,12 +524,11 @@ function! s:complete_done_pre(complete_info, completed_item) abort
     return
   endif
 
-  " TODO google変換結果を自動でユーザー辞書へ追加する
   if has_key(user_data, 'google_trans')
     let gt = user_data.google_trans
     let henkan_result = k#google_henkan(gt.yomi)
     if henkan_result ==# ''
-      " echomsg 'Google変換で結果が得られませんでした。'
+      echomsg 'Google変換で結果が得られませんでした。'
       return
     endif
     call insert(s:latest_henkan_list, {
@@ -533,9 +537,15 @@ function! s:complete_done_pre(complete_info, completed_item) abort
           \ 'yomi': gt.yomi,
           \ 'by_google': v:true
           \ })
-
     let b:henkan_start_pos = gt.start_pos
     call feedkeys("\<c-r>=k#completefunc()\<cr>\<c-n>", 'n')
+    return
+  endif
+
+  if has_key(user_data, 'by_google')
+    " Google変換確定時、自動でユーザー辞書末尾に登録
+    let line = $'{user_data.yomi} /{a:completed_item.word}/'
+    call writefile([line], s:user_jisyo_path, "a")
     return
   endif
 
