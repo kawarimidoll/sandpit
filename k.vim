@@ -539,15 +539,23 @@ function! s:complete_done_pre(complete_info, completed_item) abort
     return
   endif
 
-  " TODO ユーザー辞書内で再度登録を呼び出したときの対処
   if has_key(user_data, 'jisyo_touroku')
     let jt = user_data.jisyo_touroku
     let b:jisyo_touroku_ctx = jt
 
     autocmd BufEnter <buffer> ++once call s:buf_enter_try_user_henkan()
 
-    let okuri = '+/okuri-' .. (jt.suffix_key ==# '' ? 'nasi' : 'ari')
-    execute 'botright 5new' okuri s:user_jisyo_path
+    let okuri = jt.suffix_key ==# '' ? '/okuri-nasi' : '/okuri-ari'
+    let user_jisyo_winnr = bufwinnr(bufnr(s:user_jisyo_path))
+    if user_jisyo_winnr > 0
+      " ユーザー辞書がすでに開いている場合は
+      " okuri-ari/okuri-nasiの行へジャンプする
+      execute user_jisyo_winnr .. 'wincmd w'
+      normal! gg
+      execute okuri
+    else
+      execute $'botright 5new +{okuri}' s:user_jisyo_path
+    endif
 
     call feedkeys($"\<c-o>o{jt.yomi} //\<c-g>U\<left>\<cmd>call k#enable()\<cr>", 'n')
   endif
