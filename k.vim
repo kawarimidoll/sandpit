@@ -1,4 +1,5 @@
 source ./inline_mark.vim
+source ./converters.vim
 
 function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
@@ -186,7 +187,7 @@ function! k#zen_kata(...) abort
 
   let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
-  return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_kata(preceding_str)
+  return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_kata(preceding_str)
 endfunction
 
 function! k#han_kata(...) abort
@@ -197,7 +198,7 @@ function! k#han_kata(...) abort
 
   let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
-  return repeat("\<bs>", strcharlen(preceding_str)) .. s:zen_kata_to_han_kata(s:hira_to_kata(preceding_str))
+  return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_han_kata(preceding_str)
 endfunction
 
 function! k#dakuten(...) abort
@@ -208,7 +209,7 @@ function! k#dakuten(...) abort
 
   let preceding_str = s:get_preceding_str('henkan')
   call s:clear_henkan_start_pos()
-  return repeat("\<bs>", strcharlen(preceding_str)) .. s:hira_to_dakuten(preceding_str)
+  return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_dakuten(preceding_str)
 endfunction
 
 function! k#ins(key, henkan = v:false) abort
@@ -216,9 +217,9 @@ function! k#ins(key, henkan = v:false) abort
   let spec = s:get_insert_spec(key, a:henkan)
 
   let result = type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [key])
-        \ : s:inner_mode == 'zen_kata' ? s:hira_to_kata(spec)
-        \ : s:inner_mode == 'han_kata' ? s:zen_kata_to_han_kata(s:hira_to_kata(spec))
-        \ : s:inner_mode == 'dakuten' ? s:hira_to_dakuten(spec)
+        \ : s:inner_mode == 'zen_kata' ? converters#hira_to_kata(spec)
+        \ : s:inner_mode == 'han_kata' ? converters#hira_to_han_kata(spec)
+        \ : s:inner_mode == 'dakuten' ? converters#hira_to_dakuten(spec)
         \ : spec
   " implement other modes, maybe
 
@@ -397,33 +398,6 @@ function! k#completefunc(suffix_key = '')
   call complete(start_col, comp_list)
 
   return ''
-endfunction
-
-function! s:kata_to_hira(str) abort
-  return a:str->substitute('[ァ-ヶ]', {m->nr2char(char2nr(m[0], v:true) - 96, v:true)}, 'g')
-endfunction
-
-function! s:hira_to_kata(str) abort
-  return a:str->substitute('[ぁ-ゖ]', {m->nr2char(char2nr(m[0], v:true) + 96, v:true)}, 'g')
-endfunction
-
-function! s:hira_to_dakuten(str) abort
-  return a:str->substitute('[^[:alnum:][:graph:][:space:]]', {m->m[0] .. '゛'}, 'g')
-endfunction
-
-" たまにsplit文字列の描画がおかしくなるので注意
-let s:hankana_list = ('ｧｱｨｲｩｳｪｴｫｵｶｶﾞｷｷﾞｸｸﾞｹｹﾞｺｺﾞ'
-      \ .. 'ｻｻﾞｼｼﾞｽｽﾞｾｾﾞｿｿﾞﾀﾀﾞﾁﾁﾞｯﾂﾂﾞﾃﾃﾞﾄﾄﾞ'
-      \ .. 'ﾅﾆﾇﾈﾉﾊﾊﾞﾊﾟﾋﾋﾞﾋﾟﾌﾌﾞﾌﾟﾍﾍﾞﾍﾟﾎﾎﾞﾎﾟ'
-      \ .. 'ﾏﾐﾑﾒﾓｬﾔｭﾕｮﾖﾗﾘﾙﾚﾛﾜﾜｲｴｦﾝｳﾞｰｶｹ')
-      \ ->split('.[ﾞﾟ]\?\zs')
-let s:zen_kata_origin = char2nr('ァ', v:true)
-let s:griph_map = { 'ー': '-', '〜': '~', '、': '､', '。': '｡', '「': '｢', '」': '｣', '・': '･' }
-
-function! s:zen_kata_to_han_kata(str) abort
-  return a:str->substitute('.', {m->get(s:griph_map,m[0],m[0])}, 'g')
-        \ ->substitute('[ァ-ヶ]', {m->get(s:hankana_list, char2nr(m[0], v:true) - s:zen_kata_origin, m[0])}, 'g')
-        \ ->substitute('[！-～]', {m->nr2char(char2nr(m[0], v:true) - 65248, v:true)}, 'g')
 endfunction
 
 function! s:char_col_to_byte_col(lnum, char_col) abort
