@@ -291,11 +291,11 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 endfunction
 
 function! k#update_henkan_list(str, exact_match = v:true) abort
-  let str = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
+  let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
   let cmd = ''
   for jisyo in s:jisyo_list
     let cmd ..= 'rg --no-heading --with-filename --no-line-number'
-          \ .. $" --encoding {jisyo.encoding} '^{str}' {jisyo.path} 2>/dev/null; "
+          \ .. $" --encoding {jisyo.encoding} '^{query}' {jisyo.path} 2>/dev/null; "
   endfor
   let results = systemlist(cmd)
   let henkan_list = []
@@ -309,11 +309,20 @@ function! k#update_henkan_list(str, exact_match = v:true) abort
       let space_idx = stridx(content, ' /')
       let yomi = strpart(content, 0, space_idx)
       let henkan_str = strpart(content, space_idx+1)
-      call extend(henkan_list, split(henkan_str, '/')->map({_,v->{
-            \ 'henkan': v,
-            \ 'yomi': trim(yomi),
-            \ 'mark': s:jisyo_mark_pair[path]
-            \ }}))
+
+      let mark = s:jisyo_mark_pair[path]
+
+      for v in split(henkan_str, '/')
+        " ;があってもなくても良いよう_restを使う
+        let [word, info; _rest] = split(v, ';') + ['']
+        " :h complete-items
+        call add(henkan_list, {
+              \ 'word': word,
+              \ 'menu': mark .. info,
+              \ 'info': mark .. info,
+              \ 'user_data': { 'yomi': trim(yomi), 'path': path }
+              \ })
+      endfor
     catch
       echomsg v:exception r
     endtry
@@ -347,22 +356,9 @@ function! k#autocompletefunc()
   let [lnum, char_col] = b:henkan_start_pos
   let start_col = s:char_col_to_byte_col(lnum, char_col)
 
-  let comp_list = []
-  for k in s:latest_henkan_list
-    " 前方一致で絞り込む
-    if k.yomi !~# $'^{s:latest_auto_complete_str}'
-      continue
-    endif
-    " ;があってもなくても良いよう_restを使う
-    let [word, info; _rest] = split(k.henkan, ';') + ['']
-    " :h complete-items
-    call add(comp_list, {
-          \ 'word': word,
-          \ 'menu': k.mark .. info,
-          \ 'info': k.mark .. info,
-          \ 'user_data': { 'yomi': k.yomi }
-          \ })
-  endfor
+  " yomiの前方一致で絞り込む
+  let comp_list = copy(s:latest_henkan_list)
+        \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
 
   call complete(start_col, comp_list)
 
@@ -377,25 +373,20 @@ function! k#completefunc(suffix_key = '')
   let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
 
   let google_exists = v:false
-  let comp_list = []
-  for k in s:latest_henkan_list
-    " ;があってもなくても良いよう_restを使う
-    let [word, info; _rest] = split(k.henkan, ';') + ['']
-    let user_data = { 'yomi': k.yomi }
-
-    if has_key(k, 'by_google')
-      let google_exists = v:true
-      let user_data['by_google'] = v:true
-    endif
-
-    " :h complete-items
-    call add(comp_list, {
-          \ 'word': word .. a:suffix_key,
-          \ 'menu': k.mark .. info,
-          \ 'info': k.mark .. info,
-          \ 'user_data': user_data
-          \ })
-  endfor
+  let comp_list = copy(s:latest_henkan_list)
+  if a:suffix_key ==# ''
+    for comp_item in comp_list
+      if type(comp_item.user_data) == v:t_dict &&
+            \ get(comp_item.user_data, 'by_google', 0)
+        let google_exists = v:true
+        break
+      endif
+    endfor
+  else
+    for comp_item in comp_list
+      let comp_item.word ..= a:suffix_key
+    endfor
+  endif
 
   let current_pos = getcharpos('.')[1:2]
   let is_trailing = getline('.')->strcharlen() < current_pos[1]
@@ -407,7 +398,7 @@ function! k#completefunc(suffix_key = '')
         \   'suffix_key': a:suffix_key,
         \ }
 
-  if !google_exists
+  if !google_exists && a:suffix_key ==# ''
     call add(comp_list, {
           \ 'word': preceding_str,
           \ 'abbr': '[Google変換]',
@@ -520,11 +511,12 @@ function! s:complete_done_pre(complete_info, completed_item) abort
       echomsg 'Google変換で結果が得られませんでした。'
       return
     endif
+
     call insert(s:latest_henkan_list, {
-          \ 'henkan': henkan_result,
-          \ 'mark': '[Google]',
-          \ 'yomi': gt.yomi,
-          \ 'by_google': v:true
+          \ 'word': henkan_result,
+          \ 'menu': '[Google]',
+          \ 'info': '[Google]',
+          \ 'user_data': { 'yomi': gt.yomi, 'by_google': v:true }
           \ })
     let b:henkan_start_pos = gt.start_pos
     call feedkeys("\<c-r>=k#completefunc()\<cr>\<c-n>", 'n')
@@ -575,7 +567,7 @@ function! s:buf_enter_try_user_henkan() abort
     return
   endif
 
-  let henkan_result = substitute(s:latest_henkan_list[0].henkan, ';.*', '', '')
+  let henkan_result = s:latest_henkan_list[0].word
   call feedkeys(repeat("\<bs>", strcharlen(b:jisyo_touroku_ctx.yomi)) .. henkan_result, 'n')
 
   if b:jisyo_touroku_ctx.suffix_key !=# ''
