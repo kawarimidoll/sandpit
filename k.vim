@@ -128,6 +128,18 @@ function! k#initialize(opts = {}) abort
 
   " 変換辞書
   let s:jisyo_list = get(a:opts, 'jisyo_list', [])
+  let s:jisyo_mark_pair = {}
+  for jisyo in s:jisyo_list
+    if jisyo.path =~ ':'
+      echoerr "[k#initialize] jisyo.path must NOT includes ':'"
+      return
+    endif
+    let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
+    let encoding = get(jisyo, 'encoding', '')
+    if encoding ==# ''
+      let jisyo.encoding = 'auto'
+    endif
+  endfor
 
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
@@ -279,20 +291,32 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 endfunction
 
 function! k#update_henkan_list(str, exact_match = v:true) abort
-  let str = a:exact_match ? $'{a:str} ' : $'^{a:str}[^ -~]* '
-  let henkan_list = []
+  let str = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
+  let cmd = ''
   for jisyo in s:jisyo_list
-    let mark = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}]'
-    let cmd = $"rg --no-filename --no-line-number --encoding {jisyo.encoding} '^{str}' {jisyo.path} 2>/dev/null"
-    let results = systemlist(cmd)
-    for r in results
-      let tmp = split(r, '/')
-      call extend(henkan_list, tmp[1:]->map({_,v->{
+    let cmd ..= 'rg --no-heading --with-filename --no-line-number'
+          \ .. $" --encoding {jisyo.encoding} '^{str}' {jisyo.path} 2>/dev/null; "
+  endfor
+  let results = systemlist(cmd)
+  let henkan_list = []
+  for r in results
+    try
+      " /path/to/jisyo:よみ /変換1/変換2/.../
+      " 変換部分にcolonが含まれる可能性があるためsplitは不適
+      let colon_idx = stridx(r, ':')
+      let path = strpart(r, 0, colon_idx)
+      let content = strpart(r, colon_idx+1)
+      let space_idx = stridx(content, ' /')
+      let yomi = strpart(content, 0, space_idx)
+      let henkan_str = strpart(content, space_idx+1)
+      call extend(henkan_list, split(henkan_str, '/')->map({_,v->{
             \ 'henkan': v,
-            \ 'yomi': tmp[0]->substitute(' *$', '', ''),
-            \ 'mark': mark
+            \ 'yomi': trim(yomi),
+            \ 'mark': s:jisyo_mark_pair[path]
             \ }}))
-    endfor
+    catch
+      echomsg v:exception r
+    endtry
   endfor
 
   let s:latest_henkan_list = henkan_list
