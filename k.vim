@@ -24,7 +24,7 @@ function! k#enable() abort
     autocmd InsertLeave * call k#disable()
     autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
     if s:min_auto_complete_length > 0
-      autocmd TextChangedI * call s:auto_complete()
+      autocmd TextChangedI,TextChangedP * call s:auto_complete()
     endif
   augroup END
 
