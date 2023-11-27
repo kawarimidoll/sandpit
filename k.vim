@@ -6,6 +6,10 @@ function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
 endfunction
 
+function! s:is_completed() abort
+  return get(complete_info(), 'selected', -1) >= 0
+endfunction
+
 let s:is_enable = v:false
 let s:keys_to_remaps = []
 let s:keys_to_unmaps = []
@@ -22,9 +26,16 @@ function! k#enable() abort
   augroup k_augroup
     autocmd!
     autocmd InsertLeave * call k#disable()
-    autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
+    autocmd CompleteDonePre *
+          \   if s:is_completed()
+          \ |   call s:complete_done_pre(complete_info(), v:completed_item)
+          \ | endif
+
     if s:min_auto_complete_length > 0
-      autocmd TextChangedI,TextChangedP * call s:auto_complete()
+      autocmd TextChangedI,TextChangedP *
+            \   if !s:is_completed()
+            \ |   call s:auto_complete()
+            \ | endif
     endif
   augroup END
 
@@ -488,11 +499,6 @@ endfunction
 
 function! s:complete_done_pre(complete_info, completed_item) abort
   " echomsg a:complete_info a:completed_item
-
-  if get(a:complete_info, 'selected', -1) < 0
-    " not selected
-    return
-  endif
 
   if s:is_same_line_right_col('henkan')
     " echomsg 'complete_done_pre clear_henkan_start_pos'
