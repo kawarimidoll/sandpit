@@ -1,5 +1,6 @@
 source ./inline_mark.vim
 source ./converters.vim
+source ./google_cgi.vim
 
 function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
