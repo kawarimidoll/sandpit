@@ -116,6 +116,9 @@ function! k#initialize(opts = {}) abort
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 
+  " 'っ'が連続したら1回と見做す
+  let s:merge_tsu = get(a:opts, 'merge_tsu', v:false)
+
   " ユーザー辞書
   let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
   if s:user_jisyo_path !~ '^/'
@@ -213,8 +216,9 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
 
   let start_col = get(b:, target_name, [0, 0])[1]
 
-  let preceding_str = getline('.')->slice(start_col-1, charcol('.')-1)
-  return a:trim_trail_n ? preceding_str->substitute("n$", "ん", "") : preceding_str
+  let str = getline('.')->slice(start_col-1, charcol('.')-1)
+  let str = s:merge_tsu ? substitute(str, 'っ\+', 'っ', 'g') : str
+  return a:trim_trail_n ? str->substitute("n$", "ん", "") : str
 endfunction
 
 function! k#zen_kata(...) abort
@@ -651,4 +655,5 @@ call k#initialize({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \ ],
       \ 'min_auto_complete_length': 2
+      \ 'merge_tsu': v:true,
       \ })
