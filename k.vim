@@ -116,14 +116,14 @@ function! k#initialize(opts = {}) abort
     call fnamemodify(s:user_jisyo_path, ':p:h')
           \ ->iconv(&encoding, &termencoding)
           \ ->mkdir('p')
-    call writefile(user_jisyo_lines, [
+    call writefile([
           \ ';; フォーマットは以下',
           \ ';; yomi /(henkan(;setsumei)?/)+',
           \ ';; コメント行は変更しないでください',
           \ ';;',
           \ ';; okuri-ari entries.',
           \ ';; okuri-nasi entries.',
-          \ ])
+          \ ], s:user_jisyo_path)
   endif
 
   " 変換辞書
