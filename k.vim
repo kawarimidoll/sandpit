@@ -23,7 +23,9 @@ function! k#enable() abort
     autocmd!
     autocmd InsertLeave * call k#disable()
     autocmd CompleteDonePre * call s:complete_done_pre(complete_info(), v:completed_item)
-    autocmd TextChangedI * call s:auto_complete()
+    if s:min_auto_complete_length > 0
+      autocmd TextChangedI * call s:auto_complete()
+    endif
   augroup END
 
   let s:keys_to_remaps = []
@@ -99,6 +101,9 @@ function! k#initialize(opts = {}) abort
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
   let s:select_marker = get(a:opts, 'select_marker', '▼')
   " let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
+
+  " 自動補完最小文字数 (0の場合は自動補完しない)
+  let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 
   " ユーザー辞書
   let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
@@ -294,7 +299,6 @@ function! k#update_henkan_list(str, exact_match = v:true) abort
 endfunction
 
 let s:latest_auto_complete_str = ''
-let s:min_auto_complete_length = 2
 function! s:auto_complete() abort
   let preceding_str = s:get_preceding_str('henkan', v:false)
         \ ->substitute('\a*$', '', '')
@@ -615,5 +619,6 @@ call k#initialize({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': 'G' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': 'W' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
-      \ ]
+      \ ],
+      \ 'min_auto_complete_length': 2
       \ })
