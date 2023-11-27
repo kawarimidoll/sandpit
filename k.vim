@@ -376,6 +376,7 @@ function! k#autocompletefunc()
         \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
 
   call complete(start_col, comp_list)
+  echo $'{s:latest_auto_complete_str}: {len(comp_list)}件'
 
   return ''
 endfunction
@@ -402,6 +403,8 @@ function! k#completefunc(suffix_key = '')
       let comp_item.word ..= a:suffix_key
     endfor
   endif
+
+  let list_len = len(comp_list)
 
   let current_pos = getcharpos('.')[1:2]
   let is_trailing = getline('.')->strcharlen() < current_pos[1]
@@ -432,6 +435,7 @@ function! k#completefunc(suffix_key = '')
 
   call complete(start_col, comp_list)
 
+  echo $'{preceding_str}: {list_len}件'
   return ''
 endfunction
 
