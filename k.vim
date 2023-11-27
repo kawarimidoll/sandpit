@@ -137,8 +137,9 @@ function! k#initialize(opts = {}) abort
           \ ], s:user_jisyo_path)
   endif
 
-  " 変換辞書
+  " 変換辞書リスト
   let s:jisyo_list = get(a:opts, 'jisyo_list', [])
+  let exists_user_jisyo = v:false
   let s:jisyo_mark_pair = {}
   for jisyo in s:jisyo_list
     if jisyo.path =~ ':'
@@ -150,7 +151,14 @@ function! k#initialize(opts = {}) abort
     if encoding ==# ''
       let jisyo.encoding = 'auto'
     endif
+    if !exists_user_jisyo
+      let exists_user_jisyo = jisyo.path ==# s:user_jisyo_path
+    endif
   endfor
+  if !exists_user_jisyo
+    " ユーザー辞書がリストに無ければ先頭に追加する
+    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
+  endif
 
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
