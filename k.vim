@@ -137,27 +137,28 @@ function! k#initialize(opts = {}) abort
           \ ], s:user_jisyo_path)
   endif
 
-  " 変換辞書リスト
-  let s:jisyo_list = get(a:opts, 'jisyo_list', [])
+  " 変換辞書リストからgrep_cmdを生成
+  let jisyo_list = get(a:opts, 'jisyo_list', [])
   let exists_user_jisyo = v:false
   let s:jisyo_mark_pair = {}
-  for jisyo in s:jisyo_list
+  let s:grep_cmd = ''
+  for jisyo in jisyo_list
     if jisyo.path =~ ':'
       echoerr "[k#initialize] jisyo.path must NOT includes ':'"
       return
     endif
     let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
-    let encoding = get(jisyo, 'encoding', '')
-    if encoding ==# ''
-      let jisyo.encoding = 'auto'
-    endif
-    if !exists_user_jisyo
-      let exists_user_jisyo = jisyo.path ==# s:user_jisyo_path
-    endif
+    let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
+    let s:grep_cmd ..= 'rg --no-heading --with-filename --no-line-number'
+          \ .. $" --encoding {encoding} '^:query:' {jisyo.path} 2>/dev/null; "
+    let exists_user_jisyo = exists_user_jisyo || jisyo.path ==# s:user_jisyo_path
   endfor
   if !exists_user_jisyo
     " ユーザー辞書がリストに無ければ先頭に追加する
-    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
+    " マークはU エンコードはutf-8で固定
+    let s:jisyo_mark_pair[s:user_jisyo_path] = '[U] '
+    let s:grep_cmd = 'rg --no-heading --with-filename --no-line-number'
+          \ .. $" --encoding utf-8 '^:query:' {s:user_jisyo_path} 2>/dev/null; " .. s:grep_cmd
   endif
 
   " かなテーブル
@@ -311,12 +312,7 @@ endfunction
 
 function! k#update_henkan_list(str, exact_match = v:true) abort
   let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
-  let cmd = ''
-  for jisyo in s:jisyo_list
-    let cmd ..= 'rg --no-heading --with-filename --no-line-number'
-          \ .. $" --encoding {jisyo.encoding} '^{query}' {jisyo.path} 2>/dev/null; "
-  endfor
-  let results = systemlist(cmd)
+  let results = systemlist(substitute(s:grep_cmd, ':query:', query, 'g'))
   let henkan_list = []
   for r in results
     try
