@@ -25,6 +25,8 @@ function! k#enable() abort
 
   augroup k_augroup
     autocmd!
+    autocmd InsertLeave * call inline_mark#clear()
+    " TODO 自動disableはユーザーに任せるべき
     autocmd InsertLeave * call k#disable()
     autocmd CompleteDonePre *
           \   if s:is_completed()
