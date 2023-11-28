@@ -150,6 +150,7 @@ function! k#initialize(opts = {}) abort
   let exists_user_jisyo = v:false
   let s:jisyo_mark_pair = {}
   let s:grep_cmd = ''
+  let s:jisyo_list_len = len(jisyo_list)
   for jisyo in jisyo_list
     if jisyo.path =~ ':'
       echoerr "[k#initialize] jisyo.path must NOT includes ':'"
@@ -168,11 +169,16 @@ function! k#initialize(opts = {}) abort
   endfor
   if !exists_user_jisyo
     " ユーザー辞書がリストに無ければ先頭に追加する
+    call insert(jisyo_list, { 'path': s:user_jisyo_path })
     " マークはU エンコードはutf-8で固定
     let s:jisyo_mark_pair[s:user_jisyo_path] = '[U] '
     let s:grep_cmd = 'rg --no-heading --with-filename --no-line-number'
           \ .. $" --encoding utf-8 '^:query:' {s:user_jisyo_path} 2>/dev/null; " .. s:grep_cmd
+    let s:jisyo_list_len += 1
   endif
+
+  " 自動補完用 辞書の順位を保存する
+  let s:jisyo_path_list = map(jisyo_list, 'v:val.path')
 
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
