@@ -359,9 +359,8 @@ function! s:populate_async_henkan_list(data) abort
   call s:save_henkan_list(henkan_list, "\<c-r>=k#autocompletefunc()\<cr>")
 endfunction
 
-function! k#update_henkan_list(str, exact_match = v:true) abort
-  let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
-  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', query, 'g'))
+function! k#update_henkan_list(str) abort
+  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', $'{a:str} ', 'g'))
   call s:save_henkan_list(results)
 endfunction
 
