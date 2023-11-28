@@ -298,7 +298,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 
       let s:next_okuri = v:false
 
-      return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>\<c-n>"
+      return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>"
     endif
   endif
 
@@ -450,7 +450,7 @@ function! k#completefunc(suffix_key = '')
   call complete(start_col, comp_list)
 
   echo $'{preceding_str}: {list_len}件'
-  return ''
+  return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
 function! s:char_col_to_byte_col(lnum, char_col) abort
@@ -507,7 +507,7 @@ function! k#henkan(fallback_key) abort
 
   call k#update_henkan_list(preceding_str)
 
-  return "\<c-r>=k#completefunc()\<cr>\<c-n>"
+  return "\<c-r>=k#completefunc()\<cr>"
 endfunction
 
 function! k#kakutei(fallback_key) abort
@@ -547,7 +547,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
           \ 'user_data': { 'yomi': gt.yomi, 'by_google': v:true }
           \ })
     let b:henkan_start_pos = gt.start_pos
-    call feedkeys("\<c-r>=k#completefunc()\<cr>\<c-n>", 'n')
+    call feedkeys("\<c-r>=k#completefunc()\<cr>", 'n')
     return
   endif
 
