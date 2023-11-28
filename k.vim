@@ -128,7 +128,7 @@ function! k#initialize(opts = {}) abort
   " ユーザー辞書
   let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
   if s:user_jisyo_path !~ '^/'
-    echoerr '[k#initialize] user_jisyo_path must be start with /'
+    echoerr $"[k#initialize] user_jisyo_path must be start with '/' {s:user_jisyo_path}"
     return
   endif
   " 指定されたパスにファイルがなければ作成する
