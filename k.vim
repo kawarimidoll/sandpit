@@ -1,6 +1,7 @@
 source ./inline_mark.vim
 source ./converters.vim
 source ./google_cgi.vim
+source ./job.vim
 
 function! s:capital(char) abort
   return substitute(a:char, '.', '\U\0', '')
@@ -330,13 +331,48 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   return get(kana_dict, '', a:key)
 endfunction
 
+" 自動補完用なので前方一致のみ
+function! k#async_update_henkan_list(str) abort
+  let s:latest_henkan_list = []
+  let s:latest_async_henkan_list = []
+  let grep_cmd_list = split(s:grep_cmd, '2>/dev/null; ')
+  for cmd in grep_cmd_list
+    let run_cmd = substitute(cmd, ':query:', $'{a:str}[^!-~]* ', 'g')
+    call job#start(run_cmd, {
+          \ 'exit': {data->s:populate_async_henkan_list(data)} })
+  endfor
+endfunction
+
+function! s:populate_async_henkan_list(data) abort
+  " 変換リストの蓄積が辞書リストの数に満たなければ早期脱出
+  call add(s:latest_async_henkan_list, a:data)
+  if len(s:latest_async_henkan_list) != s:jisyo_list_len
+    return
+  endif
+
+  " 蓄積リストを辞書リストの順に並び替える
+  let henkan_list = []
+  for path in s:jisyo_path_list
+    let result_of_current_dict_index = indexof(s:latest_async_henkan_list, {
+          \ _,v -> !empty(v) && substitute(v[0], ':.*', '', '') ==# path
+          \ })
+    if result_of_current_dict_index < 0
+      continue
+    endif
+    call extend(henkan_list, s:latest_async_henkan_list[result_of_current_dict_index])
+  endfor
+
+  " TODO 送りあり変換をスタートしていたら自動補完はキャンセルする
+  call s:save_henkan_list(henkan_list, "\<c-r>=k#autocompletefunc()\<cr>")
+endfunction
+
 function! k#update_henkan_list(str, exact_match = v:true) abort
   let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
   let results = systemlist(substitute(s:grep_cmd, ':query:', query, 'g'))
   call s:save_henkan_list(results)
 endfunction
 
-function! s:save_henkan_list(source_list) abort
+function! s:save_henkan_list(source_list, after_feedkeys = '') abort
   let henkan_list = []
   for r in a:source_list
     try
@@ -368,6 +404,9 @@ function! s:save_henkan_list(source_list) abort
   endfor
 
   let s:latest_henkan_list = henkan_list
+  if a:after_feedkeys != ''
+    call feedkeys(a:after_feedkeys, 'n')
+  endif
 endfunction
 
 let s:latest_auto_complete_str = ''
@@ -383,7 +422,7 @@ function! s:auto_complete() abort
 
   " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
   if slice(preceding_str, 0, s:min_auto_complete_length) !=# slice(s:latest_auto_complete_str, 0, s:min_auto_complete_length)
-    call k#update_henkan_list(preceding_str, 0)
+    call k#async_update_henkan_list(preceding_str)
   endif
 
   let s:latest_auto_complete_str = preceding_str
