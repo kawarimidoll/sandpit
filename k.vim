@@ -164,7 +164,7 @@ function! k#initialize(opts = {}) abort
     let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
     let s:grep_cmd ..= 'rg --no-heading --with-filename --no-line-number'
-          \ .. $" --encoding {encoding} '^:query:' {jisyo.path} 2>/dev/null; "
+          \ .. $' --encoding={encoding} "^:query:" {jisyo.path} 2>/dev/null; '
     let exists_user_jisyo = exists_user_jisyo || jisyo.path ==# s:user_jisyo_path
   endfor
   if !exists_user_jisyo
@@ -173,7 +173,7 @@ function! k#initialize(opts = {}) abort
     " マークはU エンコードはutf-8で固定
     let s:jisyo_mark_pair[s:user_jisyo_path] = '[U] '
     let s:grep_cmd = 'rg --no-heading --with-filename --no-line-number'
-          \ .. $" --encoding utf-8 '^:query:' {s:user_jisyo_path} 2>/dev/null; " .. s:grep_cmd
+          \ .. $' --encoding=utf-8 "^:query:" {s:user_jisyo_path} 2>/dev/null; ' .. s:grep_cmd
     let s:jisyo_list_len += 1
   endif
 
