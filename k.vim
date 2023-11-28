@@ -148,7 +148,11 @@ function! k#initialize(opts = {}) abort
 
   " 変換辞書リストからgrep_cmdを生成
   let jisyo_list = get(a:opts, 'jisyo_list', [])
-  let exists_user_jisyo = v:false
+  if indexof(jisyo_list, $'v:val.path ==# "{s:user_jisyo_path}"') < 0
+    " ユーザー辞書がリストに無ければ先頭に追加する
+    " マークはU エンコードはutf-8
+    call insert(jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
+  endif
   let s:jisyo_mark_pair = {}
   let s:grep_cmd = ''
   let s:jisyo_list_len = len(jisyo_list)
@@ -166,17 +170,7 @@ function! k#initialize(opts = {}) abort
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
     let s:grep_cmd ..= 'rg --no-heading --with-filename --no-line-number'
           \ .. $' --encoding={encoding} "^:query:" {jisyo.path} 2>/dev/null; '
-    let exists_user_jisyo = exists_user_jisyo || jisyo.path ==# s:user_jisyo_path
   endfor
-  if !exists_user_jisyo
-    " ユーザー辞書がリストに無ければ先頭に追加する
-    call insert(jisyo_list, { 'path': s:user_jisyo_path })
-    " マークはU エンコードはutf-8で固定
-    let s:jisyo_mark_pair[s:user_jisyo_path] = '[U] '
-    let s:grep_cmd = 'rg --no-heading --with-filename --no-line-number'
-          \ .. $' --encoding=utf-8 "^:query:" {s:user_jisyo_path} 2>/dev/null; ' .. s:grep_cmd
-    let s:jisyo_list_len += 1
-  endif
 
   " 自動補完用 辞書の順位を保存する
   let s:jisyo_path_list = map(jisyo_list, 'v:val.path')
