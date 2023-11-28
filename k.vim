@@ -146,34 +146,35 @@ function! k#initialize(opts = {}) abort
           \ ], s:user_jisyo_path)
   endif
 
-  " 変換辞書リストからgrep_cmdを生成
-  let jisyo_list = get(a:opts, 'jisyo_list', [])
-  if indexof(jisyo_list, $'v:val.path ==# "{s:user_jisyo_path}"') < 0
+  " 変換辞書リスト
+  let s:jisyo_list = get(a:opts, 'jisyo_list', [])
+  if indexof(s:jisyo_list, $'v:val.path ==# "{s:user_jisyo_path}"') < 0
     " ユーザー辞書がリストに無ければ先頭に追加する
     " マークはU エンコードはutf-8
-    call insert(jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
+    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
   endif
   let s:jisyo_mark_pair = {}
-  let s:grep_cmd = ''
-  let s:jisyo_list_len = len(jisyo_list)
-  for jisyo in jisyo_list
+  let s:combined_grep_cmd = ''
+  for jisyo in s:jisyo_list
     if jisyo.path =~ ':'
-      echoerr "[k#initialize] jisyo.path must NOT includes ':'"
+      echoerr $"[k#initialize] jisyo.path must NOT includes ':' {jisyo.path}"
       return
-    endif
-    if has_key(s:jisyo_mark_pair, jisyo.path)
-      echoerr "[k#initialize] jisyo.path must be unique"
+    elseif has_key(s:jisyo_mark_pair, jisyo.path)
+      echoerr $"[k#initialize] jisyo.path must be unique {jisyo.path}"
+      return
+    elseif !filereadable(jisyo.path)
+      echoerr $"[k#initialize] jisyo.path can't be read {jisyo.path}"
       return
     endif
 
     let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
-    let s:grep_cmd ..= 'rg --no-heading --with-filename --no-line-number'
-          \ .. $' --encoding={encoding} "^:query:" {jisyo.path} 2>/dev/null; '
+    let jisyo.grep_cmd = 'rg --no-heading --with-filename --no-line-number'
+          \ .. $' --encoding={encoding} "^:query:" {jisyo.path}'
+
+    let s:combined_grep_cmd ..= $'{jisyo.grep_cmd} 2>/dev/null;'
   endfor
 
-  " 自動補完用 辞書の順位を保存する
-  let s:jisyo_path_list = map(jisyo_list, 'v:val.path')
 
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
@@ -329,10 +330,8 @@ endfunction
 function! k#async_update_henkan_list(str) abort
   let s:latest_henkan_list = []
   let s:latest_async_henkan_list = []
-  let grep_cmd_list = split(s:grep_cmd, '2>/dev/null; ')
-  for cmd in grep_cmd_list
-    let run_cmd = substitute(cmd, ':query:', $'{a:str}[^!-~]* ', 'g')
-    call job#start(run_cmd, {
+  for jisyo in s:jisyo_list
+    call job#start(substitute(jisyo.grep_cmd, ':query:', $'{a:str}[^!-~]* /', 'g'), {
           \ 'exit': {data->s:populate_async_henkan_list(data)} })
   endfor
 endfunction
@@ -340,15 +339,15 @@ endfunction
 function! s:populate_async_henkan_list(data) abort
   " 変換リストの蓄積が辞書リストの数に満たなければ早期脱出
   call add(s:latest_async_henkan_list, a:data)
-  if len(s:latest_async_henkan_list) != s:jisyo_list_len
+  if len(s:latest_async_henkan_list) != len(s:jisyo_list)
     return
   endif
 
   " 蓄積リストを辞書リストの順に並び替える
   let henkan_list = []
-  for path in s:jisyo_path_list
+  for jisyo in s:jisyo_list
     let result_of_current_dict_index = indexof(s:latest_async_henkan_list, {
-          \ _,v -> !empty(v) && substitute(v[0], ':.*', '', '') ==# path
+          \ _,v -> !empty(v) && substitute(v[0], ':.*', '', '') ==# jisyo.path
           \ })
     if result_of_current_dict_index < 0
       continue
@@ -362,7 +361,7 @@ endfunction
 
 function! k#update_henkan_list(str, exact_match = v:true) abort
   let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
-  let results = systemlist(substitute(s:grep_cmd, ':query:', query, 'g'))
+  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', query, 'g'))
   call s:save_henkan_list(results)
 endfunction
 
