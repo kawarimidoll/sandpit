@@ -333,8 +333,12 @@ endfunction
 function! k#update_henkan_list(str, exact_match = v:true) abort
   let query = a:exact_match ? $'{a:str} ' : $'{a:str}[^ -~]* '
   let results = systemlist(substitute(s:grep_cmd, ':query:', query, 'g'))
+  call s:save_henkan_list(results)
+endfunction
+
+function! s:save_henkan_list(source_list) abort
   let henkan_list = []
-  for r in results
+  for r in a:source_list
     try
       " /path/to/jisyo:よみ /変換1/変換2/.../
       " 変換部分にcolonが含まれる可能性があるためsplitは不適
