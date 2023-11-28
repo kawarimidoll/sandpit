@@ -118,6 +118,9 @@ function! k#initialize(opts = {}) abort
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 
+  " Google CGI変換
+  let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
+
   " 'っ'が連続したら1回と見做す
   let s:merge_tsu = get(a:opts, 'merge_tsu', v:false)
 
@@ -422,7 +425,7 @@ function! k#completefunc(suffix_key = '')
         \   'suffix_key': a:suffix_key,
         \ }
 
-  if !google_exists && a:suffix_key ==# ''
+  if s:use_google_cgi && !google_exists && a:suffix_key ==# ''
     call add(comp_list, {
           \ 'word': preceding_str,
           \ 'abbr': '[Google変換]',
@@ -656,6 +659,7 @@ call k#initialize({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': 'W' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \ ],
-      \ 'min_auto_complete_length': 2
+      \ 'min_auto_complete_length': 2,
+      \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
       \ })
