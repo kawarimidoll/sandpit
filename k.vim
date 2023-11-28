@@ -155,6 +155,11 @@ function! k#initialize(opts = {}) abort
       echoerr "[k#initialize] jisyo.path must NOT includes ':'"
       return
     endif
+    if has_key(s:jisyo_mark_pair, jisyo.path)
+      echoerr "[k#initialize] jisyo.path must be unique"
+      return
+    endif
+
     let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
     let s:grep_cmd ..= 'rg --no-heading --with-filename --no-line-number'
