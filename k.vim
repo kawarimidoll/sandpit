@@ -332,8 +332,9 @@ endfunction
 function! k#async_update_henkan_list(str) abort
   let s:latest_henkan_list = []
   let s:latest_async_henkan_list = []
+  let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
   for jisyo in s:jisyo_list
-    call job#start(substitute(jisyo.grep_cmd, ':query:', $'{a:str}[^!-~]* /', 'g'), {
+    call job#start(substitute(jisyo.grep_cmd, ':query:', $'{str}[^!-~]* /', 'g'), {
           \ 'exit': {data->s:populate_async_henkan_list(data)} })
   endfor
 endfunction
@@ -362,7 +363,8 @@ function! s:populate_async_henkan_list(data) abort
 endfunction
 
 function! k#update_henkan_list(str) abort
-  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', $'{a:str} ', 'g'))
+  let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
+  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', $'{str} ', 'g'))
   call s:save_henkan_list(results)
 endfunction
 
