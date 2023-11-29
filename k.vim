@@ -3,9 +3,6 @@ source ./converters.vim
 source ./google_cgi.vim
 source ./job.vim
 
-function! s:capital(char) abort
-  return substitute(a:char, '.', '\U\0', '')
-endfunction
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
@@ -57,7 +54,7 @@ function! k#enable() abort
     execute $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"
 
     if key =~ '^\l$'
-      let ck = s:capital(k)
+      let ck = toupper(k)
       let current_map = maparg(ck, 'i', 0, 1)
       if empty(current_map)
         call add(s:keys_to_unmaps, ck)
