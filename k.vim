@@ -45,7 +45,7 @@ function! k#enable() abort
   let s:keys_to_remaps = []
   let s:keys_to_unmaps = []
 
-  for key in s:end_keys->keys()
+  for key in s:keymap_dict->keys()
     let k = keytrans(key)
     let k_lt = substitute(k, '<', '<lt>', 'g')
     let current_map = maparg(k, 'i', 0, 1)
@@ -178,21 +178,21 @@ function! k#initialize(opts = {}) abort
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
 
-  let s:end_keys = {}
+  let s:keymap_dict = {}
   for [k, val] in items(kana_table)
     let key = s:trans_special_key(k)
     let preceding_keys = slice(key, 0, -1)
     let start_key = slice(key, 0, 1)
     let end_key = slice(key, -1)
 
-    if !has_key(s:end_keys, end_key)
-      let s:end_keys[end_key] = {}
+    if !has_key(s:keymap_dict, end_key)
+      let s:keymap_dict[end_key] = {}
     endif
-    let s:end_keys[end_key][preceding_keys] = val
+    let s:keymap_dict[end_key][preceding_keys] = val
 
-    " start_keyもend_keysに登録する(入力開始位置の指定のため)
-    if !has_key(s:end_keys, start_key)
-      let s:end_keys[start_key] = {}
+    " start_keyもkeymap_dictに登録する(入力開始位置の指定のため)
+    if !has_key(s:keymap_dict, start_key)
+      let s:keymap_dict[start_key] = {}
     endif
   endfor
 endfunction
