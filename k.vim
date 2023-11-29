@@ -288,7 +288,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
     let b:kana_start_pos = current_pos
   endif
 
-  let kana_dict = get(s:end_keys, a:key, {})
+  let kana_dict = get(s:keymap_dict, a:key, {})
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
