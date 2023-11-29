@@ -10,7 +10,6 @@ endfunction
 
 let s:is_enable = v:false
 let s:keys_to_remaps = []
-let s:keys_to_unmaps = []
 
 function! k#is_enable() abort
   return s:is_enable
@@ -40,27 +39,18 @@ function! k#enable() abort
   augroup END
 
   let s:keys_to_remaps = []
-  let s:keys_to_unmaps = []
 
   for key in s:keymap_dict->keys()
     let k = keytrans(key)
     let k_lt = substitute(k, '<', '<lt>', 'g')
     let current_map = maparg(k, 'i', 0, 1)
-    if empty(current_map)
-      call add(s:keys_to_unmaps, k)
-    else
-      call add(s:keys_to_remaps, current_map)
-    endif
+    call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
     execute $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"
 
     if key =~ '^\l$'
       let ck = toupper(k)
       let current_map = maparg(ck, 'i', 0, 1)
-      if empty(current_map)
-        call add(s:keys_to_unmaps, ck)
-      else
-        call add(s:keys_to_remaps, current_map)
-      endif
+      call add(s:keys_to_remaps, empty(current_map) ? ck : current_map)
       execute $"inoremap {ck} <cmd>call k#ins('{k}',1)<cr>"
     endif
   endfor
@@ -81,15 +71,15 @@ function! k#disable() abort
 
   autocmd! k_augroup
 
-  for m in s:keys_to_remaps
-    call mapset('i', 0, m)
-  endfor
-  for k in s:keys_to_unmaps
-    execute 'iunmap' k
+  for k in s:keys_to_remaps
+    if type(k) == v:t_string
+      execute 'iunmap' k
+    else
+      call mapset('i', 0, k)
+    endif
   endfor
 
   let s:keys_to_remaps = []
-  let s:keys_to_unmaps = []
 
   let s:is_enable = v:false
 endfunction
