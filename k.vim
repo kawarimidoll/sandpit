@@ -8,6 +8,12 @@ function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
+function! s:uniq_add(list, item) abort
+  if index(a:list, a:item) < 0
+    call add(a:list, a:item)
+  endif
+endfunction
+
 let s:is_enable = v:false
 let s:keys_to_remaps = []
 
@@ -39,20 +45,10 @@ function! k#enable() abort
   augroup END
 
   let s:keys_to_remaps = []
-
-  for key in s:keymap_dict->keys()
-    let k = keytrans(key)
-    let k_lt = substitute(k, '<', '<lt>', 'g')
-    let current_map = maparg(k, 'i', 0, 1)
-    call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
-    execute $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"
-
-    if key =~ '^\l$'
-      let ck = toupper(k)
-      let current_map = maparg(ck, 'i', 0, 1)
-      call add(s:keys_to_remaps, empty(current_map) ? ck : current_map)
-      execute $"inoremap {ck} <cmd>call k#ins('{k}',1)<cr>"
-    endif
+  for [key, map_cmd] in s:map_cmds
+    let current_map = maparg(key, 'i', 0, 1)
+    call add(s:keys_to_remaps, empty(current_map) ? key : current_map)
+    execute map_cmd
   endfor
 
   call s:set_inner_mode('hira')
@@ -165,6 +161,7 @@ function! k#initialize(opts = {}) abort
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
 
+  let shift_key_list = []
   let s:keymap_dict = {}
   for [k, val] in items(kana_table)
     let key = s:trans_special_key(k)
@@ -181,6 +178,23 @@ function! k#initialize(opts = {}) abort
     if !has_key(s:keymap_dict, start_key)
       let s:keymap_dict[start_key] = {}
     endif
+    " 文字入力を開始するアルファベットのキーは変換開始キーとして使用する
+    if type(val) == v:t_string && start_key =~# '^\l$'
+      call s:uniq_add(shift_key_list, toupper(start_key))
+    endif
+  endfor
+
+  " 入力テーブルに既に含まれている大文字は変換開始に使わない
+  call filter(shift_key_list, '!has_key(s:keymap_dict, v:val)')
+
+  let s:map_cmds = []
+  for key in s:keymap_dict->keys()
+    let k = keytrans(key)
+    let k_lt = substitute(k, '<', '<lt>', 'g')
+    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"])
+  endfor
+  for k in shift_key_list
+    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{tolower(k)}',1)<cr>"])
   endfor
 endfunction
 
