@@ -45,7 +45,7 @@ function! k#enable() abort
   let s:keys_to_remaps = []
   let s:keys_to_unmaps = []
 
-  for key in extendnew(s:start_keys, s:end_keys)->keys()
+  for key in s:end_keys->keys()
     let k = keytrans(key)
     let k_lt = substitute(k, '<', '<lt>', 'g')
     let current_map = maparg(k, 'i', 0, 1)
@@ -175,24 +175,25 @@ function! k#initialize(opts = {}) abort
     let s:combined_grep_cmd ..= $'{jisyo.grep_cmd} 2>/dev/null;'
   endfor
 
-
   " かなテーブル
   let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
 
-  let s:start_keys = {}
   let s:end_keys = {}
-
   for [k, val] in items(kana_table)
     let key = s:trans_special_key(k)
     let preceding_keys = slice(key, 0, -1)
     let start_key = slice(key, 0, 1)
     let end_key = slice(key, -1)
 
-    let s:start_keys[start_key] = 1
     if !has_key(s:end_keys, end_key)
       let s:end_keys[end_key] = {}
     endif
     let s:end_keys[end_key][preceding_keys] = val
+
+    " start_keyもend_keysに登録する(入力開始位置の指定のため)
+    if !has_key(s:end_keys, start_key)
+      let s:end_keys[start_key] = {}
+    endif
   endfor
 endfunction
 
