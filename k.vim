@@ -186,8 +186,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
     if !next_okuri && (!s:is_same_line_right_col('henkan') || pumvisible())
-      let current_pos = getcharpos('.')[1:2]
-      call s:set_henkan_start_pos(current_pos)
+      call s:set_henkan_start_pos()
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
       " echomsg 'okuri-ari:' preceding_str .. a:key
@@ -321,8 +320,7 @@ function! s:auto_complete() abort
 endfunction
 
 function! k#autocompletefunc()
-  let [lnum, char_col] = b:henkan_start_pos
-  let start_col = s:char_col_to_byte_col(lnum, char_col)
+  let start_col = s:char_col_to_byte_col(b:henkan_start_pos)
 
   " yomiの前方一致で絞り込む
   let comp_list = copy(s:latest_henkan_list)
@@ -337,8 +335,7 @@ endfunction
 function! k#completefunc(suffix_key = '')
   call s:set_henkan_select_mark()
   " 補完の始点のcol
-  let [lnum, char_col] = b:henkan_start_pos
-  let start_col = s:char_col_to_byte_col(lnum, char_col)
+  let start_col = s:char_col_to_byte_col(b:henkan_start_pos)
   let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
 
   let google_exists = v:false
@@ -392,23 +389,20 @@ function! k#completefunc(suffix_key = '')
   return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
-function! s:char_col_to_byte_col(lnum, char_col) abort
-  return getline(a:lnum)->slice(0, a:char_col-1)->strlen()+1
+function! s:char_col_to_byte_col(char_pos) abort
+  return getline(a:char_pos[0])->slice(0, a:char_pos[1]-1)->strlen()+1
 endfunction
 
-function! s:set_henkan_start_pos(pos) abort
-  let b:henkan_start_pos = a:pos
-
-  let [lnum, char_col] = b:henkan_start_pos
-  let byte_col = s:char_col_to_byte_col(lnum, char_col)
-  call inline_mark#display(lnum, byte_col, opts#get('henkan_marker'))
+function! s:set_henkan_start_pos() abort
+  let b:henkan_start_pos = getcharpos('.')[1:2]
+  let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
+  call inline_mark#display(b:henkan_start_pos[0], byte_col, opts#get('henkan_marker'))
 endfunction
 
 function! s:set_henkan_select_mark() abort
   call inline_mark#clear()
-  let [lnum, char_col] = b:henkan_start_pos
-  let byte_col = s:char_col_to_byte_col(lnum, char_col)
-  call inline_mark#display(lnum, byte_col, opts#get('select_marker'))
+  let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
+  call inline_mark#display(b:henkan_start_pos[0], byte_col, opts#get('select_marker'))
   let b:select_start_pos = getcharpos('.')[1:2]
 endfunction
 
@@ -425,8 +419,7 @@ function! k#sticky(...) abort
     let s:next_okuri = v:true
     echomsg 'next okuri set'
   else
-    let current_pos = getcharpos('.')[1:2]
-    call s:set_henkan_start_pos(current_pos)
+    call s:set_henkan_start_pos()
   endif
   return ''
 endfunction
