@@ -33,7 +33,7 @@ function! k#enable() abort
           \ |   call s:complete_done_pre(complete_info(), v:completed_item)
           \ | endif
 
-    if s:min_auto_complete_length > 0
+    if opts#get('min_auto_complete_length') > 0
       autocmd TextChangedI,TextChangedP *
             \   if !s:is_completed()
             \ |   call s:auto_complete()
@@ -42,7 +42,7 @@ function! k#enable() abort
   augroup END
 
   let s:keys_to_remaps = []
-  for [key, map_cmd] in s:map_cmds
+  for [key, map_cmd] in opts#get('map_cmds')
     let current_map = maparg(key, 'i', 0, 1)
     call add(s:keys_to_remaps, empty(current_map) ? key : current_map)
     execute map_cmd
@@ -98,20 +98,6 @@ function! k#initialize(opts = {}) abort
   endtry
 
   let s:is_enable = v:false
-
-  " TODO 使用箇所で直接getすればよい
-  let s:henkan_marker = opts#get('henkan_marker')
-  let s:select_marker = opts#get('select_marker')
-  " let s:okuri_marker = opts#get('okuri_marker')
-  let s:min_auto_complete_length = opts#get('min_auto_complete_length')
-  let s:use_google_cgi = opts#get('use_google_cgi')
-  let s:merge_tsu = opts#get('merge_tsu')
-  let s:user_jisyo_path = opts#get('user_jisyo_path')
-  let s:jisyo_list = opts#get('jisyo_list')
-  let s:jisyo_mark_pair = opts#get('jisyo_mark_pair')
-  let s:combined_grep_cmd = opts#get('combined_grep_cmd')
-  let s:keymap_dict = opts#get('keymap_dict')
-  let s:map_cmds = opts#get('map_cmds')
 endfunction
 
 " hira / zen_kata / han_kata / abbrev
@@ -147,7 +133,7 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
   let start_col = get(b:, target_name, [0, 0])[1]
 
   let str = getline('.')->slice(start_col-1, charcol('.')-1)
-  let str = s:merge_tsu ? substitute(str, 'っ\+', 'っ', 'g') : str
+  let str = opts#get('merge_tsu') ? substitute(str, 'っ\+', 'っ', 'g') : str
   return a:trim_trail_n ? str->substitute("n$", "ん", "") : str
 endfunction
 
@@ -195,7 +181,7 @@ function! s:ensure_kana_start_pos() abort
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
-  let kana_dict = get(s:keymap_dict, a:key, {})
+  let kana_dict = get(opts#get('keymap_dict'), a:key, {})
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
@@ -241,7 +227,7 @@ function! k#async_update_henkan_list(str) abort
   let s:latest_henkan_list = []
   let s:latest_async_henkan_list = []
   let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
-  for jisyo in s:jisyo_list
+  for jisyo in opts#get('jisyo_list')
     call job#start(substitute(jisyo.grep_cmd, ':query:', $'{str}[^!-~]* /', 'g'), {
           \ 'exit': {data->s:populate_async_henkan_list(data)} })
   endfor
@@ -250,13 +236,13 @@ endfunction
 function! s:populate_async_henkan_list(data) abort
   " 変換リストの蓄積が辞書リストの数に満たなければ早期脱出
   call add(s:latest_async_henkan_list, a:data)
-  if len(s:latest_async_henkan_list) != len(s:jisyo_list)
+  if len(s:latest_async_henkan_list) != len(opts#get('jisyo_list'))
     return
   endif
 
   " 蓄積リストを辞書リストの順に並び替える
   let henkan_list = []
-  for jisyo in s:jisyo_list
+  for jisyo in opts#get('jisyo_list')
     let result_of_current_dict_index = indexof(s:latest_async_henkan_list, {
           \ _,v -> !empty(v) && substitute(v[0], ':.*', '', '') ==# jisyo.path
           \ })
@@ -272,7 +258,7 @@ endfunction
 
 function! k#update_henkan_list(str) abort
   let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
-  let results = systemlist(substitute(s:combined_grep_cmd, ':query:', $'{str} ', 'g'))
+  let results = systemlist(substitute(opts#get('combined_grep_cmd'), ':query:', $'{str} ', 'g'))
   call s:save_henkan_list(results)
 endfunction
 
@@ -289,7 +275,7 @@ function! s:save_henkan_list(source_list, after_feedkeys = '') abort
       let yomi = strpart(content, 0, space_idx)
       let henkan_str = strpart(content, space_idx+1)
 
-      let mark = s:jisyo_mark_pair[path]
+      let mark = opts#get('jisyo_mark_pair')[path]
 
       for v in split(henkan_str, '/')
         " ;があってもなくても良いよう_restを使う
@@ -318,14 +304,14 @@ function! s:auto_complete() abort
   let preceding_str = s:get_preceding_str('henkan', v:false)
         \ ->substitute('\a*$', '', '')
 
-  if strcharlen(preceding_str) < s:min_auto_complete_length
+  if strcharlen(preceding_str) < opts#get('min_auto_complete_length')
     return
   endif
 
   " echomsg 'auto_complete' preceding_str
 
   " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
-  if slice(preceding_str, 0, s:min_auto_complete_length) !=# slice(s:latest_auto_complete_str, 0, s:min_auto_complete_length)
+  if slice(preceding_str, 0, opts#get('min_auto_complete_length')) !=# slice(s:latest_auto_complete_str, 0, opts#get('min_auto_complete_length'))
     call k#async_update_henkan_list(preceding_str)
   endif
 
@@ -383,7 +369,7 @@ function! k#completefunc(suffix_key = '')
         \   'suffix_key': a:suffix_key,
         \ }
 
-  if s:use_google_cgi && !google_exists && a:suffix_key ==# ''
+  if opts#get('use_google_cgi') && !google_exists && a:suffix_key ==# ''
     call add(comp_list, {
           \ 'word': preceding_str,
           \ 'abbr': '[Google変換]',
@@ -415,14 +401,14 @@ function! s:set_henkan_start_pos(pos) abort
 
   let [lnum, char_col] = b:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
-  call inline_mark#display(lnum, byte_col, s:henkan_marker)
+  call inline_mark#display(lnum, byte_col, opts#get('henkan_marker'))
 endfunction
 
 function! s:set_henkan_select_mark() abort
   call inline_mark#clear()
   let [lnum, char_col] = b:henkan_start_pos
   let byte_col = s:char_col_to_byte_col(lnum, char_col)
-  call inline_mark#display(lnum, byte_col, s:select_marker)
+  call inline_mark#display(lnum, byte_col, opts#get('select_marker'))
   let b:select_start_pos = getcharpos('.')[1:2]
 endfunction
 
@@ -507,7 +493,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
   if has_key(user_data, 'by_google')
     " Google変換確定時、自動でユーザー辞書末尾に登録
     let line = $'{user_data.yomi} /{a:completed_item.word}/'
-    call writefile([line], s:user_jisyo_path, "a")
+    call writefile([line], opts#get('user_jisyo_path'), "a")
     return
   endif
 
@@ -518,7 +504,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
     autocmd BufEnter <buffer> ++once call s:buf_enter_try_user_henkan()
 
     let okuri = jt.suffix_key ==# '' ? '/okuri-nasi' : '/okuri-ari'
-    let user_jisyo_winnr = bufwinnr(bufnr(s:user_jisyo_path))
+    let user_jisyo_winnr = bufwinnr(bufnr(opts#get('user_jisyo_path')))
     if user_jisyo_winnr > 0
       " ユーザー辞書がすでに開いている場合は
       " okuri-ari/okuri-nasiの行へジャンプする
@@ -526,7 +512,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
       normal! gg
       execute okuri
     else
-      execute $'botright 5new +{okuri}' s:user_jisyo_path
+      execute $'botright 5new +{okuri}' opts#get('user_jisyo_path')
     endif
 
     call feedkeys($"\<c-o>o{jt.yomi} //\<c-g>U\<left>\<cmd>call k#enable()\<cr>", 'n')
