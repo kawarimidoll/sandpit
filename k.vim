@@ -2,6 +2,7 @@ source ./inline_mark.vim
 source ./converters.vim
 source ./google_cgi.vim
 source ./job.vim
+source ./utils.vim
 source ./opts.vim
 
 function! s:is_completed() abort
@@ -76,11 +77,6 @@ function! k#toggle() abort
   return k#is_enable() ? k#disable() : k#enable()
 endfunction
 
-" e.g. <space> -> \<space>
-function! s:trans_special_key(str) abort
-  return substitute(a:str, '<[^>]*>', {m -> eval($'"\{m[0]}"')}, 'g')
-endfunction
-
 function! k#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
@@ -89,10 +85,8 @@ function! k#initialize(opts = {}) abort
   try
     call opts#parse(a:opts)
   catch
-    echohl ErrorMsg
-    echomsg $'[k#initialize] {v:exception}'
-    echomsg '[k#initialize] abort'
-    echohl NONE
+    call utils#echoerr($'[k#initialize] {v:exception}')
+    call utils#echoerr('[k#initialize] abort')
     return
   endtry
 
@@ -171,7 +165,7 @@ function! k#han_kata(...) abort
 endfunction
 
 function! k#ins(key, henkan = v:false) abort
-  let key = s:trans_special_key(a:key)
+  let key = utils#trans_special_key(a:key)
   call s:ensure_kana_start_pos()
   let spec = s:get_insert_spec(key, a:henkan)
 

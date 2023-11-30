@@ -1,14 +1,3 @@
-" e.g. <space> -> \<space>
-function! s:trans_special_key(str) abort
-  return substitute(a:str, '<[^>]*>', {m -> eval($'"\{m[0]}"')}, 'g')
-endfunction
-
-function! s:uniq_add(list, item) abort
-  if index(a:list, a:item) < 0
-    call add(a:list, a:item)
-  endif
-endfunction
-
 function! opts#parse(opts) abort
   " マーカー
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
@@ -77,7 +66,7 @@ function! opts#parse(opts) abort
   let shift_key_list = []
   let s:keymap_dict = {}
   for [k, val] in items(kana_table)
-    let key = s:trans_special_key(k)
+    let key = utils#trans_special_key(k)
     let preceding_keys = slice(key, 0, -1)
     let start_key = slice(key, 0, 1)
     let end_key = slice(key, -1)
@@ -93,7 +82,7 @@ function! opts#parse(opts) abort
     endif
     " 文字入力を開始するアルファベットのキーは変換開始キーとして使用する
     if type(val) == v:t_string && start_key =~# '^\l$'
-      call s:uniq_add(shift_key_list, toupper(start_key))
+      call utils#uniq_add(shift_key_list, toupper(start_key))
     endif
   endfor
 

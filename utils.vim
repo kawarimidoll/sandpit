@@ -29,3 +29,27 @@ function! utils#get_string(from, to, auto_swap = v:false) abort
   let lines[0] = slice(lines[0], from[1]-1)
   return join(lines, "\n")
 endfunction
+
+" e.g. <space> -> \<space>
+function! utils#trans_special_key(str) abort
+  return substitute(a:str, '<[^>]*>', {m -> eval($'"\{m[0]}"')}, 'g')
+endfunction
+
+function! utils#uniq_add(list, item) abort
+  if index(a:list, a:item) < 0
+    call add(a:list, a:item)
+  endif
+endfunction
+
+function! utils#echoerr(str) abort
+  echohl ErrorMsg
+  echomsg a:str
+  echohl NONE
+endfunction
+
+function! utils#debug_log(contents) abort
+  let contents = type(a:contents) == v:t_list ? copy(a:contents)->map('json_encode(v:val)')
+        \ : type(a:contents) == v:t_dict ? [copy(a:contents)->json_encode(v:val)]
+        \ : [a:contents]
+  call writefile(contents, './debug.log', 'a')
+endfunction
