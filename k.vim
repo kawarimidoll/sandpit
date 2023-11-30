@@ -2,16 +2,10 @@ source ./inline_mark.vim
 source ./converters.vim
 source ./google_cgi.vim
 source ./job.vim
-
+source ./opts.vim
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
-endfunction
-
-function! s:uniq_add(list, item) abort
-  if index(a:list, a:item) < 0
-    call add(a:list, a:item)
-  endif
 endfunction
 
 let s:is_enable = v:false
@@ -92,107 +86,29 @@ function! k#default_kana_table() abort
 endfunction
 
 function! k#initialize(opts = {}) abort
-  " マーカー
-  let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
-  let s:select_marker = get(a:opts, 'select_marker', '▼')
-  " let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
-
-  " 自動補完最小文字数 (0の場合は自動補完しない)
-  let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
-
-  " Google CGI変換
-  let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
-
-  " 'っ'が連続したら1回と見做す
-  let s:merge_tsu = get(a:opts, 'merge_tsu', v:false)
-
-  " ユーザー辞書
-  let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
-  if s:user_jisyo_path !~ '^/'
-    echoerr $"[k#initialize] user_jisyo_path must be start with '/' {s:user_jisyo_path}"
+  try
+    call opts#parse(a:opts)
+  catch
+    echohl ErrorMsg
+    echomsg $'[k#initialize] {v:exception}'
+    echomsg '[k#initialize] abort'
+    echohl NONE
     return
-  endif
-  " 指定されたパスにファイルがなければ作成する
-  if glob(s:user_jisyo_path)->empty()
-    call fnamemodify(s:user_jisyo_path, ':p:h')
-          \ ->iconv(&encoding, &termencoding)
-          \ ->mkdir('p')
-    call writefile([
-          \ ';; フォーマットは以下',
-          \ ';; yomi /(henkan(;setsumei)?/)+',
-          \ ';; コメント行は変更しないでください',
-          \ ';;',
-          \ ';; okuri-ari entries.',
-          \ ';; okuri-nasi entries.',
-          \ ], s:user_jisyo_path)
-  endif
+  endtry
 
-  " 変換辞書リスト
-  let s:jisyo_list = get(a:opts, 'jisyo_list', [])
-  if indexof(s:jisyo_list, $'v:val.path ==# "{s:user_jisyo_path}"') < 0
-    " ユーザー辞書がリストに無ければ先頭に追加する
-    " マークはU エンコードはutf-8
-    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
-  endif
-  let s:jisyo_mark_pair = {}
-  let s:combined_grep_cmd = ''
-  for jisyo in s:jisyo_list
-    if jisyo.path =~ ':'
-      echoerr $"[k#initialize] jisyo.path must NOT includes ':' {jisyo.path}"
-      return
-    elseif has_key(s:jisyo_mark_pair, jisyo.path)
-      echoerr $"[k#initialize] jisyo.path must be unique {jisyo.path}"
-      return
-    elseif !filereadable(jisyo.path)
-      echoerr $"[k#initialize] jisyo.path can't be read {jisyo.path}"
-      return
-    endif
-
-    let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
-    let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
-    let jisyo.grep_cmd = 'rg --no-heading --with-filename --no-line-number'
-          \ .. $' --encoding={encoding} "^:query:" {jisyo.path}'
-
-    let s:combined_grep_cmd ..= $'{jisyo.grep_cmd} 2>/dev/null;'
-  endfor
-
-  " かなテーブル
-  let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
-
-  let shift_key_list = []
-  let s:keymap_dict = {}
-  for [k, val] in items(kana_table)
-    let key = s:trans_special_key(k)
-    let preceding_keys = slice(key, 0, -1)
-    let start_key = slice(key, 0, 1)
-    let end_key = slice(key, -1)
-
-    if !has_key(s:keymap_dict, end_key)
-      let s:keymap_dict[end_key] = {}
-    endif
-    let s:keymap_dict[end_key][preceding_keys] = val
-
-    " start_keyもkeymap_dictに登録する(入力開始位置の指定のため)
-    if !has_key(s:keymap_dict, start_key)
-      let s:keymap_dict[start_key] = {}
-    endif
-    " 文字入力を開始するアルファベットのキーは変換開始キーとして使用する
-    if type(val) == v:t_string && start_key =~# '^\l$'
-      call s:uniq_add(shift_key_list, toupper(start_key))
-    endif
-  endfor
-
-  " 入力テーブルに既に含まれている大文字は変換開始に使わない
-  call filter(shift_key_list, '!has_key(s:keymap_dict, v:val)')
-
-  let s:map_cmds = []
-  for key in s:keymap_dict->keys()
-    let k = keytrans(key)
-    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{keytrans(k)}')<cr>"])
-  endfor
-  for k in shift_key_list
-    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{tolower(k)}',1)<cr>"])
-  endfor
+  " TODO 使用箇所で直接getすればよい
+  let s:henkan_marker = opts#get('henkan_marker')
+  let s:select_marker = opts#get('select_marker')
+  " let s:okuri_marker = opts#get('okuri_marker')
+  let s:min_auto_complete_length = opts#get('min_auto_complete_length')
+  let s:use_google_cgi = opts#get('use_google_cgi')
+  let s:merge_tsu = opts#get('merge_tsu')
+  let s:user_jisyo_path = opts#get('user_jisyo_path')
+  let s:jisyo_list = opts#get('jisyo_list')
+  let s:jisyo_mark_pair = opts#get('jisyo_mark_pair')
+  let s:combined_grep_cmd = opts#get('combined_grep_cmd')
+  let s:keymap_dict = opts#get('keymap_dict')
+  let s:map_cmds = opts#get('map_cmds')
 endfunction
 
 " hira / zen_kata / han_kata / abbrev
