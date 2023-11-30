@@ -188,8 +188,7 @@ function! k#initialize(opts = {}) abort
   let s:map_cmds = []
   for key in s:keymap_dict->keys()
     let k = keytrans(key)
-    let k_lt = substitute(k, '<', '<lt>', 'g')
-    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{k_lt}')<cr>"])
+    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{keytrans(k)}')<cr>"])
   endfor
   for k in shift_key_list
     call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{tolower(k)}',1)<cr>"])
