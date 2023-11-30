@@ -39,7 +39,7 @@ function! opts#parse(opts) abort
   if indexof(s:jisyo_list, $'v:val.path ==# "{s:user_jisyo_path}"') < 0
     " ユーザー辞書がリストに無ければ先頭に追加する
     " マークはU エンコードはutf-8
-    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': 'U' })
+    call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': '[U]' })
   endif
   let s:jisyo_mark_pair = {}
   let s:combined_grep_cmd = ''
@@ -52,7 +52,7 @@ function! opts#parse(opts) abort
       throw $"jisyo.path can't be read {jisyo.path}"
     endif
 
-    let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '') ==# '' ? '' : $'[{jisyo.mark}] '
+    let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '')
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
     let jisyo.grep_cmd = 'rg --no-heading --with-filename --no-line-number'
           \ .. $' --encoding={encoding} "^:query:" {jisyo.path}'
