@@ -9,14 +9,16 @@ function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
-let s:is_enable = v:false
-let s:keys_to_remaps = []
-
 function! k#is_enable() abort
-  return s:is_enable
+  return get(s:, 'is_enable', v:false)
 endfunction
 
 function! k#enable() abort
+  if !exists('s:is_enable')
+    call utils#echoerr('[k#enable] not initialized')
+    call utils#echoerr('[k#enable] abort')
+    return
+  endif
   if s:is_enable
     return
   endif
@@ -55,6 +57,11 @@ function! k#enable() abort
 endfunction
 
 function! k#disable() abort
+  if !exists('s:is_enable')
+    call utils#echoerr('[k#enable] not initialized')
+    call utils#echoerr('[k#enable] abort')
+    return
+  endif
   call inline_mark#clear()
   if !s:is_enable
     return
@@ -89,6 +96,8 @@ function! k#initialize(opts = {}) abort
     call utils#echoerr('[k#initialize] abort')
     return
   endtry
+
+  let s:is_enable = v:false
 
   " TODO 使用箇所で直接getすればよい
   let s:henkan_marker = opts#get('henkan_marker')
