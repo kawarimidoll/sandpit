@@ -75,8 +75,6 @@ function! k#disable() abort
     endif
   endfor
 
-  let s:keys_to_remaps = []
-
   let s:is_enable = v:false
 endfunction
 
@@ -257,17 +255,6 @@ function! k#han_kata(...) abort
   return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_han_kata(preceding_str)
 endfunction
 
-function! k#dakuten(...) abort
-  if !s:is_same_line_right_col('henkan')
-    call s:toggle_inner_mode('dakuten')
-    return ''
-  endif
-
-  let preceding_str = s:get_preceding_str('henkan')
-  call s:clear_henkan_start_pos()
-  return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_dakuten(preceding_str)
-endfunction
-
 function! k#ins(key, henkan = v:false) abort
   let key = s:trans_special_key(a:key)
   let spec = s:get_insert_spec(key, a:henkan)
@@ -275,7 +262,6 @@ function! k#ins(key, henkan = v:false) abort
   let result = type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [key])
         \ : s:inner_mode == 'zen_kata' ? converters#hira_to_kata(spec)
         \ : s:inner_mode == 'han_kata' ? converters#hira_to_han_kata(spec)
-        \ : s:inner_mode == 'dakuten' ? converters#hira_to_dakuten(spec)
         \ : spec
   " implement other modes, maybe
 
