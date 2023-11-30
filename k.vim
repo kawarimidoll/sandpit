@@ -256,6 +256,7 @@ endfunction
 
 function! k#ins(key, henkan = v:false) abort
   let key = s:trans_special_key(a:key)
+  call s:ensure_kana_start_pos()
   let spec = s:get_insert_spec(key, a:henkan)
 
   let result = type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [key])
@@ -267,17 +268,20 @@ function! k#ins(key, henkan = v:false) abort
   call feedkeys(result, 'n')
 endfunction
 
-function! s:get_insert_spec(key, henkan = v:false) abort
-  let current_pos = getcharpos('.')[1:2]
+function! s:ensure_kana_start_pos() abort
   if !s:is_same_line_right_col('kana')
+    let current_pos = getcharpos('.')[1:2]
     let b:kana_start_pos = current_pos
   endif
+endfunction
 
+function! s:get_insert_spec(key, henkan = v:false) abort
   let kana_dict = get(s:keymap_dict, a:key, {})
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
     if !next_okuri && (!s:is_same_line_right_col('henkan') || pumvisible())
+      let current_pos = getcharpos('.')[1:2]
       call s:set_henkan_start_pos(current_pos)
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
