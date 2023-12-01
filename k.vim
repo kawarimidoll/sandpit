@@ -295,20 +295,23 @@ function! s:auto_complete() abort
   let preceding_str = s:get_preceding_str('henkan', v:false)
         \ ->substitute('\a*$', '', '')
 
-  if strcharlen(preceding_str) < opts#get('min_auto_complete_length')
+  let min_length = opts#get('min_auto_complete_length')
+  if strcharlen(preceding_str) < min_length
     return
   endif
 
   " echomsg 'auto_complete' preceding_str
 
   " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
-  if slice(preceding_str, 0, opts#get('min_auto_complete_length')) !=# slice(s:latest_auto_complete_str, 0, opts#get('min_auto_complete_length'))
-    call k#async_update_henkan_list(preceding_str)
-  endif
+  let need_update = slice(preceding_str, 0, min_length) !=# slice(s:latest_auto_complete_str, 0, min_length)
 
   let s:latest_auto_complete_str = preceding_str
 
-  call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
+  if need_update
+    call k#async_update_henkan_list(preceding_str)
+  else
+    call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
+  endif
 endfunction
 
 function! k#autocompletefunc()
