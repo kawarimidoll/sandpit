@@ -213,40 +213,6 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   return get(kana_dict, '', a:key)
 endfunction
 
-" 自動補完用なので前方一致のみ
-function! k#async_update_henkan_list(str) abort
-  let s:latest_henkan_list = []
-  let s:latest_async_henkan_list = []
-  let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
-  for jisyo in opts#get('jisyo_list')
-    call job#start(substitute(jisyo.grep_cmd, ':query:', $'{str}[^!-~]* /', 'g'), {
-          \ 'exit': {data->s:populate_async_henkan_list(data)} })
-  endfor
-endfunction
-
-function! s:populate_async_henkan_list(data) abort
-  " 変換リストの蓄積が辞書リストの数に満たなければ早期脱出
-  call add(s:latest_async_henkan_list, a:data)
-  if len(s:latest_async_henkan_list) != len(opts#get('jisyo_list'))
-    return
-  endif
-
-  " 蓄積リストを辞書リストの順に並び替える
-  let henkan_list = []
-  for jisyo in opts#get('jisyo_list')
-    let result_of_current_dict_index = indexof(s:latest_async_henkan_list, {
-          \ _,v -> !empty(v) && substitute(v[0], ':.*', '', '') ==# jisyo.path
-          \ })
-    if result_of_current_dict_index < 0
-      continue
-    endif
-    call extend(henkan_list, s:latest_async_henkan_list[result_of_current_dict_index])
-  endfor
-
-  " TODO 送りあり変換をスタートしていたら自動補完はキャンセルする
-  call s:save_henkan_list(henkan_list, "\<c-r>=k#autocompletefunc()\<cr>")
-endfunction
-
 function! s:parse_henkan_list(lines, jisyo) abort
   if empty(a:lines)
     return []
