@@ -110,18 +110,10 @@ function! s:toggle_inner_mode(mode) abort
   call s:set_inner_mode(s:inner_mode == a:mode ? 'hira' : a:mode)
 endfunction
 
-" 変数名を文字列連結で作ってしまうと後からgrepしづらくなるので
-" 行数が嵩むが直接記述する
 function! s:is_same_line_right_col(target) abort
-  if a:target !=# 'kana' && a:target !=# 'henkan'
-    throw 'wrong target name'
-  endif
-  let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
-
-  let target = get(b:, target_name, [0, 0])
-  let current_pos = getcharpos('.')[1:2]
-
-  return target[0] ==# current_pos[0] && target[1] < current_pos[1]
+  let [pos_l, pos_c] = get(b:, $'{a:target}_start_pos', [0, 0])
+  let [cur_l, cur_c] = getcharpos('.')[1:2]
+  return pos_l ==# cur_l && pos_c <= cur_c
 endfunction
 
 function! s:get_preceding_str(target, trim_trail_n = v:true) abort
