@@ -53,6 +53,7 @@ function! opts#parse(opts) abort
     endif
 
     let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '')
+    let jisyo.mark = get(jisyo, 'mark', '')
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
     let jisyo.grep_cmd = 'rg --no-heading --with-filename --no-line-number'
           \ .. $' --encoding={encoding} "^:query:" {jisyo.path}'
