@@ -247,6 +247,35 @@ function! s:populate_async_henkan_list(data) abort
   call s:save_henkan_list(henkan_list, "\<c-r>=k#autocompletefunc()\<cr>")
 endfunction
 
+function! s:parse_henkan_list(lines, jisyo) abort
+  if empty(a:lines)
+    return []
+  endif
+
+  let henkan_list = []
+
+  for line in a:lines
+    " よみ /変換1/変換2/.../
+    " stridxがバイトインデックスなのでstrpartを使う
+    let space_idx = stridx(line, ' /')
+    let yomi = strpart(line, 0, space_idx)
+    let henkan_str = strpart(line, space_idx+1)
+    for v in split(henkan_str, '/')
+      " ;があってもなくても良いよう_restを使う
+      let [word, info; _rest] = split(v, ';') + ['']
+      " :h complete-items
+      call add(henkan_list, {
+            \ 'word': word,
+            \ 'menu': $'{a:jisyo.mark}{info}',
+            \ 'info': $'{a:jisyo.mark}{info}',
+            \ 'user_data': { 'yomi': trim(yomi), 'path': a:jisyo.path }
+            \ })
+    endfor
+  endfor
+
+  return henkan_list
+endfunction
+
 let s:async_result_dict = {}
 function! k#async_update_list(str) abort
   call utils#debug_log($'async start {a:str}')
@@ -288,27 +317,7 @@ function! s:on_exit(data, job_id) abort
       continue
     endif
 
-    for r in s:async_result_dict[job_id]
-      if empty(r)
-        continue
-      endif
-      " よみ /変換1/変換2/.../
-      " stridxがバイトインデックスなのでstrpartを使う
-      let space_idx = stridx(r, ' /')
-      let yomi = strpart(r, 0, space_idx)
-      let henkan_str = strpart(r, space_idx+1)
-      for v in split(henkan_str, '/')
-        " ;があってもなくても良いよう_restを使う
-        let [word, info; _rest] = split(v, ';') + ['']
-        " :h complete-items
-        call add(henkan_list, {
-              \ 'word': word,
-              \ 'menu': $'{jisyo.mark}{info}',
-              \ 'info': $'{jisyo.mark}{info}',
-              \ 'user_data': { 'yomi': trim(yomi), 'path': jisyo.path }
-              \ })
-      endfor
-    endfor
+    call extend(henkan_list, s:parse_henkan_list(s:async_result_dict[job_id], jisyo))
   endfor
   " call utils#debug_log('create henkan list')
   " call utils#debug_log(henkan_list)
