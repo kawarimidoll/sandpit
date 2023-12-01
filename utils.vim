@@ -48,8 +48,8 @@ function! utils#echoerr(str) abort
 endfunction
 
 function! utils#debug_log(contents) abort
-  let contents = type(a:contents) == v:t_list ? copy(a:contents)->map('json_encode(v:val)')
-        \ : type(a:contents) == v:t_dict ? [copy(a:contents)->json_encode(v:val)]
+  let contents = type(a:contents) == v:t_list ? mapnew(a:contents, 'json_encode(v:val)')
+        \ : type(a:contents) == v:t_dict ? json_encode(a:contents)
         \ : [a:contents]
   call writefile(contents, './debug.log', 'a')
 endfunction
