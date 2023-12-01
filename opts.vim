@@ -41,24 +41,16 @@ function! opts#parse(opts) abort
     " マークはU エンコードはutf-8
     call insert(s:jisyo_list, { 'path': s:user_jisyo_path, 'encoding': 'utf-8', 'mark': '[U]' })
   endif
-  let s:jisyo_mark_pair = {}
-  let s:combined_grep_cmd = ''
   for jisyo in s:jisyo_list
     if jisyo.path =~ ':'
       throw $"jisyo.path must NOT includes ':' {jisyo.path}"
-    elseif has_key(s:jisyo_mark_pair, jisyo.path)
-      throw $"jisyo.path must be unique {jisyo.path}"
     elseif !filereadable(jisyo.path)
       throw $"jisyo.path can't be read {jisyo.path}"
     endif
 
-    let s:jisyo_mark_pair[jisyo.path] = get(jisyo, 'mark', '')
     let jisyo.mark = get(jisyo, 'mark', '')
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
-    let jisyo.grep_cmd = 'rg --no-heading --with-filename --no-line-number'
-          \ .. $' --encoding={encoding} "^:query:" {jisyo.path}'
-
-    let s:combined_grep_cmd ..= $'{jisyo.grep_cmd} 2>/dev/null;'
+    let jisyo.grep_cmd = $'rg --no-line-number --encoding {encoding} "^:q:" {jisyo.path}'
   endfor
 
   " かなテーブル

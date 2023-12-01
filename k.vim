@@ -285,9 +285,7 @@ function! k#async_update_list(str) abort
   let s:run_job_list = []
 
   for jisyo in opts#get('jisyo_list')
-    " 通常の手動補完とコマンドを揃えるために一時的に置換で対応
-    let cmd = substitute(jisyo.grep_cmd, 'heading --with-', '', '')
-          \ ->substitute(':query:', $'{str}[^!-~]* /', '')
+    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str}[^!-~]* /', '')
     let job_id = job#start(cmd, { 'exit': funcref('s:on_exit') })
     call add(s:run_job_list, [job_id, jisyo])
     call utils#debug_log($'start {job_id}')
@@ -336,45 +334,13 @@ endfunction
 
 function! k#update_henkan_list(str) abort
   let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
-  let results = systemlist(substitute(opts#get('combined_grep_cmd'), ':query:', $'{str} ', 'g'))
-  call s:save_henkan_list(results)
-endfunction
-
-function! s:save_henkan_list(source_list, after_feedkeys = '') abort
   let henkan_list = []
-  for r in a:source_list
-    try
-      " /path/to/jisyo:よみ /変換1/変換2/.../
-      " 変換部分にcolonが含まれる可能性があるためsplitは不適
-      let colon_idx = stridx(r, ':')
-      let path = strpart(r, 0, colon_idx)
-      let content = strpart(r, colon_idx+1)
-      let space_idx = stridx(content, ' /')
-      let yomi = strpart(content, 0, space_idx)
-      let henkan_str = strpart(content, space_idx+1)
-
-      let mark = opts#get('jisyo_mark_pair')[path]
-
-      for v in split(henkan_str, '/')
-        " ;があってもなくても良いよう_restを使う
-        let [word, info; _rest] = split(v, ';') + ['']
-        " :h complete-items
-        call add(henkan_list, {
-              \ 'word': word,
-              \ 'menu': mark .. info,
-              \ 'info': mark .. info,
-              \ 'user_data': { 'yomi': trim(yomi), 'path': path }
-              \ })
-      endfor
-    catch
-      echomsg v:exception r
-    endtry
+  for jisyo in opts#get('jisyo_list')
+    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str} /', '')
+    let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
+    call extend(henkan_list, s:parse_henkan_list(lines, jisyo))
   endfor
-
   let s:latest_henkan_list = henkan_list
-  if a:after_feedkeys != ''
-    call feedkeys(a:after_feedkeys, 'n')
-  endif
 endfunction
 
 let s:latest_auto_complete_str = ''
