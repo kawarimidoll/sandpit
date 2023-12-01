@@ -31,14 +31,14 @@ if has('nvim')
     let On_out = get(a:opts, 'out', {data->0})
     let On_err = get(a:opts, 'err', {data->0})
     let On_exit = get(a:opts, 'exit', {data->0})
-    let job = jobstart(a:cmd, {
+    let job_id = jobstart(a:cmd, {
           \   'stdin': 'null',
-          \   'on_stdout': {_, data -> [extend(buf, data), On_out(data)]},
-          \   'on_stderr': {_, data -> [extend(buf, data), On_err(data)]},
-          \   'on_exit': {-> On_exit(buf)}
+          \   'on_stdout': {job_id, data -> [extend(buf, data), On_out(data, job_id)]},
+          \   'on_stderr': {job_id, data -> [extend(buf, data), On_err(data, job_id)]},
+          \   'on_exit': {job_id-> On_exit(buf, job_id)}
           \ })
-    let s:jobs[job] = 1
-    return job
+    let s:jobs[job_id] = 1
+    return job_id
   endfunction
 else
   function! s:jobstatus(job) abort
@@ -53,7 +53,7 @@ else
     let ch = job_getchannel(a:job)
     while ch_status(ch) ==# 'open' | sleep 1ms | endwhile
     while ch_status(ch) ==# 'buffered' | sleep 1ms | endwhile
-    call a:cb(a:buf)
+    call a:cb(a:buf, s:job_id(a:job))
   endfunction
 
   function! job#list() abort
@@ -71,9 +71,9 @@ else
     let On_exit = get(a:opts, 'exit', {_->0})
     let job_opts = {
           \   'out_mode': 'raw',
-          \   'out_cb': {_, data -> [extend(buf, split(data, "\n")), On_out(split(data, "\n"))]},
+          \   'out_cb': {ch, data -> [extend(buf, split(data, "\n")), On_out(split(data, "\n"), s:job_id(ch_getjob(ch)))]},
           \   'err_mode': 'raw',
-          \   'err_cb': {_, data -> [extend(buf, split(data, "\n")), On_err(split(data, "\n"))]},
+          \   'err_cb': {ch, data -> [extend(buf, split(data, "\n")), On_err(split(data, "\n"), s:job_id(ch_getjob(ch)))]},
           \   'exit_cb': function('s:job_exit_cb', [buf, On_exit])
           \ }
     let in_opts = get(a:opts, 'in', {})
@@ -90,7 +90,8 @@ else
       let job_opts['in_io'] = 'null'
     endif
     let job = job_start(a:cmd, job_opts)
-    let s:jobs[s:job_id(job)] = job
-    return job
+    let job_id = s:job_id(job)
+    let s:jobs[job_id] = job
+    return job_id
   endfunction
 endif
