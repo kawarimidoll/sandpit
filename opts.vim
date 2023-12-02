@@ -7,6 +7,9 @@ function! opts#parse(opts) abort
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 
+  " 自動補完を文字数でソートする
+  let s:sort_auto_complete_by_length = get(a:opts, 'min_auto_complete_length', v:false)
+
   " Google CGI変換
   let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
 

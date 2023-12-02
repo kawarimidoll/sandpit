@@ -87,6 +87,10 @@ function! s:on_exit(data, job_id) abort
     return
   endif
 
+  if opts#get('sort_auto_complete_by_length')
+    call sort(henkan_list, {a, b -> strcharlen(a.user_data.yomi) - strcharlen(b.user_data.yomi)})
+  endif
+
   let s:latest_async_henkan_list = henkan_list
   call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
 endfunction
