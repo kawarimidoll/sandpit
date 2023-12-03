@@ -1,9 +1,11 @@
 " sample
 " nnoremap sm <cmd>call inline_mark#put(line('.'), col('.'), {'name':'m','text':'▽'})<cr>
-" nnoremap sM <cmd>call inline_sark#put(line('.'), col('.'), {'name':'M','text':'▼'})<cr>
+" nnoremap sM <cmd>call inline_mark#put(line('.'), col('.'), {'name':'M','text':'▼'})<cr>
 " nnoremap snm <cmd>call inline_mark#clear('m')<cr>
 " nnoremap snM <cmd>call inline_mark#clear('M')<cr>
 " nnoremap snn <cmd>call inline_mark#clear()<cr>
+" nnoremap sng <cmd>echo inline_mark#get('m')<cr>
+" nnoremap snG <cmd>echo inline_mark#get('M')<cr>
 
 " namespaceのキーまたはproptypeにファイルパスを使い、
 " 名前が他のプラグインとぶつかるのを防ぐ
@@ -21,6 +23,15 @@ if has('nvim')
       call nvim_buf_clear_namespace(0, s:ns_dict[a:name], 0, -1)
       call remove(s:ns_dict, a:name)
     endif
+  endfunction
+
+  function! inline_mark#get(name) abort
+    if has_key(s:ns_dict, a:name)
+      let extmark = nvim_buf_get_extmarks(0, s:ns_dict[a:name], 0, -1, {'limit':1})
+      " extmark = [extmark_id, row, col]
+      return { 'lnum': extmark[1]+1, 'col': extmark[2]+1 }
+    endif
+    return { 'lnum': 0, 'col': 0 }
   endfunction
 
   function! inline_mark#put(lnum, col, opts = {}) abort
@@ -52,6 +63,14 @@ else
       call prop_type_delete(a:name, {})
       call remove(s:prop_types, a:name)
     endif
+  endfunction
+
+  function! inline_mark#get(name) abort
+    if has_key(s:prop_types, a:name)
+      let prop = prop_find({'type': a:name, 'lnum': 1})
+      return { 'lnum': prop.lnum, 'col': prop.col }
+    endif
+    return { 'lnum': 0, 'col': 0 }
   endfunction
 
   function! inline_mark#put(lnum, col, opts = {}) abort
