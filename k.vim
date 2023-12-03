@@ -326,13 +326,13 @@ function! s:set_henkan_start_pos() abort
   let b:henkan_start_pos = getcharpos('.')[1:2]
   let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
   call inline_mark#clear()
-  call inline_mark#display(b:henkan_start_pos[0], byte_col, opts#get('henkan_marker'))
+  call inline_mark#put(b:henkan_start_pos[0], byte_col, {'text':opts#get('henkan_marker')})
 endfunction
 
 function! s:set_henkan_select_mark() abort
   call inline_mark#clear()
   let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
-  call inline_mark#display(b:henkan_start_pos[0], byte_col, opts#get('select_marker'))
+  call inline_mark#put(b:henkan_start_pos[0], byte_col, {'text':opts#get('select_marker')})
   let b:select_start_pos = getcharpos('.')[1:2]
 endfunction
 
