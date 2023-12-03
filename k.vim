@@ -24,6 +24,11 @@ function! k#enable() abort
     return
   endif
 
+  if opts#get('textwidth_zero')
+    let s:save_textwidth = &textwidth
+    set textwidth=0
+  endif
+
   augroup k_augroup
     autocmd!
     autocmd InsertLeave * call inline_mark#clear()
@@ -66,6 +71,11 @@ function! k#disable() abort
   call inline_mark#clear()
   if !s:is_enable
     return
+  endif
+
+  if has_key(s:, 'save_textwidth')
+    let &textwidth = s:save_textwidth
+    unlet! s:save_textwidth
   endif
 
   autocmd! k_augroup
@@ -520,4 +530,5 @@ call k#initialize({
       \ 'min_auto_complete_length': 2,
       \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
+      \ 'textwidth_zero': v:true,
       \ })
