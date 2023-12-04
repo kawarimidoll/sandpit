@@ -40,12 +40,16 @@ function! states#clear() abort
 endfunction
 
 function! states#on(target) abort
-  if !states#in(a:target)
-    let s:states[a:target] = s:getpos()
-  endif
+  let [lnum, col] = s:getpos()
+  let opt_states = opts#get('states')[a:target]
+  let text = opt_states.marker
+  let hl = opt_states.hl
+  call inline_mark#put(lnum, col, {'name': a:target, 'text': text, 'hl': hl})
+  let s:states[a:target] = [lnum, col]
 endfunction
 
 function! states#off(target) abort
+  call inline_mark#clear(a:target)
   let s:states[a:target] = []
 endfunction
 
