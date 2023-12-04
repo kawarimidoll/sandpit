@@ -107,7 +107,8 @@ function! henkan_list#update_manual(str) abort
 endfunction
 
 function! henkan_list#get(async = v:false) abort
-  return a:async ? s:latest_async_henkan_list : s:latest_henkan_list
+  let target = a:async ? 'latest_async_henkan_list' : 'latest_henkan_list'
+  return get(s:, target, [])
 endfunction
 
 function! henkan_list#insert(item) abort
