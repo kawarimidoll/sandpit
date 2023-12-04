@@ -1,8 +1,19 @@
 function! opts#parse(opts) abort
   " マーカー
+  let s:choku_marker = get(a:opts, 'choku_marker', '$')
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
   let s:select_marker = get(a:opts, 'select_marker', '▼')
-  " let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
+  let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
+  let s:choku_hl = get(a:opts, 'choku_hl', 'Normal')
+  let s:henkan_hl = get(a:opts, 'henkan_hl', 'Normal')
+  let s:select_hl = get(a:opts, 'select_hl', 'Normal')
+  let s:okuri_hl = get(a:opts, 'okuri_hl', 'Normal')
+  let s:states = {
+        \ 'choku': { 'marker': s:choku_marker, 'hl': s:choku_hl },
+        \ 'machi': { 'marker': s:henkan_marker, 'hl': s:henkan_hl },
+        \ 'kouho': { 'marker': s:select_marker, 'hl': s:select_hl },
+        \ 'okuri': { 'marker': s:okuri_marker, 'hl': s:okuri_hl },
+        \ }
 
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
