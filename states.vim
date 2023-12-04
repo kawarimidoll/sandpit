@@ -39,8 +39,30 @@ function! states#clear() abort
   endfor
 endfunction
 
-function! states#on(target) abort
-  let [lnum, col] = s:getpos()
+function! states#on(target, pos = []) abort
+  " validate
+  if a:target ==# 'choku'
+    if states#in('choku')
+      return
+    endif
+  elseif a:target ==# 'machi'
+    if states#in('okuri') || states#in('kouho')
+      return
+    elseif states#in('machi')
+      call states#on('okuri')
+      return
+    endif
+  elseif a:target ==# 'okuri'
+    if !states#in('machi') || states#getstr('kana') =~ '\a$'
+      return
+    endif
+  elseif a:target ==# 'kouho'
+    if !states#in('machi')
+      return
+    endif
+  endif
+
+  let [lnum, col] = empty(a:pos) ? s:getpos() : a:pos
   let opt_states = opts#get('states')[a:target]
   let text = opt_states.marker
   let hl = opt_states.hl
