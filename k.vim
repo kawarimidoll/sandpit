@@ -5,6 +5,7 @@ source ./job.vim
 source ./utils.vim
 source ./opts.vim
 source ./henkan_list.vim
+source ./states.vim
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
@@ -57,7 +58,7 @@ function! k#enable() abort
   call s:set_inner_mode('hira')
 
   call s:clear_henkan_start_pos()
-  let b:kana_start_pos = [0, 0]
+  call states#clear()
 
   let s:is_enable = v:true
 endfunction
@@ -164,7 +165,7 @@ endfunction
 
 function! k#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
-  call s:ensure_kana_start_pos()
+  call states#on('choku')
   let spec = s:get_insert_spec(key, a:henkan)
 
   let result = type(spec) == v:t_dict ? get(spec, 'prefix', '') .. call($'k#{spec.func}', [key])
@@ -173,7 +174,12 @@ function! k#ins(key, henkan = v:false) abort
         \ : spec
   " implement other modes, maybe
 
-  call feedkeys(result, 'n')
+  if type(spec) != v:t_string
+    " TODO support okuri
+    call states#off('choku')
+  endif
+
+  call feedkeys(result, 'ni')
 endfunction
 
 function! s:ensure_kana_start_pos() abort
@@ -203,7 +209,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   endif
 
   if !empty(kana_dict)
-    let preceding_str = s:get_preceding_str('kana', v:false)
+    let preceding_str = states#getstr('choku')
 
     let i = len(preceding_str)
     while i > 0
