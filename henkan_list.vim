@@ -1,10 +1,3 @@
-" TODO このユーティリティは別ファイルに分けたい
-function! s:is_same_line_right_col(target) abort
-  let [pos_l, pos_c] = get(b:, $'{a:target}_start_pos', [0, 0])
-  let [cur_l, cur_c] = getcharpos('.')[1:2]
-  return pos_l ==# cur_l && pos_c <= cur_c
-endfunction
-
 function! s:parse_henkan_list(lines, jisyo) abort
   if empty(a:lines)
     return []
@@ -58,7 +51,7 @@ function! s:on_exit(data, job_id) abort
   " call utils#debug_log($'list {s:run_job_list->copy()->map("v:val[0]")->join(" ")} / {s:async_result_dict->keys()->join(" ")}')
 
   " 手動変換がスタートしていたら自動補完はキャンセルする
-  if s:is_same_line_right_col('select')
+  if states#in('kouho')
     call utils#debug_log('manual select is started')
     return
   endif

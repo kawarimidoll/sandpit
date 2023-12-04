@@ -58,6 +58,7 @@ function! k#enable() abort
   call s:set_inner_mode('hira')
 
   call s:clear_henkan_start_pos()
+  " let b:kana_start_pos = [0, 0]
   call states#clear()
 
   let s:is_enable = v:true
@@ -123,6 +124,13 @@ function! s:toggle_inner_mode(mode) abort
 endfunction
 
 function! s:is_same_line_right_col(target) abort
+  if a:target ==# 'henkan'
+    return states#in('machi')
+  endif
+  if a:target ==# 'select'
+    return states#in('kouho')
+  endif
+
   let [pos_l, pos_c] = get(b:, $'{a:target}_start_pos', [0, 0])
   let [cur_l, cur_c] = getcharpos('.')[1:2]
   return pos_l ==# cur_l && pos_c <= cur_c
@@ -132,6 +140,10 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
   if a:target !=# 'kana' && a:target !=# 'henkan'
     throw 'wrong target name'
   endif
+  if a:target ==# 'henkan'
+    return states#getstr('machi')
+  endif
+
   let target_name = a:target ==# 'kana' ? 'kana_start_pos' : 'henkan_start_pos'
 
   let start_col = get(b:, target_name, [0, 0])[1]
@@ -142,23 +154,23 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
 endfunction
 
 function! k#zen_kata(...) abort
-  if !s:is_same_line_right_col('henkan')
+  if !states#in('machi')
     call s:toggle_inner_mode('zen_kata')
     return ''
   endif
 
-  let preceding_str = s:get_preceding_str('henkan')
+  let preceding_str = states#getstr('machi')
   call s:clear_henkan_start_pos()
   return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_kata(preceding_str)
 endfunction
 
 function! k#han_kata(...) abort
-  if !s:is_same_line_right_col('henkan')
+  if !states#in('machi')
     call s:toggle_inner_mode('han_kata')
     return ''
   endif
 
-  let preceding_str = s:get_preceding_str('henkan')
+  let preceding_str = states#getstr('machi')
   call s:clear_henkan_start_pos()
   return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_han_kata(preceding_str)
 endfunction
@@ -182,19 +194,12 @@ function! k#ins(key, henkan = v:false) abort
   call feedkeys(result, 'ni')
 endfunction
 
-function! s:ensure_kana_start_pos() abort
-  if !s:is_same_line_right_col('kana')
-    let current_pos = getcharpos('.')[1:2]
-    let b:kana_start_pos = current_pos
-  endif
-endfunction
-
 function! s:get_insert_spec(key, henkan = v:false) abort
   let kana_dict = get(opts#get('keymap_dict'), a:key, {})
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
-    if !next_okuri && (!s:is_same_line_right_col('henkan') || pumvisible())
+    if !next_okuri && (!states#in('machi') || pumvisible())
       call s:set_henkan_start_pos()
     else
       let preceding_str = s:get_preceding_str('henkan', v:false)
@@ -257,14 +262,18 @@ function! s:auto_complete() abort
 endfunction
 
 function! k#autocompletefunc()
-  let start_col = s:char_col_to_byte_col(b:henkan_start_pos)
+  if !states#in('machi')
+    echomsg 'exit autocomplete'
+    return ''
+  endif
+  let start_col = states#get('machi')[1]
 
   " yomiの前方一致で絞り込む
   let comp_list = copy(henkan_list#get(1))
         \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
 
-  call complete(start_col, comp_list)
   echo $'{s:latest_auto_complete_str}: {len(comp_list)}件'
+  call complete(start_col, comp_list)
 
   return ''
 endfunction
@@ -272,8 +281,8 @@ endfunction
 function! k#completefunc(suffix_key = '')
   call s:set_henkan_select_mark()
   " 補完の始点のcol
-  let start_col = s:char_col_to_byte_col(b:henkan_start_pos)
-  let preceding_str = s:get_preceding_str('henkan') .. a:suffix_key
+  let start_col = states#get('machi')[1]
+  let preceding_str = states#getstr('machi') .. a:suffix_key
 
   let google_exists = v:false
   let comp_list = copy(henkan_list#get())
@@ -295,9 +304,10 @@ function! k#completefunc(suffix_key = '')
 
   let current_pos = getcharpos('.')[1:2]
   let is_trailing = getline('.')->strcharlen() < current_pos[1]
+  " TODO: start_posをstate利用に変更したので対応が必要
   let context = {
         \   'yomi': preceding_str,
-        \   'start_pos': b:henkan_start_pos,
+        \   'start_pos': states#get('kouho'),
         \   'cursor_pos': getcharpos('.')[1:2],
         \   'is_trailing': is_trailing,
         \   'suffix_key': a:suffix_key,
@@ -331,29 +341,23 @@ function! s:char_col_to_byte_col(char_pos) abort
 endfunction
 
 function! s:set_henkan_start_pos() abort
-  let b:henkan_start_pos = getcharpos('.')[1:2]
-  let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
-  call inline_mark#clear()
-  call inline_mark#put(b:henkan_start_pos[0], byte_col, {'text':opts#get('henkan_marker')})
+  call states#on('machi')
 endfunction
 
 function! s:set_henkan_select_mark() abort
-  call inline_mark#clear()
-  let byte_col = s:char_col_to_byte_col(b:henkan_start_pos)
-  call inline_mark#put(b:henkan_start_pos[0], byte_col, {'text':opts#get('select_marker')})
-  let b:select_start_pos = getcharpos('.')[1:2]
+  call states#on('kouho')
 endfunction
 
 function! s:clear_henkan_start_pos() abort
-  let b:henkan_start_pos = [0, 0]
-  let b:select_start_pos = [0, 0]
-  call inline_mark#clear()
+  call states#off('machi')
+  call states#off('kouho')
+  call states#off('okuri')
 endfunction
 
 " 変換中→送りあり変換を予約
 " それ以外→現在位置に変換ポイントを設定
 function! k#sticky(...) abort
-  if s:is_same_line_right_col('henkan')
+  if states#in('machi')
     let s:next_okuri = v:true
     echomsg 'next okuri set'
   else
@@ -364,15 +368,15 @@ endfunction
 
 function! k#henkan(fallback_key) abort
   " echomsg 'henkan'
-  if pumvisible()
+  if states#in('kouho')
     return "\<c-n>"
   endif
 
-  if !s:is_same_line_right_col('henkan')
+  if !states#in('machi')
     return a:fallback_key
   endif
 
-  let preceding_str = s:get_preceding_str('henkan')
+  let preceding_str = states#getstr('machi')
   " echomsg preceding_str
 
   call henkan_list#update_manual(preceding_str)
@@ -381,7 +385,7 @@ function! k#henkan(fallback_key) abort
 endfunction
 
 function! k#kakutei(fallback_key) abort
-  if !s:is_same_line_right_col('henkan')
+  if !states#in('machi')
     return a:fallback_key
   endif
 
@@ -392,7 +396,7 @@ endfunction
 function! s:complete_done_pre(complete_info, completed_item) abort
   " echomsg a:complete_info a:completed_item
 
-  if s:is_same_line_right_col('henkan')
+  if states#in('machi')
     " echomsg 'complete_done_pre clear_henkan_start_pos'
     call s:clear_henkan_start_pos()
   endif
