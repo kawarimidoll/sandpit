@@ -10,6 +10,9 @@ function! opts#parse(opts) abort
   " 自動補完を文字数でソートする
   let s:sort_auto_complete_by_length = get(a:opts, 'min_auto_complete_length', v:false)
 
+  " enable時にtextwidthを0にする
+  let s:textwidth_zero = get(a:opts, 'textwidth_zero', v:false)
+
   " Google CGI変換
   let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
 
