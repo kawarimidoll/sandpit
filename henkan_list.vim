@@ -34,15 +34,16 @@ function! s:parse_henkan_list(lines, jisyo) abort
   return henkan_list
 endfunction
 
-function! henkan_list#update_async(str) abort
+function! henkan_list#update_async(str, exact_match) abort
   call utils#debug_log($'async start {a:str}')
   let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
+  let suffix = a:exact_match ? '' : '[^!-~]*'
 
   let s:latest_async_henkan_list = []
   let s:run_job_list = []
 
   for jisyo in opts#get('jisyo_list')
-    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str}[^!-~]* /', '')
+    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str}{suffix} /', '')
     let job_id = job#start(cmd, { 'exit': funcref('s:on_exit') })
     call add(s:run_job_list, [job_id, jisyo])
     call utils#debug_log($'start {job_id}')

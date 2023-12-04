@@ -230,19 +230,21 @@ function! s:auto_complete() abort
         \ ->substitute('\a*$', '', '')
 
   let min_length = opts#get('min_auto_complete_length')
-  if strcharlen(preceding_str) < min_length
+  let str_len = strcharlen(preceding_str)
+  if str_len < min_length
     return
   endif
 
-  " echomsg 'auto_complete' preceding_str
+  " 3文字目までは完全一致で検索
+  let exact_match = str_len <= 3
 
-  " 冒頭のmin_lengthぶんの文字が異なった場合はhenkan_listを更新
-  let need_update = slice(preceding_str, 0, min_length) !=# slice(s:latest_auto_complete_str, 0, min_length)
+  " 4文字目が異なった場合はhenkan_listを更新
+  let need_update = strcharpart(preceding_str, min_length, 1) !=# strcharpart(s:latest_auto_complete_str, min_length, 1)
 
   let s:latest_auto_complete_str = preceding_str
 
-  if need_update
-    call henkan_list#update_async(preceding_str)
+  if exact_match || need_update
+    call henkan_list#update_async(preceding_str, exact_match)
   else
     call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
   endif
