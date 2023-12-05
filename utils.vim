@@ -53,3 +53,27 @@ function! utils#debug_log(contents) abort
         \ : [a:contents]
   call writefile(contents, './debug.log', 'a')
 endfunction
+
+let consonant_list = [
+      \ 'aあ', 'iい', 'uう', 'eえ', 'oお',
+      \ 'kかきくけこ', 'gがぎぐげご',
+      \ 'sさしすせそ', 'zざじずぜぞ',
+      \ 'tたちつてとっ', 'dだぢづでど',
+      \ 'nなにぬねのん',
+      \ 'hはひふへほ', 'bばびぶべぼ', 'pぱぴぷぺぽ',
+      \ 'mまみむめも',
+      \ 'yやゆよ',
+      \ 'rらりるれろ',
+      \ 'wわを',
+      \ ]
+let s:consonant_dict = {}
+for c in consonant_list
+  let [a; japanese] = split(c, '\zs')
+  for j in japanese
+    let s:consonant_dict[j] = a
+  endfor
+endfor
+
+function! utils#consonant(char) abort
+  return s:consonant_dict[a:char]
+endfunction
