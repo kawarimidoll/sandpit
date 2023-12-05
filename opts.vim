@@ -30,7 +30,7 @@ endfunction
 
 function! opts#parse(opts) abort
   " マーカー
-  let s:choku_marker = get(a:opts, 'choku_marker', '$')
+  let s:choku_marker = get(a:opts, 'choku_marker', '')
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
   let s:select_marker = get(a:opts, 'select_marker', '▼')
   let s:okuri_marker = get(a:opts, 'okuri_marker', '*')
