@@ -6,6 +6,7 @@ source ./utils.vim
 source ./opts.vim
 source ./henkan_list.vim
 source ./states.vim
+source ./func.vim
 
 function! t#is_enable() abort
   return get(s:, 'is_enable', v:false)
@@ -100,7 +101,7 @@ function! t#ins(key, henkan = v:false) abort
   call feedkeys(repeat("\<bs>", bs_count), 'n')
 
   if type(spec) == v:t_dict
-    let feed = call($'t#{spec.func}', [key])
+    let feed = call($'func#{spec.func}', [key])
     call feedkeys(feed, 'n')
     return
   endif
@@ -164,53 +165,6 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   endwhile
 
   return [0, get(kana_dict, '', a:key)]
-endfunction
-
-function! t#sticky(...) abort
-  if states#getstr('choku') =~ '\a$'
-    return ''
-  endif
-  call states#on('machi')
-  return ''
-endfunction
-
-function! t#henkan(fallback_key) abort
-  call states#off('choku')
-  if states#in('kouho')
-    return "\<c-n>"
-  endif
-
-  if !states#in('machi')
-    return a:fallback_key
-  endif
-
-  let preceding_str = states#getstr('machi')
-
-  call henkan_list#update_manual(preceding_str)
-
-  return "\<c-r>=t#completefunc()\<cr>"
-endfunction
-
-function! t#kakutei(fallback_key) abort
-  call states#off('choku')
-  if !states#in('machi')
-    return a:fallback_key
-  endif
-
-  call states#off('machi')
-  return pumvisible() ? "\<c-y>" : ''
-endfunction
-
-function! t#backspace(...) abort
-  let pos = getpos('.')[1:2]
-  let canceled = v:false
-  for target in ['machi', 'okuri', 'kouho']
-    if states#in(target) && utils#compare_pos(states#get(target), pos) == 0
-      call states#off(target)
-      let canceled = v:true
-    endif
-  endfor
-  return canceled ? '' : "\<bs>"
 endfunction
 
 let s:okuri_context = {}
