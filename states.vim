@@ -53,7 +53,7 @@ function! states#on(target, pos = []) abort
       return
     endif
   elseif a:target ==# 'okuri'
-    if !states#in('machi') || states#getstr('kana') =~ '\a$'
+    if !states#in('machi') || states#getstr('choku') =~ '\a$'
       return
     endif
   elseif a:target ==# 'kouho'
