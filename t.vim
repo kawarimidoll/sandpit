@@ -99,13 +99,19 @@ function! t#ins(key, henkan = v:false) abort
   let [bs_count, spec] = s:get_insert_spec(key, a:henkan)
   call feedkeys(repeat("\<bs>", bs_count), 'n')
 
-  if type(spec) == v:t_string
-    call feedkeys(spec, 'n')
+  if type(spec) == v:t_dict
+    let feed = call($'t#{spec.func}', [key])
+    call feedkeys(feed, 'n')
     return
   endif
-  echomsg spec
-  let feed = call($'t#{spec.func}', [key])
-  call feedkeys(feed, 'n')
+
+  " type(spec) == v:t_string
+
+  if spec == ''
+    return
+  endif
+
+  call feedkeys(spec, 'n')
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
