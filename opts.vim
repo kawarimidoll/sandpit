@@ -10,6 +10,24 @@ let s:keyboard_key_list = s:keyboard_key_list->split('\zs')
 "   return
 " endif
 
+function! s:strsplit(str) abort
+  " 普通にsplitすると<bs>など<80>k?のコードを持つ文字を正しく切り取れないので対応
+  let chars = split(a:str, '\zs')
+  let prefix = split("\<bs>", '\zs')
+  let result = []
+  let i = 0
+  while i < len(chars)
+    if chars[i] == prefix[0] && chars[i+1] == prefix[1]
+      call add(result, chars[i : i+2]->join(''))
+      let i += 2
+    else
+      call add(result, chars[i])
+    endif
+    let i += 1
+  endwhile
+  return result
+endfunction
+
 function! opts#parse(opts) abort
   " マーカー
   let s:choku_marker = get(a:opts, 'choku_marker', '$')
@@ -88,10 +106,10 @@ function! opts#parse(opts) abort
   let shift_key_list = []
   let s:keymap_dict = {}
   for [k, val] in items(kana_table)
-    let key = utils#trans_special_key(k)
-    let preceding_keys = slice(key, 0, -1)
-    let start_key = slice(key, 0, 1)
-    let end_key = slice(key, -1)
+    let keys = utils#trans_special_key(k)->s:strsplit()
+    let preceding_keys = slice(keys, 0, -1)->join('')
+    let start_key = slice(keys, 0, 1)->join('')
+    let end_key = slice(keys, -1)->join('')
 
     if !has_key(s:keymap_dict, end_key)
       let s:keymap_dict[end_key] = {}
