@@ -29,6 +29,7 @@ function! t#enable() abort
   augroup t#augroup
     autocmd!
     autocmd InsertLeave * call t#disable()
+    autocmd CompleteDonePre * call states#off('machi')
   augroup END
 
   let s:keys_to_remaps = []
