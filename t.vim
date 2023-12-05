@@ -104,7 +104,6 @@ function! t#ins(key, henkan = v:false) abort
     return
   endif
   echomsg spec
-  call states#off('choku')
   let feed = call($'t#{spec.func}', [key])
   call feedkeys(feed, 'n')
 endfunction
@@ -134,11 +133,15 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 endfunction
 
 function! t#sticky(...) abort
+  if states#getstr('choku') =~ '\a$'
+    return ''
+  endif
   call states#on('machi')
   return ''
 endfunction
 
 function! t#henkan(fallback_key) abort
+  call states#off('choku')
   if states#in('kouho')
     return "\<c-n>"
   endif
@@ -156,6 +159,7 @@ function! t#henkan(fallback_key) abort
 endfunction
 
 function! t#kakutei(fallback_key) abort
+  call states#off('choku')
   if !states#in('machi')
     return a:fallback_key
   endif
