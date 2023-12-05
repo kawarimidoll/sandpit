@@ -6,7 +6,7 @@ let s:keyboard_key_list = 'abcdefghijklmnopqrstuvwxyz'
 let s:keyboard_key_list = s:keyboard_key_list->split('\zs')
 " let s:keyboard_key_list = range(32, 126)->map('nr2char(v:val)')
 " if strcharlen(key) > 1 && preceding_keys !~ '\p'
-"   echoerr $"[k#initialize] マッピング対象の文字列は最後の1字以外に特殊文字は使えません {k}"
+"   echoerr $"[t#initialize] マッピング対象の文字列は最後の1字以外に特殊文字は使えません {k}"
 "   return
 " endif
 
@@ -83,7 +83,7 @@ function! opts#parse(opts) abort
   endfor
 
   " かなテーブル
-  let kana_table = get(a:opts, 'kana_table', k#default_kana_table())
+  let kana_table = get(a:opts, 'kana_table', t#default_kana_table())
 
   let shift_key_list = []
   let s:keymap_dict = {}
@@ -114,10 +114,10 @@ function! opts#parse(opts) abort
   let s:map_cmds = []
   for key in s:keymap_dict->keys()
     let k = keytrans(key)
-    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{keytrans(k)}')<cr>"])
+    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call t#ins('{keytrans(k)}')<cr>"])
   endfor
   for k in shift_key_list
-    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call k#ins('{tolower(k)}',1)<cr>"])
+    call add(s:map_cmds, [k, $"inoremap {k} <cmd>call t#ins('{tolower(k)}',1)<cr>"])
   endfor
 endfunction
 
