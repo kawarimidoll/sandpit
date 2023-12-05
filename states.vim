@@ -1,3 +1,4 @@
+source ./inline_mark.vim
 " state管理:
 " kana
 " キー入力時に有効化 既に有効ならそのまま
@@ -33,7 +34,11 @@ function! s:getpos() abort
   return getpos('.')[1:2]
 endfunction
 
-function! states#on(target, pos = []) abort
+function! states#show() abort
+  echomsg s:states
+endfunction
+
+function! states#on(target) abort
   " validate
   if a:target ==# 'choku'
     if states#in('choku')
@@ -47,7 +52,7 @@ function! states#on(target, pos = []) abort
       return
     endif
   elseif a:target ==# 'okuri'
-    if !states#in('machi') || states#getstr('choku') =~ '\a$'
+    if !states#in('machi') || states#getstr('choku') =~ '\a$' || states#getstr('machi') =~ '^$\|\a$'
       return
     endif
   elseif a:target ==# 'kouho'
@@ -56,7 +61,11 @@ function! states#on(target, pos = []) abort
     endif
   endif
 
-  let [lnum, col] = empty(a:pos) ? s:getpos() : a:pos
+  let [lnum, col] = s:getpos()
+  if a:target ==# 'kouho'
+    let [lnum, col] = states#get('machi')
+    call inline_mark#clear('machi')
+  endif
   let opt_states = opts#get('states')[a:target]
   let text = opt_states.marker
   let hl = opt_states.hl
@@ -79,6 +88,13 @@ function! states#off(target) abort
   if a:target ==# 'okuri'
     call states#off('kouho')
   endif
+  if a:target ==# 'kouho' && states#in('machi')
+    let [lnum, col] = states#get('machi')
+    let opt_states = opts#get('states')['machi']
+    let text = opt_states.marker
+    let hl = opt_states.hl
+    call inline_mark#put(lnum, col, {'name': a:target, 'text': text, 'hl': hl})
+  endif
 endfunction
 
 function! states#get(target) abort
@@ -88,7 +104,11 @@ endfunction
 function! states#in(target) abort
   if empty(s:states[a:target])
     return v:false
+  elseif a:target ==# 'kouho'
+    " kouhoだけは存在すればOK
+    return v:true
   endif
+
   let [pos_l, pos_c] = s:states[a:target]
   let [cur_l, cur_c] = s:getpos()
   return pos_l ==# cur_l && pos_c <= cur_c
