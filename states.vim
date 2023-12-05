@@ -33,12 +33,6 @@ function! s:getpos() abort
   return getpos('.')[1:2]
 endfunction
 
-function! states#clear() abort
-  for t in s:states->keys()
-    call states#off(t)
-  endfor
-endfunction
-
 function! states#on(target, pos = []) abort
   " validate
   if a:target ==# 'choku'
@@ -70,9 +64,21 @@ function! states#on(target, pos = []) abort
   let s:states[a:target] = [lnum, col]
 endfunction
 
+function! states#clear() abort
+  call states#off('choku')
+  " machiがoffになったらkouhoとokuriもoffなのでこれでよし
+  call states#off('machi')
+endfunction
+
 function! states#off(target) abort
   call inline_mark#clear(a:target)
   let s:states[a:target] = []
+  if a:target ==# 'machi'
+    call states#off('okuri')
+  endif
+  if a:target ==# 'okuri'
+    call states#off('kouho')
+  endif
 endfunction
 
 function! states#get(target) abort
