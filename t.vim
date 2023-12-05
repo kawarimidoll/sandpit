@@ -104,6 +104,8 @@ function! t#ins(key, henkan = v:false) abort
   endif
   echomsg spec
   call states#off('choku')
+  let feed = call($'t#{spec.func}', [key])
+  call feedkeys(feed, 'n')
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
@@ -128,6 +130,49 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   endwhile
 
   return [0, get(kana_dict, '', a:key)]
+endfunction
+
+function! t#sticky(...) abort
+  call states#on('machi')
+  return ''
+endfunction
+
+function! t#henkan(fallback_key) abort
+  if states#in('kouho')
+    return "\<c-n>"
+  endif
+
+  if !states#in('machi')
+    return a:fallback_key
+  endif
+
+  let preceding_str = states#getstr('machi')
+
+  call henkan_list#update_manual(preceding_str)
+
+  " return "\<c-r>=t#completefunc()\<cr>"
+  return ''
+endfunction
+
+function! t#kakutei(fallback_key) abort
+  if !states#in('machi')
+    return a:fallback_key
+  endif
+
+  call states#off('machi')
+  return pumvisible() ? "\<c-y>" : ''
+endfunction
+
+function! t#backspace(...) abort
+  let pos = getpos('.')[1:2]
+  let canceled = v:false
+  for target in ['machi', 'okuri', 'kouho']
+    if states#in(target) && utils#compare_pos(states#get(target), pos) == 0
+      call states#off(target)
+      let canceled = v:true
+    endif
+  endfor
+  return canceled ? '' : "\<bs>"
 endfunction
 
 " cnoremap <c-j> <cmd>call t#cmd_buf()<cr>
