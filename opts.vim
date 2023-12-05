@@ -1,3 +1,15 @@
+let s:keyboard_key_list = 'abcdefghijklmnopqrstuvwxyz'
+      \ .. 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      \ .. '0123456789!@#$%^&*()'
+" \ .. "`-=[]|;',./"
+" \ .. '~_+{}\:"<>?'
+let s:keyboard_key_list = s:keyboard_key_list->split('\zs')
+" let s:keyboard_key_list = range(32, 126)->map('nr2char(v:val)')
+" if strcharlen(key) > 1 && preceding_keys !~ '\p'
+"   echoerr $"[k#initialize] マッピング対象の文字列は最後の1字以外に特殊文字は使えません {k}"
+"   return
+" endif
+
 function! opts#parse(opts) abort
   " マーカー
   let s:choku_marker = get(a:opts, 'choku_marker', '$')

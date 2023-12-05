@@ -7,6 +7,11 @@ source ./opts.vim
 source ./henkan_list.vim
 source ./states.vim
 
+augroup k_heroes_group
+  autocmd!
+  autocmd User k_* echon
+augroup END
+
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
@@ -207,11 +212,32 @@ function! k#ins(key, henkan = v:false) abort
   " implement other modes, maybe
 
   if type(spec) != v:t_string
-    " TODO support okuri
     call states#off('choku')
   endif
 
+  " let okuri_state = states#in('okuri')
+
   call feedkeys(result, 'ni')
+
+  " call utils#debug_log('result')
+  " call utils#debug_log(string(['result', result, okuri_state, result !=# '' && slice(result, -1) !~ '\a$']))
+
+  if states#in('okuri') && result !=# '' && slice(result, -1) !~ '\a$'
+    let bss = count(result, "\<bs>")
+    let content = substitute(result, "\<bs>", '', 'g')
+    let from_col = states#get('machi')[1]-1
+    let to_col = states#get('okuri')[1]-2
+    let machistr = getline('.')[from_col : to_col]
+    let okuristr = states#getstr('okuri')[0 : -bss-1] .. content
+    let consonant = s:consonant_dict[strcharpart(okuristr, 0, 1)]
+
+    echomsg 'okuri' machistr okuristr machistr .. consonant
+    let s:okuri_preceding_str = machistr .. okuristr
+
+    call henkan_list#update_manual(machistr .. consonant)
+    call feedkeys($"\<c-r>=k#completefunc('{okuristr}')\<cr>", 'ni')
+    call states#off('okuri')
+  endif
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
@@ -219,21 +245,22 @@ function! s:get_insert_spec(key, henkan = v:false) abort
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
     " echomsg 'get_insert_spec henkan'
-    if !next_okuri && (!states#in('machi') || pumvisible())
-      call s:set_henkan_start_pos()
-    else
-      let preceding_str = s:get_preceding_str('henkan', v:false)
-      " echomsg 'okuri-ari:' preceding_str .. a:key
-
-      call henkan_list#update_manual(preceding_str .. a:key)
-
-      let s:next_okuri = v:false
-
-      return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>"
-    endif
+    " if !next_okuri && (!states#in('machi') || pumvisible())
+      call states#on('machi')
+    " else
+    "   let preceding_str = s:get_preceding_str('henkan', v:false)
+    "   " echomsg 'okuri-ari:' preceding_str .. a:key
+    "
+    "   call henkan_list#update_manual(preceding_str .. a:key)
+    "
+    "   let s:next_okuri = v:false
+    "
+    "   return $"\<c-r>=k#completefunc('{get(kana_dict,'',a:key)}')\<cr>"
+    " endif
   endif
 
   if !empty(kana_dict)
+    " let preceding_str = s:get_preceding_str('kana', v:false)
     let preceding_str = states#getstr('choku')
 
     let i = len(preceding_str)
@@ -293,6 +320,9 @@ function! k#autocompletefunc()
         \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
 
   echo $'{s:latest_auto_complete_str}: {len(comp_list)}件'
+  if mode() !=# 'i' || empty(comp_list) || start_col < 1 || s:is_same_line_right_col('select')
+    return ''
+  endif
   call complete(start_col, comp_list)
 
   return ''
@@ -315,9 +345,12 @@ function! k#completefunc(suffix_key = '')
       endif
     endfor
   else
+    let preceding_str = s:okuri_preceding_str
     for comp_item in comp_list
       let comp_item.word ..= a:suffix_key
     endfor
+    call utils#debug_log('completefunc ' .. preceding_str)
+    call utils#debug_log(string(comp_list))
   endif
 
   let list_len = len(comp_list)
@@ -352,16 +385,13 @@ function! k#completefunc(suffix_key = '')
 
   call complete(start_col, comp_list)
 
-  echo $'{preceding_str}: {list_len}件'
-  return list_len > 0 ? "\<c-n>" : ''
+  echo $'{preceding_str}: {list_len}件, {complete_info(["items"])->len()}件'
+  " return list_len > 0 ? "\<c-n>" : ''
+  return ''
 endfunction
 
 function! s:char_col_to_byte_col(char_pos) abort
   return getline(a:char_pos[0])->slice(0, a:char_pos[1]-1)->strlen()+1
-endfunction
-
-function! s:set_henkan_start_pos() abort
-  call states#on('machi')
 endfunction
 
 function! s:set_henkan_select_mark() abort
@@ -377,12 +407,7 @@ endfunction
 " 変換中→送りあり変換を予約
 " それ以外→現在位置に変換ポイントを設定
 function! k#sticky(...) abort
-  if states#in('machi')
-    let s:next_okuri = v:true
-    echomsg 'next okuri set'
-  else
-    call s:set_henkan_start_pos()
-  endif
+  call states#on('machi')
   return ''
 endfunction
 
@@ -547,6 +572,7 @@ endfunction
 
 cnoremap <c-j> <cmd>call k#cmd_buf()<cr>
 inoremap <c-j> <cmd>call k#toggle()<cr>
+inoremap <c-k> <cmd>imap<cr>
 
 let uj = expand('~/.cache/vim/SKK-JISYO.user')
 call k#initialize({
@@ -559,7 +585,8 @@ call k#initialize({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.nicoime'), 'encoding': 'utf-8', 'mark': '[N]' },
       \ ],
-      \ 'min_auto_complete_length': 2,
+      \ 'min_auto_complete_length': 3,
+      \ 'sort_auto_complete_by_length': v:true,
       \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
       \ 'textwidth_zero': v:true,
