@@ -216,9 +216,11 @@
   "~": "～",
   "z<space>": "　",
   ";": { "func": "sticky" },
-  "q": { "func": "zen_kata" },
+  "q": { "conv": "zen_kata" },
   "<cr>": { "func": "kakutei" },
+  "<bs>": { "func": "backspace" },
+  "<c-h>": { "func": "backspace" },
   "<space>": { "func": "henkan" },
-  "zq": { "func": "han_kata" },
+  "zq": { "conv": "han_kata" },
   "zw": { "func": "dakuten" }
 }
