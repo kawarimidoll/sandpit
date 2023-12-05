@@ -1,4 +1,3 @@
-source ./inline_mark.vim
 source ./converters.vim
 source ./google_cgi.vim
 source ./job.vim
@@ -107,13 +106,16 @@ endfunction
 
 function! t#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
-  call states#on('choku')
   let [bs_count, spec] = s:get_insert_spec(key, a:henkan)
-  call feedkeys(repeat("\<bs>", bs_count), 'n')
+  if bs_count > 0
+    call feedkeys(repeat("\<bs>", bs_count), 'n')
+  endif
 
   if type(spec) == v:t_dict
     let feed = call($'func#{spec.func}', [key])
-    call feedkeys(feed, 'n')
+    if feed !=# ''
+      call feedkeys(feed, 'n')
+    endif
     return
   endif
 
@@ -122,6 +124,10 @@ function! t#ins(key, henkan = v:false) abort
   if spec == ''
     return
   endif
+  if a:henkan
+    call states#on('machi')
+  endif
+  call states#on('choku')
 
   call feedkeys(spec, 'n')
 
@@ -139,8 +145,6 @@ function! t#ins(key, henkan = v:false) abort
     let machistr = getline('.')[from_col : to_col]
     let okuristr = states#getstr('okuri')[0 : -bs_count-1] .. spec
     let consonant = utils#consonant(strcharpart(okuristr, 0, 1))
-
-    echomsg 'okuri' machistr okuristr machistr .. consonant
 
     call henkan_list#update_manual(machistr .. consonant)
     let s:okuri_context = {
@@ -160,9 +164,9 @@ function! s:get_insert_spec(key, henkan = v:false) abort
     return [0, a:key]
   endif
 
-  if a:henkan
-    call states#on('machi')
-  endif
+  " if a:henkan
+  "   call states#on('machi')
+  " endif
 
   let preceding_str = states#getstr('choku')
 
