@@ -175,6 +175,26 @@ function! k#han_kata(...) abort
   return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_han_kata(preceding_str)
 endfunction
 
+let consonant_list = [
+      \ 'aあ', 'iい', 'uう', 'eえ', 'oお',
+      \ 'kかきくけこ', 'gがぎぐげご',
+      \ 'sさしすせそ', 'zざじずぜぞ',
+      \ 'tたちつてとっ', 'dだぢづでど',
+      \ 'nなにぬねのん',
+      \ 'hはひふへほ', 'bばびぶべぼ', 'pぱぴぷぺぽ',
+      \ 'mまみむめも',
+      \ 'yやゆよ',
+      \ 'rらりるれろ',
+      \ 'wわを',
+      \ ]
+let s:consonant_dict = {}
+for c in consonant_list
+  let [a; japanese] = split(c, '\zs')
+  for j in japanese
+    let s:consonant_dict[j] = a
+  endfor
+endfor
+
 function! k#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
   call states#on('choku')
