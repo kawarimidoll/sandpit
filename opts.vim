@@ -63,7 +63,7 @@ function! opts#parse(opts) abort
   " ユーザー辞書
   " デフォルトは~/.cache/vim/SKK-JISYO.user
   let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
-  if !isabsolutepath(s:user_jisyo_path)
+  if s:user_jisyo_path !~ '^/'
     throw $"user_jisyo_path must be absolute path {s:user_jisyo_path}"
   endif
   " 指定されたパスにファイルがなければ作成する
