@@ -112,6 +112,26 @@ function! t#ins(key, henkan = v:false) abort
   endif
 
   call feedkeys(spec, 'n')
+
+  if states#in('okuri') && slice(spec, -1) !~ '\a$'
+    " ;oku;ri
+    " machistr = おく
+    " okuristr = り
+    " consonant = r
+    " ;modo;tte
+    " machistr = もど
+    " okuristr = って
+    " consonant = t
+    let from_col = states#get('machi')[1]-1
+    let to_col = states#get('okuri')[1]-2
+    let machistr = getline('.')[from_col : to_col]
+    let okuristr = states#getstr('okuri')[0 : -bs_count-1] .. spec
+    let consonant = utils#consonant(strcharpart(okuristr, 0, 1))
+
+    echomsg 'okuri' machistr okuristr machistr .. consonant
+
+    call henkan_list#update_manual(machistr .. consonant)
+  endif
 endfunction
 
 function! s:get_insert_spec(key, henkan = v:false) abort
