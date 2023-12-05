@@ -131,6 +131,14 @@ function! t#ins(key, henkan = v:false) abort
     echomsg 'okuri' machistr okuristr machistr .. consonant
 
     call henkan_list#update_manual(machistr .. consonant)
+    let s:okuri_context = {
+          \ 'machistr': machistr,
+          \ 'okuristr': okuristr,
+          \ 'consonant': consonant,
+          \ }
+
+    call feedkeys($"\<c-r>=t#completefunc()\<cr>", 'n')
+    call states#off('okuri')
   endif
 endfunction
 
@@ -180,8 +188,7 @@ function! t#henkan(fallback_key) abort
 
   call henkan_list#update_manual(preceding_str)
 
-  " return "\<c-r>=t#completefunc()\<cr>"
-  return ''
+  return "\<c-r>=t#completefunc()\<cr>"
 endfunction
 
 function! t#kakutei(fallback_key) abort
@@ -204,6 +211,30 @@ function! t#backspace(...) abort
     endif
   endfor
   return canceled ? '' : "\<bs>"
+endfunction
+
+let s:okuri_context = {}
+function! t#completefunc()
+  call states#on('kouho')
+
+  let preceding_str = states#getstr('machi')
+  let comp_list = copy(henkan_list#get())
+
+  if !empty(s:okuri_context)
+    let preceding_str = s:okuri_context.machistr .. s:okuri_context.okuristr
+    for comp_item in comp_list
+      let comp_item.word ..= s:okuri_context.okuristr
+    endfor
+  endif
+
+  let list_len = len(comp_list)
+
+  let s:okuri_context = {}
+
+  call complete(states#get('machi')[1], comp_list)
+
+  echo $'{preceding_str}: {complete_info(["items"])->len()}件'
+  return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
 " cnoremap <c-j> <cmd>call t#cmd_buf()<cr>
