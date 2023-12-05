@@ -8,6 +8,10 @@ source ./henkan_list.vim
 source ./states.vim
 source ./func.vim
 
+function! s:is_completed() abort
+  return get(complete_info(), 'selected', -1) >= 0
+endfunction
+
 function! t#is_enable() abort
   return get(s:, 'is_enable', v:false)
 endfunction
@@ -30,7 +34,15 @@ function! t#enable() abort
   augroup t#augroup
     autocmd!
     autocmd InsertLeave * call t#disable()
-    autocmd CompleteDonePre * call states#off('machi')
+    autocmd TextChangedI *
+          \   if states#in('kouho')
+          \ |   call states#off('kouho')
+          \ | endif
+    autocmd CompleteDonePre *
+          \   if s:is_completed()
+          \ |   call states#off('machi')
+          \ | endif
+          \ | call states#off('kouho')
   augroup END
 
   let s:keys_to_remaps = []
@@ -51,7 +63,7 @@ function! t#disable() abort
     call utils#echoerr('[t#enable] abort')
     return
   endif
-  call inline_mark#clear()
+  call states#clear()
   if !s:is_enable
     return
   endif
@@ -61,8 +73,6 @@ function! t#disable() abort
     unlet! s:save_textwidth
   endif
 
-  autocmd! t#augroup
-
   for k in s:keys_to_remaps
     if type(k) == v:t_string
       execute 'iunmap' k
@@ -71,6 +81,7 @@ function! t#disable() abort
     endif
   endfor
 
+  autocmd! t#augroup
   let s:is_enable = v:false
 endfunction
 
