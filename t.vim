@@ -38,10 +38,7 @@ function! t#enable() abort
           \ |   call states#off('kouho')
           \ | endif
     autocmd CompleteDonePre *
-          \   if s:is_completed()
-          \ |   call states#off('machi')
-          \ | endif
-          \ | call states#off('kouho')
+          \ call states#off('kouho')
   augroup END
 
   let s:keys_to_remaps = []
@@ -121,6 +118,10 @@ function! t#ins(key, henkan = v:false) abort
 
   " type(spec) == v:t_string
 
+  if pumvisible() && s:is_completed()
+    call states#off('machi')
+    call states#off('choku')
+  endif
   if spec == ''
     return
   endif
