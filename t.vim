@@ -247,4 +247,5 @@ call t#initialize({
       \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
       \ 'textwidth_zero': v:true,
+      \ 'abbrev_ignore_case': v:true,
       \ })

@@ -27,9 +27,33 @@ function! s:parse_henkan_list(lines, jisyo, okuri = '') abort
   return henkan_list
 endfunction
 
+function! s:gen_henkan_query(str, opts = {}) abort
+  let str = a:str
+  if opts#get('merge_tsu')
+  let str = substitute(str, 'っ\+', 'っ', 'g')
+  endif
+  if opts#get('trailing_n') && !get(a:opts, 'no_trailing_n', v:false)
+    let str = substitute(str, 'n$', 'ん', '')
+  endif
+  if opts#get('smart_vu')
+    let str = substitute(str, 'ゔ\|う゛', '(ゔ|う゛)', 'g')
+  endif
+  if opts#get('awk_ignore_case')
+    let str = str->substitute('あ', '(あ|ぁ)', 'g')
+          \ ->substitute('い', '(い|ぃ)', 'g')
+          \ ->substitute('う', '(う|ぅ)', 'g')
+          \ ->substitute('え', '(え|ぇ)', 'g')
+          \ ->substitute('お', '(お|ぉ)', 'g')
+          \ ->substitute('わ', '(わ|ゎ)', 'g')
+          \ ->substitute('か', '(か|ゕ)', 'g')
+          \ ->substitute('け', '(け|ゖ)', 'g')
+  endif
+  return str
+endfunction
+
 function! henkan_list#update_async(str, exact_match) abort
   call utils#debug_log($'async start {a:str}')
-  let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
+  let str = s:gen_henkan_query(a:str, { 'no_trailing_n': v:true })
   let suffix = a:exact_match ? '' : '[^!-~]*'
 
   let s:latest_async_henkan_list = []
@@ -92,7 +116,7 @@ endfunction
 " 送りなし検索→str='けんさく',okuri=''
 " 送りあり検索→str='しら',okuri='べ'
 function! henkan_list#update_manual(str, okuri = '') abort
-  let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
+  let str = s:gen_henkan_query(a:str)
 
   if a:okuri !=# ''
     let consonant = utils#consonant(strcharpart(a:okuri, 0, 1))

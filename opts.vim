@@ -58,7 +58,27 @@ function! opts#parse(opts) abort
   let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
 
   " 'っ'が連続したら1回と見做す
+  " ex: けっっか→結果
   let s:merge_tsu = get(a:opts, 'merge_tsu', v:false)
+
+  " 末尾の'n'を'ん'と見做す
+  " ex: へんかn→変換
+  let s:trailing_n = get(a:opts, 'trailing_n', v:false)
+
+  " 辞書の見出しの'ゔ'と'う゛'の表記揺れを吸収する
+  let s:smart_vu = get(a:opts, 'smart_vu', v:false)
+
+  " 登場頻度の少ないぁぃぅぇぉゎゕゖの大文字小文字を区別しない
+  " ゃゅょっは区別する
+  let s:awk_ignore_case = get(a:opts, 'awk_ignore_case', v:false)
+
+  " 辞書検索時に大文字小文字を区別しない(abbrevモードでのみ意味がある)
+  let abbrev_ignore_case = get(a:opts, 'abbrev_ignore_case', v:false)
+
+  let rg_cmd = 'rg --no-line-number'
+  if abbrev_ignore_case
+    let rg_cmd ..= ' --ignore-case'
+  endif
 
   " ユーザー辞書
   " デフォルトは~/.cache/vim/SKK-JISYO.user
@@ -97,7 +117,7 @@ function! opts#parse(opts) abort
 
     let jisyo.mark = get(jisyo, 'mark', '')
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
-    let jisyo.grep_cmd = $'rg --no-line-number --encoding {encoding} "^:q:" {jisyo.path}'
+    let jisyo.grep_cmd = $'{rg_cmd} --encoding {encoding} "^:q:" {jisyo.path}'
   endfor
 
   " かなテーブル
