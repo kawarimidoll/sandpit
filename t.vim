@@ -101,6 +101,11 @@ function! t#initialize(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
+let s:hira_mode = {
+      \ 'name': 'hira',
+      \ 'conv': {c->c}
+      \ }
+let s:mode = s:hira_mode
 function! t#ins(key, henkan = v:false) abort
   " feedkeys直後はバッファに文字が反映されていないので
   " bs_countを使って文字を一部取り出すテクニックが必要
@@ -109,8 +114,28 @@ function! t#ins(key, henkan = v:false) abort
   call feedkeys(repeat("\<bs>", bs_count), 'n')
 
   if type(spec) == v:t_dict
-    let feed = call($'func#{spec.func}', [key])
-    call feedkeys(feed, 'n')
+    if has_key(spec, 'func')
+      let feed = call($'func#{spec.func}', [key])
+      call feedkeys(feed, 'n')
+      return
+    elseif has_key(spec, 'conv')
+      let conv_name = {
+            \ 'zen_kata': 'converters#hira_to_kata',
+            \ 'han_kata': 'converters#hira_to_han_kata'
+            \ }[spec.conv]
+      if states#in('machi')
+        let machistr =  states#getstr('machi')[0 : -bs_count-1]
+        let feed = repeat("\<bs>", strcharlen(machistr)) .. call(conv_name, [machistr])
+        call feedkeys(feed, 'n')
+        call states#off('machi')
+        return
+      endif
+      let s:mode = s:mode.name ==# spec.conv ? s:hira_mode : {
+            \ 'name': spec.conv,
+            \ 'conv': funcref(conv_name)
+            \ }
+      echomsg $'{s:mode.name} mode'
+    endif
     return
   endif
 
@@ -128,7 +153,7 @@ function! t#ins(key, henkan = v:false) abort
   endif
   call states#on('choku')
 
-  call feedkeys(spec, 'n')
+  call feedkeys(call(s:mode.conv, [spec]), 'n')
 
   if states#in('okuri') && slice(spec, -1) !~ '\a$'
     " [machistr, okuristr] は以下のようになる
