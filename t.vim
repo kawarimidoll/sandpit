@@ -129,26 +129,15 @@ function! t#ins(key, henkan = v:false) abort
   call feedkeys(spec, 'n')
 
   if states#in('okuri') && slice(spec, -1) !~ '\a$'
-    " ;oku;ri
-    " machistr = おく
-    " okuristr = り
-    " consonant = r
-    " ;modo;tte
-    " machistr = もど
-    " okuristr = って
-    " consonant = t
+    " [machistr, okuristr] は以下のようになる
+    " ;oku;ri -> [おく, り]
+    " ;modo;tte -> [もど, って]
     let from_col = states#get('machi')[1]-1
     let to_col = states#get('okuri')[1]-2
     let machistr = getline('.')[from_col : to_col]
     let okuristr = states#getstr('okuri')[0 : -bs_count-1] .. spec
-    let consonant = utils#consonant(strcharpart(okuristr, 0, 1))
 
-    call henkan_list#update_manual(machistr .. consonant)
-    let s:okuri_context = {
-          \ 'machistr': machistr,
-          \ 'okuristr': okuristr,
-          \ 'consonant': consonant,
-          \ }
+    call henkan_list#update_manual(machistr, okuristr)
 
     call feedkeys($"\<c-r>=t#completefunc()\<cr>", 'n')
     call states#off('okuri')
@@ -175,23 +164,13 @@ function! s:get_insert_spec(key) abort
   return [0, get(kana_dict, '', a:key)]
 endfunction
 
-let s:okuri_context = {}
 function! t#completefunc()
   call states#on('kouho')
 
   let preceding_str = states#getstr('machi')
   let comp_list = copy(henkan_list#get())
 
-  if !empty(s:okuri_context)
-    let preceding_str = s:okuri_context.machistr .. s:okuri_context.okuristr
-    for comp_item in comp_list
-      let comp_item.word ..= s:okuri_context.okuristr
-    endfor
-  endif
-
   let list_len = len(comp_list)
-
-  let s:okuri_context = {}
 
   call complete(states#get('machi')[1], comp_list)
 

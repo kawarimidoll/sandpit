@@ -1,4 +1,4 @@
-function! s:parse_henkan_list(lines, jisyo) abort
+function! s:parse_henkan_list(lines, jisyo, okuri = '') abort
   if empty(a:lines)
     return []
   endif
@@ -16,7 +16,7 @@ function! s:parse_henkan_list(lines, jisyo) abort
       let [word, info; _rest] = split(v, ';') + ['']
       " :h complete-items
       call add(henkan_list, {
-            \ 'word': word,
+            \ 'word': word .. a:okuri,
             \ 'menu': $'{a:jisyo.mark}{info}',
             \ 'info': $'{a:jisyo.mark}{info}',
             \ 'user_data': { 'yomi': trim(yomi), 'path': a:jisyo.path }
@@ -89,13 +89,21 @@ function! s:on_exit(data, job_id) abort
   call feedkeys("\<c-r>=k#autocompletefunc()\<cr>", 'n')
 endfunction
 
-function! henkan_list#update_manual(str) abort
+" 送りなし検索→str='けんさく',okuri=''
+" 送りあり検索→str='しら',okuri='べ'
+function! henkan_list#update_manual(str, okuri = '') abort
   let str = substitute(a:str, 'ゔ', '(ゔ|う゛)', 'g')
+
+  if a:okuri !=# ''
+    let consonant = utils#consonant(strcharpart(a:okuri, 0, 1))
+    let str ..= consonant
+  endif
+
   let henkan_list = []
   for jisyo in opts#get('jisyo_list')
     let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str} /', '')
     let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
-    call extend(henkan_list, s:parse_henkan_list(lines, jisyo))
+    call extend(henkan_list, s:parse_henkan_list(lines, jisyo, a:okuri))
   endfor
   let s:latest_henkan_list = henkan_list
 endfunction
