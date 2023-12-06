@@ -218,13 +218,13 @@
   "?": "？",
   "~": "～",
   "z<space>": "　",
-  "/": { "conv": "abbrev" },
+  "/": { "mode": "abbrev" },
   ";": { "func": "sticky" },
-  "q": { "conv": "zen_kata" },
+  "q": { "mode": "zen_kata" },
   "<cr>": { "func": "kakutei" },
   "<bs>": { "func": "backspace" },
   "<c-h>": { "func": "backspace" },
   "<space>": { "func": "henkan" },
-  "zq": { "conv": "han_kata" },
-  "<c-l>": { "conv": "zen_alnum" }
+  "zq": { "mode": "han_kata" },
+  "<c-l>": { "mode": "zen_alnum" }
 }

@@ -125,13 +125,13 @@ function! t#ins(key, henkan = v:false) abort
         let s:mode = s:hira_mode
       endif
       return
-    elseif has_key(spec, 'conv')
+    elseif has_key(spec, 'mode')
       let conv_name = {
             \ 'zen_kata': 'converters#hira_to_kata',
             \ 'han_kata': 'converters#hira_to_han_kata',
             \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
             \ 'abbrev': 's:hira_mode.conv',
-            \ }[spec.conv]
+            \ }[spec.mode]
       if states#in('machi')
         let machistr =  states#getstr('machi')[0 : -bs_count-1]
         let feed = repeat("\<bs>", strcharlen(machistr)) .. call(conv_name, [machistr])
@@ -139,8 +139,8 @@ function! t#ins(key, henkan = v:false) abort
         call states#off('machi')
         return
       endif
-      let s:mode = s:mode.name ==# spec.conv ? s:hira_mode : {
-            \ 'name': spec.conv,
+      let s:mode = s:mode.name ==# spec.mode ? s:hira_mode : {
+            \ 'name': spec.mode,
             \ 'conv': funcref(conv_name)
             \ }
       echomsg $'{s:mode.name} mode'
