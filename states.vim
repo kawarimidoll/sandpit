@@ -93,7 +93,7 @@ function! states#off(target) abort
     let opt_states = opts#get('states')['machi']
     let text = opt_states.marker
     let hl = opt_states.hl
-    call inline_mark#put(lnum, col, {'name': a:target, 'text': text, 'hl': hl})
+    call inline_mark#put(lnum, col, {'name': 'machi', 'text': text, 'hl': hl})
   endif
 endfunction
 
