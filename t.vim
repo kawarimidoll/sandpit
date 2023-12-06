@@ -112,7 +112,7 @@ function! t#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
   let [bs_count, spec] = s:get_insert_spec(key)
 
-  if s:mode.name !=# 'zen_alnum'
+  if s:mode.name !=# 'zen_alnum' && s:mode.name !=# 'abbrev'
     call feedkeys(repeat("\<bs>", bs_count), 'n')
   endif
 
@@ -125,7 +125,8 @@ function! t#ins(key, henkan = v:false) abort
       let conv_name = {
             \ 'zen_kata': 'converters#hira_to_kata',
             \ 'han_kata': 'converters#hira_to_han_kata',
-            \ 'zen_alnum': 'converters#alnum_to_zen_alnum'
+            \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
+            \ 'abbrev': 's:hira_mode.conv',
             \ }[spec.conv]
       if states#in('machi')
         let machistr =  states#getstr('machi')[0 : -bs_count-1]
@@ -139,6 +140,9 @@ function! t#ins(key, henkan = v:false) abort
             \ 'conv': funcref(conv_name)
             \ }
       echomsg $'{s:mode.name} mode'
+      if s:mode.name ==# 'abbrev'
+        call states#on('machi')
+      endif
     endif
     return
   endif
@@ -147,12 +151,16 @@ function! t#ins(key, henkan = v:false) abort
 
   if pumvisible() && s:is_completed()
     call states#off('machi')
-    call states#off('choku')
+    " call states#off('choku')
+
+    if s:mode.name ==# 'abbrev'
+      let s:mode = s:hira_mode
+    endif
   endif
   if spec == ''
     return
   endif
-  if s:mode.name ==# 'zen_alnum'
+  if s:mode.name ==# 'zen_alnum' || s:mode.name ==# 'abbrev'
     call feedkeys(call(s:mode.conv, [key]), 'n')
     return
   endif
