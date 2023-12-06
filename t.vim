@@ -111,7 +111,10 @@ function! t#ins(key, henkan = v:false) abort
   " bs_countを使って文字を一部取り出すテクニックが必要
   let key = utils#trans_special_key(a:key)
   let [bs_count, spec] = s:get_insert_spec(key)
-  call feedkeys(repeat("\<bs>", bs_count), 'n')
+
+  if s:mode.name !=# 'zen_alnum'
+    call feedkeys(repeat("\<bs>", bs_count), 'n')
+  endif
 
   if type(spec) == v:t_dict
     if has_key(spec, 'func')
@@ -121,7 +124,8 @@ function! t#ins(key, henkan = v:false) abort
     elseif has_key(spec, 'conv')
       let conv_name = {
             \ 'zen_kata': 'converters#hira_to_kata',
-            \ 'han_kata': 'converters#hira_to_han_kata'
+            \ 'han_kata': 'converters#hira_to_han_kata',
+            \ 'zen_alnum': 'converters#alnum_to_zen_alnum'
             \ }[spec.conv]
       if states#in('machi')
         let machistr =  states#getstr('machi')[0 : -bs_count-1]
@@ -146,6 +150,10 @@ function! t#ins(key, henkan = v:false) abort
     call states#off('choku')
   endif
   if spec == ''
+    return
+  endif
+  if s:mode.name ==# 'zen_alnum'
+    call feedkeys(call(s:mode.conv, [key]), 'n')
     return
   endif
   if a:henkan

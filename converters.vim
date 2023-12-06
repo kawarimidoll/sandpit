@@ -26,3 +26,7 @@ endfunction
 function! converters#hira_to_han_kata(str) abort
   return converters#zen_kata_to_han_kata(converters#hira_to_kata(a:str))
 endfunction
+
+function! converters#alnum_to_zen_alnum(str) abort
+  return a:str->substitute('[!-~]', {m->nr2char(char2nr(m[0], v:true) + 65248, v:true)}, 'g')
+endfunction

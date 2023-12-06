@@ -226,5 +226,5 @@
   "<c-h>": { "func": "backspace" },
   "<space>": { "func": "henkan" },
   "zq": { "conv": "han_kata" },
-  "zw": { "func": "dakuten" }
+  "<c-l>": { "conv": "zen_alnum" }
 }
