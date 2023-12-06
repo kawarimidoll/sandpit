@@ -82,9 +82,13 @@ else
     call prop_type_add(name, {'highlight': hl, 'start_incl':1})
     let s:prop_types[name] = 1
 
-    call prop_add(a:lnum, a:col, {
-          \   'type': name,
-          \   'text': text,
-          \ })
+    let props =  { 'type': name }
+    if text ==# ''
+      let props.length = 0
+    else
+      let props.text = text
+    endif
+
+    call prop_add(a:lnum, a:col, props)
   endfunction
 endif
