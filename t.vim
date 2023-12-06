@@ -103,16 +103,12 @@ endfunction
 
 function! t#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
-  let [bs_count, spec] = s:get_insert_spec(key, a:henkan)
-  if bs_count > 0
-    call feedkeys(repeat("\<bs>", bs_count), 'n')
-  endif
+  let [bs_count, spec] = s:get_insert_spec(key)
+  call feedkeys(repeat("\<bs>", bs_count), 'n')
 
   if type(spec) == v:t_dict
     let feed = call($'func#{spec.func}', [key])
-    if feed !=# ''
-      call feedkeys(feed, 'n')
-    endif
+    call feedkeys(feed, 'n')
     return
   endif
 
@@ -159,15 +155,11 @@ function! t#ins(key, henkan = v:false) abort
   endif
 endfunction
 
-function! s:get_insert_spec(key, henkan = v:false) abort
+function! s:get_insert_spec(key) abort
   let kana_dict = get(opts#get('keymap_dict'), a:key, {})
   if empty(kana_dict)
     return [0, a:key]
   endif
-
-  " if a:henkan
-  "   call states#on('machi')
-  " endif
 
   let preceding_str = states#getstr('choku')
 
