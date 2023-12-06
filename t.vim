@@ -49,6 +49,7 @@ function! t#enable() abort
   endfor
 
   call states#clear()
+  let s:mode = s:hira_mode
 
   let s:is_enable = v:true
 endfunction
@@ -120,6 +121,9 @@ function! t#ins(key, henkan = v:false) abort
     if has_key(spec, 'func')
       let feed = call($'func#{spec.func}', [key])
       call feedkeys(feed, 'n')
+      if spec.func ==# 'kakutei' && s:mode.name ==# 'abbrev'
+        let s:mode = s:hira_mode
+      endif
       return
     elseif has_key(spec, 'conv')
       let conv_name = {
