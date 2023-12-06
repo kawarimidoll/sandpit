@@ -102,6 +102,8 @@ function! t#initialize(opts = {}) abort
 endfunction
 
 function! t#ins(key, henkan = v:false) abort
+  " feedkeys直後はバッファに文字が反映されていないので
+  " bs_countを使って文字を一部取り出すテクニックが必要
   let key = utils#trans_special_key(a:key)
   let [bs_count, spec] = s:get_insert_spec(key)
   call feedkeys(repeat("\<bs>", bs_count), 'n')
@@ -139,6 +141,8 @@ function! t#ins(key, henkan = v:false) abort
 
     call henkan_list#update_manual(machistr, okuristr)
 
+    " この時点ではまだ「おくr」の状態で、specが入力されていない
+    " 下のfeedkeysを実行することで上のも実行されるようだ
     call feedkeys($"\<c-r>=t#completefunc()\<cr>", 'n')
     call states#off('okuri')
   endif
