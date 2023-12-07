@@ -40,8 +40,8 @@ function! virt_poc#enable() abort
   let s:keys_to_remaps = []
   for key in keys(s:map_keys_dict)
     let current_map = maparg(key, 'i', 0, 1)
-    call add(s:keys_to_remaps, empty(current_map) ? key : current_map)
     let k = keytrans(key)
+    call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
     execute $"inoremap {k} <cmd>call virt_poc#ins('{keytrans(k)}')<cr><cmd>call virt_poc#after_ins()<cr>"
   endfor
 
@@ -80,17 +80,18 @@ function! virt_poc#toggle() abort
 endfunction
 
 function! virt_poc#init() abort
-  let s:kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
+  let raw_kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
   " echo s:kana_table
 
   let s:preceding_keys_dict = {}
   let s:map_keys_dict = {}
-  for k in keys(s:kana_table)
-    if k =~ '<bs>' || k =~ '<Space>'
-      continue
-    endif
+  let s:kana_table = {}
+  for [k, val] in items(raw_kana_table)
+    let key = utils#trans_special_key(k)->keytrans()
+    let s:kana_table[key] = val
 
     let chars = utils#trans_special_key(k)->utils#strsplit()
+
     if len(chars) > 1
       let s:preceding_keys_dict[slice(chars, 0, -1)->join('')] = 1
     endif
@@ -106,8 +107,10 @@ let s:put_mis_char = 1
 let s:kana_input_namespace = 'kana_input_namespace'
 
 function! virt_poc#ins(key) abort
-  let spec = get(s:kana_table, a:key->tolower(), '')
+  let spec = get(s:kana_table, a:key, '')
+
   if type(spec) == v:t_dict
+    echomsg spec
     if has_key(spec, 'func')
       if spec.func ==# 'backspace'
         if s:i_buf ==# ''
@@ -156,7 +159,8 @@ function! virt_poc#after_ins() abort
   endif
 endfunction
 
-inoremap <c-j> <cmd>call virt_poc#enable()<cr>
+inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
 inoremap <c-p> <cmd>echo inline_mark#get('kana_input_namespace')<cr>
 inoremap <c-e> <cmd>echo virt_poc#show_i_buf()<cr>
+call virt_poc#init()
