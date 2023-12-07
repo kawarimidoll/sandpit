@@ -1,4 +1,5 @@
 " sample
+
 " nnoremap sm <cmd>call inline_mark#put(line('.'), col('.'), {'name':'m','text':'▽'})<cr>
 " nnoremap sM <cmd>call inline_mark#put(line('.'), col('.'), {'name':'M','text':'▼'})<cr>
 " nnoremap snm <cmd>call inline_mark#clear('m')<cr>
@@ -56,12 +57,10 @@ else
   function! inline_mark#clear(name = '') abort
     if a:name ==# ''
       for k in s:prop_types->keys()
-        call prop_type_delete(k, {})
+        call inline_mark#clear(k)
       endfor
-      let s:prop_types = {}
     elseif has_key(s:prop_types, a:name)
-      call prop_type_delete(a:name, {})
-      call remove(s:prop_types, a:name)
+      call prop_remove({'type': a:name, 'all': v:true})
     endif
   endfunction
 
@@ -78,9 +77,13 @@ else
     let text = get(a:opts, 'text', '')
     let name = get(a:opts, 'name', s:file_name)
 
+    let opts = {'highlight': hl, 'start_incl':1, 'end_incl':1}
+    if get(s:prop_types, name, {}) != opts
+      call prop_type_delete(name, {})
+      call prop_type_add(name, opts)
+      let s:prop_types[name] = opts
+    endif
     call inline_mark#clear(name)
-    call prop_type_add(name, {'highlight': hl, 'start_incl':1})
-    let s:prop_types[name] = 1
 
     let props =  { 'type': name }
     if text ==# ''
