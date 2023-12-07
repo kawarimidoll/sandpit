@@ -77,3 +77,21 @@ endfor
 function! utils#consonant(char) abort
   return s:consonant_dict[a:char]
 endfunction
+
+function! utils#strsplit(str) abort
+  " 普通にsplitすると<bs>など<80>k?のコードを持つ文字を正しく切り取れないので対応
+  let chars = split(a:str, '\zs')
+  let prefix = split("\<bs>", '\zs')
+  let result = []
+  let i = 0
+  while i < len(chars)
+    if chars[i] == prefix[0] && chars[i+1] == prefix[1]
+      call add(result, chars[i : i+2]->join(''))
+      let i += 2
+    else
+      call add(result, chars[i])
+    endif
+    let i += 1
+  endwhile
+  return result
+endfunction
