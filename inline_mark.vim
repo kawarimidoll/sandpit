@@ -30,9 +30,9 @@ if has('nvim')
     if has_key(s:ns_dict, a:name)
       let extmark = nvim_buf_get_extmarks(0, s:ns_dict[a:name], 0, -1, {'limit':1})
       " extmark = [extmark_id, row, col]
-      return { 'lnum': extmark[1]+1, 'col': extmark[2]+1 }
+      return [extmark[1]+1, extmark[2]+1]
     endif
-    return { 'lnum': 0, 'col': 0 }
+    return []
   endfunction
 
   function! inline_mark#put(lnum, col, opts = {}) abort
@@ -65,11 +65,8 @@ else
   endfunction
 
   function! inline_mark#get(name) abort
-    if has_key(s:prop_types, a:name)
-      let prop = prop_find({'type': a:name, 'lnum': 1})
-      return { 'lnum': prop.lnum, 'col': prop.col }
-    endif
-    return { 'lnum': 0, 'col': 0 }
+    let prop = prop_find({'type': a:name, 'lnum': 1})
+    return empty(prop) ? [] : [prop.lnum, prop.col]
   endfunction
 
   function! inline_mark#put(lnum, col, opts = {}) abort
