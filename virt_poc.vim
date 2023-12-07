@@ -90,7 +90,8 @@ function! virt_poc#enable() abort
           \   call s:state_off('kouho')
           \ | if s:is_completed()
           \ |   call s:state_off('machi')
-          \ |   call s:clear_store()
+          \ |   call s:set_store('machi', '')
+          \ |   call s:set_store('okuri', '')
           \ | endif
   augroup END
 
@@ -151,6 +152,7 @@ endfunction
 let s:kana_input_namespace = 'kana_input_namespace'
 
 function! virt_poc#ins(key) abort
+  " echomsg $'key {a:key}'
   let spec = s:get_spec(a:key)
 
   if type(spec) == v:t_string
@@ -189,7 +191,10 @@ function! virt_poc#ins(key) abort
       endif
     elseif spec.func ==# 'kakutei'
       if s:get_state('kouho')
-        call feedkeys("\<c-y>", 'ni')
+        call feedkeys("\<c-y>", 'n')
+        call s:state_off('machi')
+      elseif s:get_state('machi')
+        call s:state_off('machi')
       else
         call feedkeys("\<cr>", 'n')
         call s:set_store('choku', '')
@@ -201,6 +206,7 @@ function! virt_poc#ins(key) abort
         echomsg $'machi {s:get_store("machi")} okuri {s:get_store("okuri")}'
         call complete(inline_mark#get('machi')[1], ['a', 'b', 'c'])
         call s:state_on('kouho')
+        call feedkeys("\<c-n>", 'n')
       else
         call feedkeys(utils#trans_special_key(a:key), 'n')
       endif
@@ -220,6 +226,7 @@ endfunction
 
 function! s:get_spec(key) abort
   let current = s:get_store('choku') .. a:key
+  " echomsg $'spec choku {s:get_store("choku")}'
 
   if has_key(s:kana_table, current)
     " s:store.chokuの残存文字と合わせて完成した場合
@@ -232,6 +239,7 @@ function! s:get_spec(key) abort
   elseif has_key(s:preceding_keys_dict, current)
     " 完成はしていないが、先行入力の可能性がある場合
     call s:set_store('choku', current)
+    " echomsg $'choku {s:get_store("choku")}'
     return ''
   endif
 
@@ -254,8 +262,17 @@ endfunction
 let s:del_mis_char = 1
 
 function! virt_poc#after_ins() abort
+  " echomsg $'after choku {s:get_store("choku")}'
   if s:get_store('choku') ==# ''
     call inline_mark#clear(s:kana_input_namespace)
+    if s:get_state('okuri')
+      if utils#compare_pos(inline_mark#get('okuri'), getpos('.')[1:2]) > 0
+        call complete(inline_mark#get('machi')[1], ['x', 'y', 'z']->map({_,v->v .. s:get_store('okuri')}))
+        call s:state_off('okuri')
+        call s:state_on('kouho')
+        call feedkeys("\<c-n>", 'n')
+      endif
+    endif
   else
     call inline_mark#put(line('.'), col('.'), {
           \ 'name': s:kana_input_namespace,
