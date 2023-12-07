@@ -1,36 +1,6 @@
 source ./inline_mark.vim
 source ./utils.vim
 
-function! virt_poc#sample() abort
-  let s:kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
-
-  let s:preceding_keys_dict = {}
-  for key in keys(s:kana_table)
-    let kx = utils#trans_special_key(key)
-    if strcharlen(kx) > 1
-      let s:preceding_keys_dict[slice(kx, 0, -1)] = 1
-    endif
-  endfor
-
-  let sss = 'hiraganawoisppainyuuryoku'->split('\zs')
-  let put_mis_char = 1
-  let i_buf = ''
-  let o_buf = ''
-  for s1 in sss
-    let i_buf ..= s1
-    if has_key(s:kana_table, i_buf)
-      let [kana, roma; _rest] = s:kana_table[i_buf]->split('\A*\zs') + ['']
-      let o_buf ..= kana
-      let i_buf = roma
-    elseif !has_key(s:preceding_keys_dict, i_buf)
-      if put_mis_char
-        let o_buf ..= i_buf->substitute('.$', '', '')
-      endif
-      let i_buf = i_buf->substitute('^.*\(.\)', '\1', '')
-    endif
-  endfor
-  echo o_buf
-endfunction
 
 function! virt_poc#enable() abort
   if s:is_enable
@@ -81,7 +51,6 @@ endfunction
 
 function! virt_poc#init() abort
   let raw_kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
-  " echo s:kana_table
 
   let s:preceding_keys_dict = {}
   let s:map_keys_dict = {}
@@ -146,9 +115,6 @@ function! virt_poc#ins(key) abort
     call feedkeys(result, 'ni')
   endif
 endfunction
-function! virt_poc#show_i_buf() abort
-  return s:i_buf
-endfunction
 function! virt_poc#after_ins() abort
   call inline_mark#clear(s:kana_input_namespace)
 
@@ -162,5 +128,5 @@ endfunction
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
 inoremap <c-p> <cmd>echo inline_mark#get('kana_input_namespace')<cr>
-inoremap <c-e> <cmd>echo virt_poc#show_i_buf()<cr>
+
 call virt_poc#init()
