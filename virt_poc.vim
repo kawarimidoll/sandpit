@@ -185,30 +185,30 @@ function! virt_poc#ins(key) abort
       endif
 
       if s:get_store('choku') ==# ''
-        call feedkeys("\<bs>", 'n')
+        call feedkeys("\<bs>", 'ni')
       else
         call s:set_store('choku', s:get_store('choku')->substitute('.$', '', ''))
       endif
     elseif spec.func ==# 'kakutei'
       if s:get_state('kouho')
-        call feedkeys("\<c-y>", 'n')
+        call feedkeys("\<c-y>", 'ni')
         call s:state_off('machi')
       elseif s:get_state('machi')
         call s:state_off('machi')
       else
-        call feedkeys("\<cr>", 'n')
+        call feedkeys("\<cr>", 'ni')
         call s:set_store('choku', '')
       endif
     elseif spec.func ==# 'henkan'
       if s:get_state('kouho')
-        call feedkeys("\<c-n>", 'n')
+        call feedkeys("\<c-n>", 'ni')
       elseif s:get_state('machi')
         echomsg $'machi {s:get_store("machi")} okuri {s:get_store("okuri")}'
         call complete(inline_mark#get('machi')[1], ['a', 'b', 'c'])
         call s:state_on('kouho')
-        call feedkeys("\<c-n>", 'n')
+        call feedkeys("\<c-n>", 'ni')
       else
-        call feedkeys(utils#trans_special_key(a:key), 'n')
+        call feedkeys(utils#trans_special_key(a:key), 'ni')
       endif
     elseif spec.func ==# 'sticky'
       if s:get_state('kouho')
@@ -270,7 +270,7 @@ function! virt_poc#after_ins() abort
         call complete(inline_mark#get('machi')[1], ['x', 'y', 'z']->map({_,v->v .. s:get_store('okuri')}))
         call s:state_off('okuri')
         call s:state_on('kouho')
-        call feedkeys("\<c-n>", 'n')
+        call feedkeys("\<c-n>", 'ni')
       endif
     endif
   else
