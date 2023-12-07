@@ -2,6 +2,13 @@ source ./inline_mark.vim
 source ./utils.vim
 
 
+function! s:set_store(target, str) abort
+  let s:store[a:target] = a:str
+endfunction
+function! s:get_store(target) abort
+  return s:store[a:target]
+endfunction
+
 function! virt_poc#enable() abort
   if s:is_enable
     return
@@ -20,7 +27,7 @@ function! virt_poc#enable() abort
     autocmd InsertLeave * call virt_poc#disable()
   augroup END
 
-  let s:i_buf = ''
+  let s:store = { 'choku': '' }
   let s:is_enable = v:true
 endfunction
 
@@ -40,7 +47,7 @@ function! virt_poc#disable() abort
     endtry
   endfor
 
-  let s:i_buf = ''
+  let s:store = { 'choku': '' }
   call inline_mark#clear()
   let s:is_enable = v:false
 endfunction
@@ -87,32 +94,32 @@ function! virt_poc#ins(key) abort
   echomsg spec
   if has_key(spec, 'func')
     if spec.func ==# 'backspace'
-      if s:i_buf ==# ''
+      if s:get_store('choku') ==# ''
         call feedkeys("\<bs>", 'n')
       else
-        let s:i_buf = s:i_buf->substitute('.$', '', '')
+        call s:set_store('choku', s:get_store('choku')->substitute('.$', '', ''))
       endif
     elseif spec.func ==# 'kakutei'
       call feedkeys("\<cr>", 'n')
-      let s:i_buf = ''
+      call s:set_store('choku', '')
     endif
   endif
 endfunction
 
 function! s:get_spec(key) abort
-  let current = s:i_buf .. a:key
+  let current = s:get_store('choku') .. a:key
 
   if has_key(s:kana_table, current)
-    " s:i_bufの残存文字と合わせて完成した場合
+    " s:store.chokuの残存文字と合わせて完成した場合
     if type(s:kana_table[current]) == v:t_dict
       return s:kana_table[current]
     endif
     let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
-    let s:i_buf = roma
+    call s:set_store('choku', roma)
     return kana
   elseif has_key(s:preceding_keys_dict, current)
     " 完成はしていないが、先行入力の可能性がある場合
-    let s:i_buf = current
+    call s:set_store('choku', current)
     return ''
   endif
 
@@ -121,12 +128,12 @@ function! s:get_spec(key) abort
   " 半端な文字はバッファに載せる
   " ただしdel_mis_charがtrueなら消す
   if !s:del_mis_char || type(spec) == v:t_dict
-    call feedkeys(s:i_buf, 'ni')
+    call feedkeys(s:get_store('choku'), 'ni')
   endif
   if type(spec) == v:t_string
-    let s:i_buf = a:key
+    call s:set_store('choku', a:key)
   else
-    let s:i_buf = ''
+    call s:set_store('choku', '')
   endif
 
   return spec
@@ -135,12 +142,12 @@ endfunction
 let s:del_mis_char = 1
 
 function! virt_poc#after_ins() abort
-  call inline_mark#clear(s:kana_input_namespace)
-
-  if s:i_buf !=# ''
+  if s:get_store('choku') ==# ''
+    call inline_mark#clear(s:kana_input_namespace)
+  else
     call inline_mark#put(line('.'), col('.'), {
           \ 'name': s:kana_input_namespace,
-          \ 'text': s:i_buf})
+          \ 'text': s:get_store('choku')})
   endif
 endfunction
 
