@@ -1,12 +1,73 @@
 source ./inline_mark.vim
 source ./utils.vim
 
+function! s:is_completed() abort
+  return get(complete_info(), 'selected', -1) >= 0
+endfunction
+
+let s:state = { 'machi': 0, 'okuri': 0, 'kouho': 0 }
+
+function! s:state_on(target) abort
+  if a:target ==# 'machi'
+    if s:get_state('okuri') || s:get_state('kouho')
+      return
+    elseif s:get_state('machi')
+      call s:state_on('okuri')
+      return
+    endif
+  elseif a:target ==# 'okuri' || a:target ==# 'kouho'
+    if !s:get_state('machi') || s:get_state(a:target)
+      return
+    endif
+  endif
+  let s:state[a:target] = v:true
+
+  let text = { 'machi': '▽', 'okuri': '*', 'kouho': '▼' }[a:target]
+
+  let [lnum, col] = getpos('.')[1:2]
+  if a:target ==# 'kouho'
+    let [lnum, col] = inline_mark#get('machi')
+    call inline_mark#clear('machi')
+  endif
+
+  call inline_mark#put(lnum, col, {'name': a:target, 'text': text})
+endfunction
+
+function! s:state_off(target) abort
+  if !s:state[a:target]
+    return
+  endif
+  if a:target ==# 'kouho' && s:get_state('machi')
+    let [lnum, col] = inline_mark#get('kouho')
+    call inline_mark#put(lnum, col, {'name': 'machi', 'text': '▽'})
+  endif
+  let s:state[a:target] = v:false
+  call inline_mark#clear(a:target)
+  if a:target ==# 'machi'
+    call s:state_off('okuri')
+  endif
+  if a:target ==# 'okuri'
+    call s:state_off('kouho')
+  endif
+endfunction
+
+function! s:state_clear() abort
+  " machiがoffになったらkouhoとokuriもoffなのでこれでよし
+  call s:state_off('machi')
+endfunction
+
+function! s:get_state(target) abort
+  return s:state[a:target]
+endfunction
 
 function! s:set_store(target, str) abort
   let s:store[a:target] = a:str
 endfunction
 function! s:get_store(target) abort
   return s:store[a:target]
+endfunction
+function! s:clear_store() abort
+  let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
 endfunction
 
 function! virt_poc#enable() abort
@@ -25,9 +86,16 @@ function! virt_poc#enable() abort
   augroup virt_poc#augroup
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
+    autocmd CompleteDonePre *
+          \   call s:state_off('kouho')
+          \ | if s:is_completed()
+          \ |   call s:state_off('machi')
+          \ |   call s:clear_store()
+          \ | endif
   augroup END
 
-  let s:store = { 'choku': '' }
+  call s:state_clear()
+  call s:clear_store()
   let s:is_enable = v:true
 endfunction
 
@@ -47,7 +115,8 @@ function! virt_poc#disable() abort
     endtry
   endfor
 
-  let s:store = { 'choku': '' }
+  call s:state_clear()
+  call s:clear_store()
   call inline_mark#clear()
   let s:is_enable = v:false
 endfunction
@@ -85,8 +154,17 @@ function! virt_poc#ins(key) abort
   let spec = s:get_spec(a:key)
 
   if type(spec) == v:t_string
+    if s:get_state('kouho')
+      call feedkeys("\<c-y>", 'ni')
+    endif
     if spec !=# ''
+      echomsg 'feed' spec
       call feedkeys(spec, 'ni')
+      if s:get_state('okuri')
+        call s:set_store('okuri', s:get_store('okuri') .. spec)
+      elseif s:get_state('machi')
+        call s:set_store('machi', s:get_store('machi') .. spec)
+      endif
     endif
     return
   endif
@@ -94,14 +172,48 @@ function! virt_poc#ins(key) abort
   echomsg spec
   if has_key(spec, 'func')
     if spec.func ==# 'backspace'
+      if s:get_state('kouho')
+        call s:state_off('kouho')
+      elseif s:get_state('okuri') && utils#compare_pos(getpos('.')[1:2], inline_mark#get('okuri')) == 0
+        call s:state_off('okuri')
+        return
+      elseif s:get_state('machi') && utils#compare_pos(getpos('.')[1:2], inline_mark#get('machi')) == 0
+        call s:state_off('machi')
+        return
+      endif
+
       if s:get_store('choku') ==# ''
         call feedkeys("\<bs>", 'n')
       else
         call s:set_store('choku', s:get_store('choku')->substitute('.$', '', ''))
       endif
     elseif spec.func ==# 'kakutei'
-      call feedkeys("\<cr>", 'n')
-      call s:set_store('choku', '')
+      if s:get_state('kouho')
+        call feedkeys("\<c-y>", 'ni')
+      else
+        call feedkeys("\<cr>", 'n')
+        call s:set_store('choku', '')
+      endif
+    elseif spec.func ==# 'henkan'
+      if s:get_state('kouho')
+        call feedkeys("\<c-n>", 'n')
+      elseif s:get_state('machi')
+        echomsg $'machi {s:get_store("machi")} okuri {s:get_store("okuri")}'
+        call complete(inline_mark#get('machi')[1], ['a', 'b', 'c'])
+        call s:state_on('kouho')
+      else
+        call feedkeys(utils#trans_special_key(a:key), 'n')
+      endif
+    elseif spec.func ==# 'sticky'
+      if s:get_state('kouho')
+      " nop
+      elseif s:get_state('okuri')
+      " nop
+      elseif s:get_state('machi')
+        call s:state_on('okuri')
+      else
+        call s:state_on('machi')
+      endif
     endif
   endif
 endfunction
