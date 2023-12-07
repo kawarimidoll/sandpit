@@ -72,49 +72,68 @@ function! virt_poc#init() abort
   let s:is_enable = v:false
 endfunction
 
-let s:put_mis_char = 1
 let s:kana_input_namespace = 'kana_input_namespace'
 
 function! virt_poc#ins(key) abort
-  let spec = get(s:kana_table, a:key, '')
+  let spec = s:get_spec(a:key)
 
-  if type(spec) == v:t_dict
-    echomsg spec
-    if has_key(spec, 'func')
-      if spec.func ==# 'backspace'
-        if s:i_buf ==# ''
-          call feedkeys("\<bs>", 'n')
-        else
-          let s:i_buf = s:i_buf->substitute('.$', '', '')
-        endif
-      elseif spec.func ==# 'kakutei'
-        let s:i_buf = ''
-        call feedkeys("\<cr>", 'n')
-      endif
+  if type(spec) == v:t_string
+    if spec !=# ''
+      call feedkeys(spec, 'ni')
     endif
     return
   endif
 
-  let current = s:i_buf .. a:key
-
-  let result = ''
-  if has_key(s:kana_table, current)
-    let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
-    let result = kana
-    let s:i_buf = roma
-  elseif has_key(s:preceding_keys_dict, current)
-    let s:i_buf = current
-  else
-    if s:put_mis_char
-      let result = current->substitute('.$', '', '')
+  echomsg spec
+  if has_key(spec, 'func')
+    if spec.func ==# 'backspace'
+      if s:i_buf ==# ''
+        call feedkeys("\<bs>", 'n')
+      else
+        let s:i_buf = s:i_buf->substitute('.$', '', '')
+      endif
+    elseif spec.func ==# 'kakutei'
+      call feedkeys("\<cr>", 'n')
+      let s:i_buf = ''
     endif
-    let s:i_buf = current->substitute('^.*\(.\)', '\1', '')
-  endif
-
-  if result !=# ''
-    call feedkeys(result, 'ni')
   endif
 endfunction
+
+function! s:get_spec(key) abort
+  let current = s:i_buf .. a:key
+
+  if has_key(s:kana_table, current)
+    " s:i_bufの残存文字と合わせて完成した場合
+    if type(s:kana_table[current]) == v:t_dict
+      return s:kana_table[current]
+    endif
+    let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
+    let s:i_buf = roma
+    return kana
+  elseif has_key(s:preceding_keys_dict, current)
+    " 完成はしていないが、先行入力の可能性がある場合
+    let s:i_buf = current
+    return ''
+  endif
+
+  let spec = get(s:kana_table, a:key, '')
+
+  " 半端な文字はバッファに載せる
+  " ただしdel_mis_charがtrueなら消す
+  if !s:del_mis_char || type(spec) == v:t_dict
+    call feedkeys(s:i_buf, 'ni')
+  endif
+  if type(spec) == v:t_string
+    let s:i_buf = a:key
+  else
+    let s:i_buf = ''
+  endif
+
+  return spec
+endfunction
+
+let s:del_mis_char = 1
+
 function! virt_poc#after_ins() abort
   call inline_mark#clear(s:kana_input_namespace)
 
