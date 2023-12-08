@@ -101,9 +101,13 @@ function! virt_poc#init(opts = {}) abort
 
     let chars = utils#trans_special_key(k)->utils#strsplit()
 
-    if len(chars) > 1
-      let s:preceding_keys_dict[slice(chars, 0, -1)->join('')] = 1
-    endif
+    let tmp = copy(chars)
+    while len(tmp) > 1
+      " jsonのキーが'kya'だったら'ky'と'k'を先行入力キーリストに追加する
+      call remove(tmp, -1)
+      let s:preceding_keys_dict[tmp->join('')] = 1
+    endwhile
+
     for char in chars
       let s:map_keys_dict[char] = 1
     endfor
@@ -197,20 +201,32 @@ function! s:get_spec(key) abort
     return ''
   endif
 
-  let spec = get(s:kana_table, a:key, '')
+  " echomsg $'oh choku {store#get("choku")} key {a:key} has_key {has_key(s:kana_table, a:key)}'
+  if has_key(s:kana_table, a:key)
+    let spec = s:kana_table[a:key]
 
-  " 半端な文字はバッファに載せる
-  " ただしdel_odd_charがtrueなら消す
-  if !opts#get('del_odd_char') || type(spec) == v:t_dict
-    call feedkeys(store#get('choku'), 'ni')
-  endif
-  if type(spec) == v:t_string
-    call store#set('choku', a:key)
-  else
+    " 半端な文字はバッファに載せる
+    " ただしspecが文字列でdel_odd_charがtrueなら消す(残さない)
+    if !opts#get('del_odd_char') || type(spec) == v:t_dict
+      call feedkeys(store#get('choku'), 'ni')
+      if phase#is_enabled('okuri')
+        call store#push('okuri', store#get('choku'))
+      elseif phase#is_enabled('machi')
+        call store#push('machi', store#get('choku'))
+      endif
+    endif
+
     call store#set('choku', '')
+    return spec
   endif
 
-  return spec
+  if has_key(s:preceding_keys_dict, a:key)
+    call store#set('choku', a:key)
+    return ''
+  endif
+
+  call store#set('choku', '')
+  return a:key
 endfunction
 
 function! virt_poc#henkan_start() abort
