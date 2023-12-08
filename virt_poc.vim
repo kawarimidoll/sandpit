@@ -272,6 +272,9 @@ function! virt_poc#after_ins() abort
         call s:state_on('kouho')
         call feedkeys("\<c-n>", 'ni')
       endif
+    elseif !s:get_state('kouho') && s:get_state('machi') && s:get_store('machi') !=# ''
+      " auto complete
+      call complete(inline_mark#get('machi')[1], ['s', 't', 'u'])
     endif
   else
     call inline_mark#put(line('.'), col('.'), {
