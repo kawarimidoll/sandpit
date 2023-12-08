@@ -233,7 +233,8 @@ function! virt_poc#after_ins() abort
     endif
   else
     let [lnum, col] = getpos('.')[1:2]
-    let hlname = synID(lnum, col, 1)->synIDattr('name')
+    let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
+    let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
     call inline_mark#put(lnum, col, {
           \ 'name': s:kana_input_namespace,
           \ 'text': store#get('choku'),
