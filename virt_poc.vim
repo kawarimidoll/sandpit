@@ -1,19 +1,10 @@
 source ./inline_mark.vim
 source ./utils.vim
 source ./phase.vim
+source ./store.vim
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
-endfunction
-
-function! s:set_store(target, str) abort
-  let s:store[a:target] = a:str
-endfunction
-function! s:get_store(target) abort
-  return s:store[a:target]
-endfunction
-function! s:clear_store() abort
-  let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
 endfunction
 
 function! virt_poc#enable() abort
@@ -36,13 +27,13 @@ function! virt_poc#enable() abort
           \   call phase#disable('kouho')
           \ | if s:is_completed()
           \ |   call phase#disable('machi')
-          \ |   call s:set_store('machi', '')
-          \ |   call s:set_store('okuri', '')
+          \ |   call store#clear('machi')
+          \ |   call store#clear('okuri')
           \ | endif
   augroup END
 
   call phase#clear()
-  call s:clear_store()
+  call store#clear()
   let s:is_enable = v:true
 endfunction
 
@@ -63,7 +54,7 @@ function! virt_poc#disable() abort
   endfor
 
   call phase#clear()
-  call s:clear_store()
+  call store#clear()
   " call inline_mark#clear()
   let s:is_enable = v:false
 endfunction
@@ -109,9 +100,9 @@ function! virt_poc#ins(key) abort
       echomsg 'feed' spec
       call feedkeys(spec, 'ni')
       if phase#is_enabled('okuri')
-        call s:set_store('okuri', s:get_store('okuri') .. spec)
+        call store#set('okuri', s:store_get('okuri') .. spec)
       elseif phase#is_enabled('machi')
-        call s:set_store('machi', s:get_store('machi') .. spec)
+        call store#set('machi', s:store_get('machi') .. spec)
       endif
     endif
     return
@@ -130,10 +121,10 @@ function! virt_poc#ins(key) abort
         return
       endif
 
-      if s:get_store('choku') ==# ''
+      if store#get('choku') ==# ''
         call feedkeys("\<bs>", 'ni')
       else
-        call s:set_store('choku', s:get_store('choku')->substitute('.$', '', ''))
+        call store#set('choku', s:store_get('choku')->substitute('.$', '', ''))
       endif
     elseif spec.func ==# 'kakutei'
       if phase#is_enabled('kouho')
@@ -143,13 +134,13 @@ function! virt_poc#ins(key) abort
         call phase#disable('machi')
       else
         call feedkeys("\<cr>", 'ni')
-        call s:set_store('choku', '')
+        call store#clear('choku')
       endif
     elseif spec.func ==# 'henkan'
       if phase#is_enabled('kouho')
         call feedkeys("\<c-n>", 'ni')
       elseif phase#is_enabled('machi')
-        echomsg $'machi {s:get_store("machi")} okuri {s:get_store("okuri")}'
+        echomsg $'machi {store#get("machi")} okuri {s:store_get("okuri")}'
         call complete(phase#getpos('machi')[1], ['a', 'b', 'c'])
         call phase#enable('kouho')
         call feedkeys("\<c-n>", 'ni')
@@ -171,8 +162,8 @@ function! virt_poc#ins(key) abort
 endfunction
 
 function! s:get_spec(key) abort
-  let current = s:get_store('choku') .. a:key
-  " echomsg $'spec choku {s:get_store("choku")}'
+  let current = store#get('choku') .. a:key
+  " echomsg $'spec choku {store#get("choku")}'
 
   if has_key(s:kana_table, current)
     " s:store.chokuの残存文字と合わせて完成した場合
@@ -180,12 +171,12 @@ function! s:get_spec(key) abort
       return s:kana_table[current]
     endif
     let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
-    call s:set_store('choku', roma)
+    call store#set('choku', roma)
     return kana
   elseif has_key(s:preceding_keys_dict, current)
     " 完成はしていないが、先行入力の可能性がある場合
-    call s:set_store('choku', current)
-    " echomsg $'choku {s:get_store("choku")}'
+    call store#set('choku', current)
+    " echomsg $'choku {store#get("choku")}'
     return ''
   endif
 
@@ -194,12 +185,12 @@ function! s:get_spec(key) abort
   " 半端な文字はバッファに載せる
   " ただしdel_mis_charがtrueなら消す
   if !s:del_mis_char || type(spec) == v:t_dict
-    call feedkeys(s:get_store('choku'), 'ni')
+    call feedkeys(store#get('choku'), 'ni')
   endif
   if type(spec) == v:t_string
-    call s:set_store('choku', a:key)
+    call store#set('choku', a:key)
   else
-    call s:set_store('choku', '')
+    call store#set('choku', '')
   endif
 
   return spec
@@ -208,24 +199,24 @@ endfunction
 let s:del_mis_char = 1
 
 function! virt_poc#after_ins() abort
-  " echomsg $'after choku {s:get_store("choku")}'
-  if s:get_store('choku') ==# ''
+  " echomsg $'after choku {store#get("choku")}'
+  if store#get('choku') ==# ''
     call inline_mark#clear(s:kana_input_namespace)
     if phase#is_enabled('okuri')
       if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
-        call complete(phase#getpos('machi')[1], ['x', 'y', 'z']->map({_,v->v .. s:get_store('okuri')}))
+        call complete(phase#getpos('machi')[1], ['x', 'y', 'z']->map({_,v->v .. store#get('okuri')}))
         call phase#disable('okuri')
         call phase#enable('kouho')
         call feedkeys("\<c-n>", 'ni')
       endif
-    elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && s:get_store('machi') !=# ''
+    elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && store#get('machi') !=# ''
       " auto complete
       call complete(phase#getpos('machi')[1], ['s', 't', 'u'])
     endif
   else
     call inline_mark#put(line('.'), col('.'), {
           \ 'name': s:kana_input_namespace,
-          \ 'text': s:get_store('choku')})
+          \ 'text': store#get('choku')})
   endif
 endfunction
 
