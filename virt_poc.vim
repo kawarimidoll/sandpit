@@ -97,7 +97,7 @@ function! virt_poc#ins(key) abort
       call feedkeys("\<c-y>", 'ni')
     endif
     if spec !=# ''
-      echomsg 'feed' spec
+      " echomsg 'feed' spec
       call feedkeys(spec, 'ni')
       if phase#is_enabled('okuri')
         call store#set('okuri', s:store_get('okuri') .. spec)
@@ -114,12 +114,16 @@ function! virt_poc#ins(key) abort
     if spec.func ==# 'backspace'
       if phase#is_enabled('kouho')
         call phase#disable('kouho')
-      elseif phase#is_enabled('okuri') && utils#compare_pos(getpos('.')[1:2], phase#getpos('okuri')) == 0
-        call phase#disable('okuri')
-        return
-      elseif phase#is_enabled('machi') && utils#compare_pos(getpos('.')[1:2], phase#getpos('machi')) == 0
-        call phase#disable('machi')
-        return
+      elseif phase#is_enabled('okuri')
+        if utils#compare_pos(getpos('.')[1:2], phase#getpos('okuri')) == 0
+          call phase#disable('okuri')
+          return
+        endif
+      elseif phase#is_enabled('machi')
+        if utils#compare_pos(getpos('.')[1:2], phase#getpos('machi')) == 0
+          call phase#disable('machi')
+          return
+        endif
       endif
 
       if store#get('choku') ==# ''
@@ -150,7 +154,10 @@ function! virt_poc#ins(key) abort
       endif
     elseif spec.func ==# 'sticky'
       if phase#is_enabled('kouho')
-      " nop
+        " kakutei & restart machi
+        call feedkeys("\<c-y>", 'n')
+        call phase#disable('machi')
+        call phase#enable('machi')
       elseif phase#is_enabled('okuri')
       " nop
       elseif phase#is_enabled('machi')
