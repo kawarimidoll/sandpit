@@ -109,6 +109,7 @@ function! virt_poc#ins(key) abort
   endif
 
   echomsg spec
+  " 以下のfeedkeysはフラグにiを使わない
   if has_key(spec, 'func')
     if spec.func ==# 'backspace'
       if phase#is_enabled('kouho')
@@ -122,30 +123,30 @@ function! virt_poc#ins(key) abort
       endif
 
       if store#get('choku') ==# ''
-        call feedkeys("\<bs>", 'ni')
+        call feedkeys("\<bs>", 'n')
       else
         call store#set('choku', s:store_get('choku')->substitute('.$', '', ''))
       endif
     elseif spec.func ==# 'kakutei'
       if phase#is_enabled('kouho')
-        call feedkeys("\<c-y>", 'ni')
+        call feedkeys("\<c-y>", 'n')
         call phase#disable('machi')
       elseif phase#is_enabled('machi')
         call phase#disable('machi')
       else
-        call feedkeys("\<cr>", 'ni')
+        call feedkeys("\<cr>", 'n')
         call store#clear('choku')
       endif
     elseif spec.func ==# 'henkan'
       if phase#is_enabled('kouho')
-        call feedkeys("\<c-n>", 'ni')
+        call feedkeys("\<c-n>", 'n')
       elseif phase#is_enabled('machi')
         echomsg $'machi {store#get("machi")} okuri {s:store_get("okuri")}'
         call complete(phase#getpos('machi')[1], ['a', 'b', 'c'])
         call phase#enable('kouho')
-        call feedkeys("\<c-n>", 'ni')
+        call feedkeys("\<c-n>", 'n')
       else
-        call feedkeys(utils#trans_special_key(a:key), 'ni')
+        call feedkeys(utils#trans_special_key(a:key), 'n')
       endif
     elseif spec.func ==# 'sticky'
       if phase#is_enabled('kouho')
