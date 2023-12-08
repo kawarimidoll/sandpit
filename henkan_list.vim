@@ -132,6 +132,22 @@ function! henkan_list#update_manual(str, okuri = '') abort
   let s:latest_henkan_list = henkan_list
 endfunction
 
+function! henkan_list#update_fuzzy(str, exact_match = '') abort
+  let str = s:gen_henkan_query(a:str)
+  let suffix = a:exact_match ? '' : '[^!-~]*'
+
+  let henkan_list = []
+  for jisyo in opts#get('jisyo_list')
+    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str}{suffix} /', '')
+    let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
+    call extend(henkan_list, s:parse_henkan_list(lines, jisyo))
+  endfor
+  let s:latest_fuzzy_henkan_list = henkan_list
+endfunction
+function! henkan_list#get_fuzzy() abort
+  return get(s:, 'latest_fuzzy_henkan_list', [])
+endfunction
+
 function! henkan_list#get(async = v:false) abort
   let target = a:async ? 'latest_async_henkan_list' : 'latest_henkan_list'
   return get(s:, target, [])
