@@ -142,6 +142,11 @@ function! henkan_list#update_fuzzy(str, exact_match = '') abort
     let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
     call extend(henkan_list, s:parse_henkan_list(lines, jisyo))
   endfor
+
+  if opts#get('sort_auto_complete_by_length')
+    call sort(henkan_list, {a, b -> strcharlen(a.user_data.yomi) - strcharlen(b.user_data.yomi)})
+  endif
+
   let s:latest_fuzzy_henkan_list = henkan_list
 endfunction
 function! henkan_list#get_fuzzy() abort
