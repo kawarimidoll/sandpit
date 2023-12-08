@@ -274,6 +274,11 @@ function! s:auto_complete() abort
   endif
 endfunction
 
+let s:henkan_reserve = 0
+function! virt_poc#henkan_reserve() abort
+  let s:henkan_reserve = 1
+endfunction
+
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
   if store#get('choku') ==# ''
@@ -292,6 +297,11 @@ function! virt_poc#after_ins() abort
           \ 'name': s:kana_input_namespace,
           \ 'text': store#get('choku'),
           \ 'hl': hlname })
+  endif
+
+  if s:henkan_reserve
+    let s:henkan_reserve = 0
+    call virt_poc#henkan_start()
   endif
 endfunction
 
@@ -316,6 +326,7 @@ call virt_poc#init({
       \ 'sort_auto_complete_by_length': v:true,
       \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
+      \ 'trailing_n': v:true,
       \ 'textwidth_zero': v:true,
       \ 'abbrev_ignore_case': v:true,
       \ 'del_odd_char': v:true,
