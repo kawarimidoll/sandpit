@@ -247,9 +247,12 @@ function! virt_poc#after_ins() abort
       " call complete(phase#getpos('machi')[1], ['s', 't', 'u'])
     endif
   else
-    call inline_mark#put(line('.'), col('.'), {
+    let [lnum, col] = getpos('.')[1:2]
+    let hlname = synID(lnum, col, 1)->synIDattr('name')
+    call inline_mark#put(lnum, col, {
           \ 'name': s:kana_input_namespace,
-          \ 'text': store#get('choku')})
+          \ 'text': store#get('choku'),
+          \ 'hl': hlname })
   endif
 endfunction
 
