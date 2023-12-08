@@ -28,9 +28,11 @@ if has('nvim')
 
   function! inline_mark#get(name) abort
     if has_key(s:ns_dict, a:name)
-      let extmark = nvim_buf_get_extmarks(0, s:ns_dict[a:name], 0, -1, {'limit':1})
-      " extmark = [extmark_id, row, col]
-      return [extmark[1]+1, extmark[2]+1]
+      let extmarks = nvim_buf_get_extmarks(0, s:ns_dict[a:name], 0, -1, {'limit':1})
+      " extmarks = [ [extmark_id, row, col], ... ]
+      if !empty(extmarks) && len(extmarks[0]) == 3
+        return [extmarks[0][1]+1, extmarks[0][2]+1]
+      endif
     endif
     return []
   endfunction
