@@ -14,6 +14,11 @@ function! virt_poc#enable() abort
     return
   endif
 
+  if opts#get('textwidth_zero')
+    let s:save_textwidth = &textwidth
+    set textwidth=0
+  endif
+
   let s:keys_to_remaps = []
   for key in keys(s:map_keys_dict)
     let current_map = maparg(key, 'i', 0, 1)
@@ -55,6 +60,11 @@ function! virt_poc#disable() abort
       echomsg k v:exception
     endtry
   endfor
+
+  if has_key(s:, 'save_textwidth')
+    let &textwidth = s:save_textwidth
+    unlet! s:save_textwidth
+  endif
 
   call phase#clear()
   call store#clear()
