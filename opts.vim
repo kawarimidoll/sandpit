@@ -55,6 +55,9 @@ function! opts#parse(opts) abort
   " 辞書検索時に大文字小文字を区別しない(abbrevモードでのみ意味がある)
   let abbrev_ignore_case = get(a:opts, 'abbrev_ignore_case', v:false)
 
+  " かな入力中に確定しないアルファベットを削除する
+  let s:del_odd_char = get(a:opts, 'del_odd_char', v:false)
+
   let rg_cmd = 'rg --no-line-number'
   if abbrev_ignore_case
     let rg_cmd ..= ' --ignore-case'
@@ -101,7 +104,8 @@ function! opts#parse(opts) abort
   endfor
 
   " かなテーブル
-  let kana_table = get(a:opts, 'kana_table', t#default_kana_table())
+  let kana_table = get(a:opts, 'kana_table', json_decode(join(readfile('./kana_table.json'), "\n")))
+  " let kana_table = get(a:opts, 'kana_table', t#default_kana_table())
 
   let shift_key_list = []
   let s:keymap_dict = {}

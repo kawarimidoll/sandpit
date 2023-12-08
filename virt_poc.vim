@@ -1,5 +1,6 @@
 source ./inline_mark.vim
 source ./utils.vim
+source ./opts.vim
 source ./phase.vim
 source ./store.vim
 
@@ -63,7 +64,15 @@ function! virt_poc#toggle() abort
   return s:is_enable ? virt_poc#disable() : virt_poc#enable()
 endfunction
 
-function! virt_poc#init() abort
+function! virt_poc#init(opts = {}) abort
+  try
+    call opts#parse(a:opts)
+  catch
+    call utils#echoerr($'[virt_poc#init] {v:exception}')
+    call utils#echoerr('[virt_poc#init] abort')
+    return
+  endtry
+
   let raw_kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
 
   let s:preceding_keys_dict = {}
@@ -191,8 +200,8 @@ function! s:get_spec(key) abort
   let spec = get(s:kana_table, a:key, '')
 
   " 半端な文字はバッファに載せる
-  " ただしdel_mis_charがtrueなら消す
-  if !s:del_mis_char || type(spec) == v:t_dict
+  " ただしdel_odd_charがtrueなら消す
+  if !opts#get('del_odd_char') || type(spec) == v:t_dict
     call feedkeys(store#get('choku'), 'ni')
   endif
   if type(spec) == v:t_string
@@ -204,7 +213,6 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
-let s:del_mis_char = 1
 
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
@@ -233,3 +241,23 @@ inoremap <c-k> <cmd>imap<cr>
 inoremap <c-p> <cmd>echo phase#getpos('kana_input_namespace')<cr>
 
 call virt_poc#init()
+
+let uj = expand('~/.cache/vim/SKK-JISYO.user')
+call virt_poc#init({
+      \ 'user_jisyo_path': uj,
+      \ 'jisyo_list':  [
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.L'), 'encoding': 'euc-jp', 'mark': '[L]' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.geo'), 'encoding': 'euc-jp', 'mark': '[G]' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.station'), 'encoding': 'euc-jp', 'mark': '[S]' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.jawiki'), 'encoding': 'utf-8', 'mark': '[W]' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
+      \   { 'path': expand('~/.cache/vim/SKK-JISYO.nicoime'), 'encoding': 'utf-8', 'mark': '[N]' },
+      \ ],
+      \ 'min_auto_complete_length': 3,
+      \ 'sort_auto_complete_by_length': v:true,
+      \ 'use_google_cgi': v:true,
+      \ 'merge_tsu': v:true,
+      \ 'textwidth_zero': v:true,
+      \ 'abbrev_ignore_case': v:true,
+      \ 'del_odd_char': v:true,
+      \ })
