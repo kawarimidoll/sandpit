@@ -1,5 +1,6 @@
 source ./inline_mark.vim
 source ./utils.vim
+source ./henkan_list.vim
 source ./opts.vim
 source ./phase.vim
 source ./store.vim
@@ -112,6 +113,7 @@ function! virt_poc#ins(key) abort
         call store#set('okuri', store#get('okuri') .. spec)
       elseif phase#is_enabled('machi')
         call store#set('machi', store#get('machi') .. spec)
+        echomsg 'machi' store#get('machi')
       endif
     endif
     return
@@ -155,6 +157,12 @@ function! virt_poc#ins(key) abort
         call feedkeys("\<c-n>", 'n')
       elseif phase#is_enabled('machi')
         echomsg $'machi {store#get("machi")} okuri {store#get("okuri")}'
+        call henkan_list#update_manual(store#get("machi"))
+        let comp_list = copy(henkan_list#get())
+        if empty(comp_list)
+          call add(comp_list, {'word': preceding_str, 'abbr': 'none'})
+        endif
+        call complete(phase#getpos('machi')[1], comp_list)
         call phase#enable('kouho')
         call feedkeys("\<c-n>", 'n')
       else
@@ -212,7 +220,6 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
-
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
   if store#get('choku') ==# ''
@@ -226,7 +233,7 @@ function! virt_poc#after_ins() abort
       endif
     elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && store#get('machi') !=# ''
       " auto complete
-      call complete(phase#getpos('machi')[1], ['s', 't', 'u'])
+      " call complete(phase#getpos('machi')[1], ['s', 't', 'u'])
     endif
   else
     call inline_mark#put(line('.'), col('.'), {
