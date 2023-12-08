@@ -64,6 +64,10 @@ function! phase#is_enabled(target) abort
   return s:state[a:target]
 endfunction
 
+function! phase#is_disabled(target) abort
+  return !phase#is_enabled(a:target)
+endfunction
+
 function! phase#getpos(target) abort
   return phase#is_enabled(a:target) ? inline_mark#get(a:target) : []
 endfunction
