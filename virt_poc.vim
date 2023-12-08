@@ -69,6 +69,8 @@ function! virt_poc#disable() abort
     unlet! s:save_textwidth
   endif
 
+  autocmd! virt_poc#augroup
+
   call phase#clear()
   call store#clear()
   let s:is_enable = v:false
