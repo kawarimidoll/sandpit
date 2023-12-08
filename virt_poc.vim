@@ -234,17 +234,29 @@ function! s:henkan_start() abort
   endif
 endfunction
 
+let s:latest_auto_complete_str = ''
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
+  let min_length = 3
   if store#get('choku') ==# ''
     call inline_mark#clear(s:kana_input_namespace)
     if phase#is_enabled('okuri')
       if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
         call s:henkan_start()
       endif
-    elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && store#get('machi') !=# ''
+    elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && store#get('machi')->strcharlen() > min_length
       " auto complete
-      " call complete(phase#getpos('machi')[1], ['s', 't', 'u'])
+      let need_update = strcharpart(store#get('machi'), 0, min_length + 1) !=# strcharpart(s:latest_auto_complete_str, 0, min_length + 1)
+      let s:latest_auto_complete_str = store#get('machi')
+
+      if need_update
+        call henkan_list#update_fuzzy(store#get('machi'), 0)
+      endif
+
+      let comp_list = henkan_list#get_fuzzy()
+      if len(comp_list) > 0
+        call complete(phase#getpos('machi')[1], comp_list)
+      endif
     endif
   else
     let [lnum, col] = getpos('.')[1:2]
