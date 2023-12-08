@@ -76,8 +76,11 @@ else
 
     let opts = {'highlight': hl, 'start_incl':1, 'end_incl':1}
     if get(s:prop_types, name, {}) != opts
-      call prop_type_delete(name, {})
-      call prop_type_add(name, opts)
+      if prop_type_get(name)->empty()
+        call prop_type_add(name, opts)
+      else
+        call prop_type_change(name, opts)
+      endif
       let s:prop_types[name] = opts
     endif
     call inline_mark#clear(name)
