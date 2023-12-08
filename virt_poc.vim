@@ -1,4 +1,5 @@
 source ./inline_mark.vim
+source ./converters.vim
 source ./utils.vim
 source ./henkan_list.vim
 source ./opts.vim
@@ -113,6 +114,12 @@ endfunction
 
 let s:kana_input_namespace = 'kana_input_namespace'
 
+let s:hira_mode = {
+      \ 'name': 'hira',
+      \ 'conv': {c->c}
+      \ }
+let s:mode = s:hira_mode
+
 function! virt_poc#ins(key) abort
   " echomsg $'key {a:key}'
   let spec = s:get_spec(a:key)
@@ -123,7 +130,7 @@ function! virt_poc#ins(key) abort
     endif
     if spec !=# ''
       " echomsg 'feed' spec
-      call feedkeys(spec, 'ni')
+      call feedkeys(call(s:mode.conv, [spec]), 'ni')
       if phase#is_enabled('okuri')
         call store#push('okuri', spec)
       elseif phase#is_enabled('machi')
@@ -140,6 +147,34 @@ function! virt_poc#ins(key) abort
     if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
       call call($'func#v_{spec.func}', [a:key])
     endif
+  elseif has_key(spec, 'mode')
+    let conv_name = {
+          \ 'zen_kata': 'converters#hira_to_kata',
+          \ 'han_kata': 'converters#hira_to_han_kata',
+          \ }[spec.mode]
+    " \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
+    " \ 'abbrev': 's:hira_mode.conv',
+    if phase#is_enabled('kouho')
+    " nop
+    elseif phase#is_enabled('okuri')
+    " nop
+    elseif phase#is_enabled('machi')
+      call store#clear('choku')
+      let machistr = store#get('machi')
+      let feed = repeat("\<bs>", strcharlen(machistr)) .. call(conv_name, [machistr])
+      call feedkeys(feed, 'n')
+      call store#clear('machi')
+      call phase#disable('machi')
+    else
+      let s:mode = s:mode.name ==# spec.mode ? s:hira_mode : {
+            \ 'name': spec.mode,
+            \ 'conv': funcref(conv_name)
+            \ }
+      echomsg $'{s:mode.name} mode'
+    endif
+    " if s:mode.name ==# 'abbrev'
+    "   call func#v_sticky('')
+    " endif
   endif
 endfunction
 
