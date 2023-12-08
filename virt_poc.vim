@@ -320,6 +320,7 @@ function! virt_poc#after_ins() abort
     if phase#is_enabled('okuri')
       if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
         call virt_poc#henkan_start()
+        unlet! s:save_okuri_pos
       endif
     else
     endif
@@ -336,6 +337,13 @@ function! virt_poc#after_ins() abort
   if s:henkan_reserve
     let s:henkan_reserve = 0
     call virt_poc#henkan_start()
+  endif
+  if exists('s:save_okuri_pos')
+    " echomsg 'get s:save_okuri_pos' s:save_okuri_pos
+    call phase#move('okuri', s:save_okuri_pos)
+  elseif !exists('s:save_okuri_pos') && phase#is_enabled('okuri')
+    let s:save_okuri_pos = phase#getpos('okuri')
+    " echomsg 'set s:save_okuri_pos' s:save_okuri_pos
   endif
 endfunction
 

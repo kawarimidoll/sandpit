@@ -30,6 +30,15 @@ function! phase#enable(target) abort
   call inline_mark#put(lnum, col, {'name': a:target, 'text': text})
 endfunction
 
+function! phase#move(target, pos) abort
+  if !has_key(s:state, a:target)
+    echoerr 'invalid target'
+  endif
+  let [lnum, col] = a:pos
+  let text = { 'machi': '▽', 'okuri': '*', 'kouho': '▼' }[a:target]
+  call inline_mark#put(lnum, col, {'name': a:target, 'text': text})
+endfunction
+
 function! phase#disable(target) abort
   if !has_key(s:state, a:target)
     echoerr 'invalid target'
