@@ -15,3 +15,11 @@ function! store#clear(target = '') abort
     let s:store[a:target] = ''
   endif
 endfunction
+
+function! store#push(target, str) abort
+  call store#set(a:target, store#get(a:target) .. a:str)
+endfunction
+
+function! store#pop(target) abort
+  call store#set(a:target, store#get(a:target)->substitute('.$', '', ''))
+endfunction

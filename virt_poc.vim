@@ -111,9 +111,9 @@ function! virt_poc#ins(key) abort
       " echomsg 'feed' spec
       call feedkeys(spec, 'ni')
       if phase#is_enabled('okuri')
-        call store#set('okuri', store#get('okuri') .. spec)
+        call store#push('okuri', spec)
       elseif phase#is_enabled('machi')
-        call store#set('machi', store#get('machi') .. spec)
+        call store#push('machi', spec)
         echomsg 'machi' store#get('machi')
       endif
     endif
@@ -140,8 +140,13 @@ function! virt_poc#ins(key) abort
 
       if store#get('choku') ==# ''
         call feedkeys("\<bs>", 'n')
+        if phase#is_enabled('okuri')
+          call store#pop('okuri')
+        elseif phase#is_enabled('machi')
+          call store#pop('machi')
+        endif
       else
-        call store#set('choku', store#get('choku')->substitute('.$', '', ''))
+        call store#pop('choku')
       endif
     elseif spec.func ==# 'kakutei'
       if phase#is_enabled('kouho')
