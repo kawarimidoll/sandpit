@@ -45,6 +45,7 @@ function! virt_poc#enable() abort
 
   call phase#clear()
   call store#clear()
+  let s:mode = s:hira_mode
   let s:is_enable = v:true
 endfunction
 
@@ -125,7 +126,11 @@ let s:hira_mode = {
 let s:mode = s:hira_mode
 
 function! virt_poc#ins(key) abort
-  " echomsg $'key {a:key}'
+  if a:key =~ '^[!-~]$' && index(['zen_alnum',  'zen_alnum'], s:mode.name) >= 0
+    call feedkeys(call(s:mode.conv, [a:key]), 'ni')
+    return
+  endif
+
   let spec = s:get_spec(a:key)
 
   if type(spec) == v:t_string
@@ -155,9 +160,9 @@ function! virt_poc#ins(key) abort
     let conv_name = {
           \ 'zen_kata': 'converters#hira_to_kata',
           \ 'han_kata': 'converters#hira_to_han_kata',
+          \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
+          \ 'abbrev': 's:hira_mode.conv',
           \ }[spec.mode]
-    " \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
-    " \ 'abbrev': 's:hira_mode.conv',
     if phase#is_enabled('kouho')
     " nop
     elseif phase#is_enabled('okuri')
@@ -176,9 +181,9 @@ function! virt_poc#ins(key) abort
             \ }
       echomsg $'{s:mode.name} mode'
     endif
-    " if s:mode.name ==# 'abbrev'
-    "   call func#v_sticky('')
-    " endif
+    if s:mode.name ==# 'abbrev'
+      call func#v_sticky('')
+    endif
   endif
 endfunction
 
