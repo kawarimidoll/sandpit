@@ -68,7 +68,6 @@ function! virt_poc#disable() abort
 
   call phase#clear()
   call store#clear()
-  " call inline_mark#clear()
   let s:is_enable = v:false
 endfunction
 
@@ -124,13 +123,13 @@ function! virt_poc#ins(key) abort
         call store#push('okuri', spec)
       elseif phase#is_enabled('machi')
         call store#push('machi', spec)
-        echomsg 'machi' store#get('machi')
+        " echomsg 'machi' store#get('machi')
       endif
     endif
     return
   endif
 
-  echomsg spec
+  " echomsg spec
   " 以下のfeedkeysはフラグにiを使わない
   if has_key(spec, 'func')
     if spec.func ==# 'backspace'
@@ -173,7 +172,7 @@ function! virt_poc#ins(key) abort
       if phase#is_enabled('kouho')
         call feedkeys("\<c-n>", 'n')
       elseif phase#is_enabled('machi')
-        echomsg $'machi {store#get("machi")} okuri {store#get("okuri")}'
+        " echomsg $'machi {store#get("machi")} okuri {store#get("okuri")}'
         call s:henkan_start()
       else
         call feedkeys(utils#trans_special_key(a:key), 'n')
