@@ -22,12 +22,25 @@ function! virt_poc#enable() abort
   endif
 
   let s:keys_to_remaps = []
-  for key in keys(s:map_keys_dict)
+  for [key, val] in items(s:map_keys_dict)
+    if index(['|', ''''], key) >= 0
+      continue
+    endif
     let current_map = maparg(key, 'i', 0, 1)
     let k = keytrans(key)
     call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
-    execute $"inoremap {k} <cmd>call virt_poc#ins('{keytrans(k)}')<cr><cmd>call virt_poc#after_ins()<cr>"
+    execute $"inoremap {k} <cmd>call virt_poc#ins('{keytrans(k)}', {val})<cr><cmd>call virt_poc#after_ins()<cr>"
   endfor
+
+  " 以下の2つはループでの処理が困難なので個別対応
+  " single quote
+  let current_map = maparg("'", 'i', 0, 1)
+  call add(s:keys_to_remaps, empty(current_map) ? "'" : current_map)
+  inoremap ' <cmd>call virt_poc#ins("'")<cr><cmd>call virt_poc#after_ins()<cr>
+  " bar
+  let current_map = maparg('<bar>', 'i', 0, 1)
+  call add(s:keys_to_remaps, empty(current_map) ? '<bar>' : current_map)
+  inoremap <bar> <cmd>call virt_poc#ins("<bar>")<cr><cmd>call virt_poc#after_ins()<cr>
 
   augroup virt_poc#augroup
     autocmd!
@@ -110,10 +123,20 @@ function! virt_poc#init(opts = {}) abort
     endwhile
 
     for char in chars
-      let s:map_keys_dict[char] = 1
+      let s:map_keys_dict[char] = 0
     endfor
   endfor
-  " echo s:preceding_keys_dict
+
+  " [!-~]のキーはjsonに含まれていないものもすべてマッピングする
+  " 英字大文字でpreceding_keys_dictにないものは
+  " 変換開始キーとなるのでtrueをたてておく
+  for nr in range(char2nr('!'), char2nr('~'))
+    let c = nr2char(nr)
+    let s:map_keys_dict[c] = c =~# '^\u$' && !has_key(s:preceding_keys_dict, c)
+  endfor
+  " echomsg s:preceding_keys_dict
+  " echomsg s:map_keys_dict
+
   let s:is_enable = v:false
 endfunction
 
@@ -125,13 +148,19 @@ let s:hira_mode = {
       \ }
 let s:mode = s:hira_mode
 
-function! virt_poc#ins(key) abort
+function! virt_poc#ins(key, with_sticky = v:false) abort
   if a:key =~ '^[!-~]$' && index(['zen_alnum',  'zen_alnum'], s:mode.name) >= 0
     call feedkeys(call(s:mode.conv, [a:key]), 'ni')
     return
   endif
 
-  let spec = s:get_spec(a:key)
+  let key = a:key
+  if a:with_sticky
+    call func#v_sticky('')
+    let key = a:key->tolower()
+  endif
+
+  let spec = s:get_spec(key)
 
   if type(spec) == v:t_string
     if phase#is_enabled('kouho')
@@ -154,7 +183,7 @@ function! virt_poc#ins(key) abort
   " funcのfeedkeysはフラグにiを使わない
   if has_key(spec, 'func')
     if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
-      call call($'func#v_{spec.func}', [a:key])
+      call call($'func#v_{spec.func}', [key])
     endif
   elseif has_key(spec, 'mode')
     let conv_name = {
