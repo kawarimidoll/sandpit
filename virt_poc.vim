@@ -4,6 +4,7 @@ source ./henkan_list.vim
 source ./opts.vim
 source ./phase.vim
 source ./store.vim
+source ./func.vim
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
@@ -50,6 +51,7 @@ function! virt_poc#disable() abort
   if !s:is_enable
     return
   endif
+
   for k in s:keys_to_remaps
     try
       if type(k) == v:t_string
@@ -131,65 +133,10 @@ function! virt_poc#ins(key) abort
   endif
 
   " echomsg spec
-  " 以下のfeedkeysはフラグにiを使わない
+  " funcのfeedkeysはフラグにiを使わない
   if has_key(spec, 'func')
-    if spec.func ==# 'backspace'
-      if phase#is_enabled('kouho')
-        call phase#disable('kouho')
-      elseif phase#is_enabled('okuri')
-        if utils#compare_pos(getpos('.')[1:2], phase#getpos('okuri')) == 0
-          call phase#disable('okuri')
-          return
-        endif
-      elseif phase#is_enabled('machi')
-        if utils#compare_pos(getpos('.')[1:2], phase#getpos('machi')) == 0
-          call phase#disable('machi')
-          return
-        endif
-      endif
-
-      if store#get('choku') ==# ''
-        call feedkeys("\<bs>", 'n')
-        if phase#is_enabled('okuri')
-          call store#pop('okuri')
-        elseif phase#is_enabled('machi')
-          call store#pop('machi')
-        endif
-      else
-        call store#pop('choku')
-      endif
-    elseif spec.func ==# 'kakutei'
-      if phase#is_enabled('kouho')
-        call feedkeys("\<c-y>", 'n')
-        call phase#disable('machi')
-      elseif phase#is_enabled('machi')
-        call phase#disable('machi')
-      else
-        call feedkeys("\<cr>", 'n')
-        call store#clear('choku')
-      endif
-    elseif spec.func ==# 'henkan'
-      if phase#is_enabled('kouho')
-        call feedkeys("\<c-n>", 'n')
-      elseif phase#is_enabled('machi')
-        " echomsg $'machi {store#get("machi")} okuri {store#get("okuri")}'
-        call s:henkan_start()
-      else
-        call feedkeys(utils#trans_special_key(a:key), 'n')
-      endif
-    elseif spec.func ==# 'sticky'
-      if phase#is_enabled('kouho')
-        " kakutei & restart machi
-        call feedkeys("\<c-y>", 'n')
-        call phase#disable('machi')
-        call phase#enable('machi')
-      elseif phase#is_enabled('okuri')
-      " nop
-      elseif phase#is_enabled('machi')
-        call phase#enable('okuri')
-      else
-        call phase#enable('machi')
-      endif
+    if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
+      call call($'func#v_{spec.func}', [a:key])
     endif
   endif
 endfunction
@@ -229,7 +176,7 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
-function! s:henkan_start() abort
+function! virt_poc#henkan_start() abort
   call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
   let comp_list = copy(henkan_list#get())
   let list_len = len(comp_list)
@@ -280,7 +227,7 @@ function! virt_poc#after_ins() abort
     call inline_mark#clear(s:kana_input_namespace)
     if phase#is_enabled('okuri')
       if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
-        call s:henkan_start()
+        call virt_poc#henkan_start()
       endif
     else
     endif
