@@ -31,6 +31,7 @@ function! virt_poc#enable() abort
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
     autocmd CompleteChanged * echo $'{v:event.size}件'
+    autocmd TextChangedI * call s:auto_complete()
     autocmd CompleteDonePre *
           \   call phase#disable('kouho')
           \ | if s:is_completed()
@@ -154,7 +155,6 @@ function! virt_poc#ins(key) abort
         elseif phase#is_enabled('machi')
           call store#pop('machi')
         endif
-        call s:auto_complete()
       else
         call store#pop('choku')
       endif
@@ -246,22 +246,28 @@ endfunction
 
 let s:latest_auto_complete_str = ''
 function! s:auto_complete() abort
-  let min_length = 4
-  if phase#is_enabled('kouho') || phase#is_enabled('okuri') || phase#is_disabled('machi') || store#get('machi')->strcharlen() < min_length
+  let min_length = 5
+  if phase#is_enabled('kouho') || phase#is_enabled('okuri') || phase#is_disabled('machi') || store#get('machi') ==# ''
     return
   endif
 
   " auto complete
   let need_update = strcharpart(store#get('machi'), 0, min_length + 1) !=# strcharpart(s:latest_auto_complete_str, 0, min_length + 1)
   let s:latest_auto_complete_str = store#get('machi')
+  let exact_match = s:latest_auto_complete_str->strcharlen() < min_length
 
-  if need_update
-    call henkan_list#update_fuzzy(store#get('machi'), 0)
+  if need_update || exact_match
+    call henkan_list#update_fuzzy(s:latest_auto_complete_str, exact_match)
+    call utils#debug_log('henkan_list#get_fuzzy')
+    call utils#debug_log(henkan_list#get_fuzzy())
   endif
+  echomsg s:latest_auto_complete_str store#get('machi')
 
   " yomiの前方一致で絞り込む
   let comp_list = copy(henkan_list#get_fuzzy())
         \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
+
+  let s:comp_list = comp_list
 
   if len(comp_list) > 0
     call complete(phase#getpos('machi')[1], comp_list)
@@ -277,7 +283,6 @@ function! virt_poc#after_ins() abort
         call s:henkan_start()
       endif
     else
-      call s:auto_complete()
     endif
   else
     let [lnum, col] = getpos('.')[1:2]
