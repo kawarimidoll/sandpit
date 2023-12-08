@@ -25,6 +25,7 @@ function! virt_poc#enable() abort
   augroup virt_poc#augroup
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
+    autocmd CompleteChanged * echo $'{v:event.size}件'
     autocmd CompleteDonePre *
           \   call phase#disable('kouho')
           \ | if s:is_completed()
@@ -157,14 +158,7 @@ function! virt_poc#ins(key) abort
         call feedkeys("\<c-n>", 'n')
       elseif phase#is_enabled('machi')
         echomsg $'machi {store#get("machi")} okuri {store#get("okuri")}'
-        call henkan_list#update_manual(store#get("machi"))
-        let comp_list = copy(henkan_list#get())
-        if empty(comp_list)
-          call add(comp_list, {'word': preceding_str, 'abbr': 'none'})
-        endif
-        call complete(phase#getpos('machi')[1], comp_list)
-        call phase#enable('kouho')
-        call feedkeys("\<c-n>", 'n')
+        call s:henkan_start()
       else
         call feedkeys(utils#trans_special_key(a:key), 'n')
       endif
@@ -220,16 +214,28 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
+function! s:henkan_start() abort
+  call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
+  let comp_list = copy(henkan_list#get())
+  let list_len = len(comp_list)
+  if list_len == 0
+    call add(comp_list, {'word': store#get("machi") .. store#get("okuri"), 'abbr': 'none'})
+  endif
+  call complete(phase#getpos('machi')[1], comp_list)
+  call phase#disable('okuri')
+  call phase#enable('kouho')
+  if list_len != 0
+    call feedkeys("\<c-n>", 'n')
+  endif
+endfunction
+
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
   if store#get('choku') ==# ''
     call inline_mark#clear(s:kana_input_namespace)
     if phase#is_enabled('okuri')
       if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
-        call complete(phase#getpos('machi')[1], ['x', 'y', 'z']->map({_,v->v .. store#get('okuri')}))
-        call phase#disable('okuri')
-        call phase#enable('kouho')
-        call feedkeys("\<c-n>", 'ni')
+        call s:henkan_start()
       endif
     elseif !phase#is_enabled('kouho') && phase#is_enabled('machi') && store#get('machi') !=# ''
       " auto complete
