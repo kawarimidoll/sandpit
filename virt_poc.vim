@@ -1,6 +1,12 @@
+source ./utils.vim
+
+if !exists('?keytrans')
+  call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
+  finish
+endif
+
 source ./inline_mark.vim
 source ./converters.vim
-source ./utils.vim
 source ./henkan_list.vim
 source ./opts.vim
 source ./phase.vim
