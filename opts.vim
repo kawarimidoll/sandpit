@@ -17,6 +17,8 @@ function! opts#parse(opts) abort
         \ 'okuri': { 'marker': s:okuri_marker, 'hl': s:okuri_hl },
         \ }
 
+  let s:phase_dict = s:states
+
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 

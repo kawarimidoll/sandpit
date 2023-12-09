@@ -19,7 +19,9 @@ function! phase#enable(target) abort
   endif
   let s:state[a:target] = v:true
 
-  let text = { 'machi': '▽', 'okuri': '*', 'kouho': '▼' }[a:target]
+  let opt_states = opts#get('phase_dict')[a:target]
+  let text = opt_states.marker
+  let hl = opt_states.hl
 
   let [lnum, col] = getpos('.')[1:2]
   if a:target ==# 'kouho'
@@ -27,7 +29,7 @@ function! phase#enable(target) abort
     call inline_mark#clear('machi')
   endif
 
-  call inline_mark#put(lnum, col, {'name': a:target, 'text': text})
+  call inline_mark#put(lnum, col, {'name': a:target, 'text': text, 'hl': hl})
 endfunction
 
 function! phase#move(target, pos) abort
