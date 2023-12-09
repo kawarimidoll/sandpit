@@ -62,7 +62,8 @@ function! virt_poc#enable() abort
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
     autocmd CompleteChanged *
-          \   echo $'{v:event.size}件'
+          \   echo $'{v:event.size - s:comp_offset}件'
+          \ | let s:comp_offset = 0
           \ | if s:is_completed() && phase#is_enabled('machi') && store#get('choku') !=# ''
           \ |   call store#clear('choku')
           \ |   call store#display_odd_char()
@@ -81,6 +82,7 @@ function! virt_poc#enable() abort
   call store#clear()
   call mode#clear()
   let s:reserved_spec = []
+  let s:comp_offset = 0
   let s:is_enable = v:true
 endfunction
 
@@ -217,6 +219,7 @@ function! s:henkan_start() abort
   let list_len = len(comp_list)
   if list_len == 0
     call add(comp_list, {'word': store#get("machi") .. store#get("okuri"), 'abbr': 'none'})
+    let s:comp_offset += 1
   endif
   call complete(phase#getpos('machi')[1], comp_list)
   call phase#disable('okuri')
