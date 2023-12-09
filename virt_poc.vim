@@ -410,6 +410,54 @@ function! s:buf_enter_try_user_henkan() abort
   call timer_start(1, {->call('complete', [b:virt_poc_context.start_col, henkan_list#get()])})
 endfunction
 
+function! virt_poc#cmd_buf() abort
+  let cmdtype = getcmdtype()
+  if ':/?' !~# cmdtype
+    return
+  endif
+
+  let s:cmd_buf_context = {
+        \ 'type': cmdtype,
+        \ 'text': getcmdline(),
+        \ 'col': getcmdpos(),
+        \ 'view': winsaveview(),
+        \ 'winid': win_getid(),
+        \ }
+
+  botright 1new
+  setlocal buftype=nowrite bufhidden=wipe noswapfile
+
+  call feedkeys("\<c-c>", 'n')
+
+  call setline(1, s:cmd_buf_context.text)
+  call cursor(1, s:cmd_buf_context.col)
+
+  if strlen(s:cmd_buf_context.text) < s:cmd_buf_context.col
+    startinsert!
+  else
+    startinsert
+  endif
+  call virt_poc#enable()
+
+  augroup virt_poc_cmd_buf
+    autocmd!
+    " 直接記述すると即座に発火してしまうのでInsertEnterでラップする
+    " 入力を終了したり改行したりしたタイミングでコマンドラインに戻って反映する
+    autocmd InsertEnter <buffer> ++once
+          \ autocmd TextChanged,TextChangedI,TextChangedP,InsertLeave,BufLeave,WinLeave <buffer> ++nested
+          \   if line('$') > 1 || mode() !=# 'i'
+          \ |   stopinsert
+          \ |   let s:cmd_buf_context.line = s:cmd_buf_context.type .. getline(1, '$')->join('')
+          \ |   quit!
+          \ |   call win_gotoid(s:cmd_buf_context.winid)
+          \ |   call winrestview(s:cmd_buf_context.view)
+          \ |   call timer_start(1, {->feedkeys(s:cmd_buf_context.line, 'ni')})
+          \ | endif
+  augroup END
+endfunction
+
+cnoremap <c-j> <cmd>call virt_poc#cmd_buf()<cr>
+
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
 " inoremap <c-d> <cmd>echomsg $'choku {store#get("choku")} machi {store#get("machi")} okuri {store#get("okuri")}'<cr>
