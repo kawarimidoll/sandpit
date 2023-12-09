@@ -39,13 +39,13 @@ function! mode#set(mode_name) abort
     call store#clear('choku')
     let machistr = store#get('machi')
     let feed = repeat("\<bs>", strcharlen(machistr)) .. call(funcref(selected_mode.conv), [machistr])
-    echomsg 'feed' feed
+    " echomsg 'feed' feed
     call feedkeys(feed, 'n')
     call store#clear('machi')
     call phase#disable('machi')
   else
     let s:current_mode = selected_mode
-    echomsg $'{mode#current_name()} mode'
+    echo $'{mode#current_name()} mode'
   endif
 endfunction
 
