@@ -174,9 +174,10 @@ function! virt_poc#ins(key, with_sticky = v:false) abort
         \ : s:get_spec(key)
 
   if type(spec) == v:t_string
-    if phase#is_enabled('kouho')
-      call feedkeys("\<c-y>", 'ni')
-    endif
+    " ここは不要？
+    " if phase#is_enabled('kouho') && pumvisible()
+    "   call feedkeys("\<c-y>", 'n')
+    " endif
     if spec !=# ''
       call feedkeys(mode#convert(spec), 'ni')
       if phase#is_enabled('okuri')

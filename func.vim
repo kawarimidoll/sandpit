@@ -70,7 +70,9 @@ endfunction
 
 function! func#v_henkan(fallback_key) abort
   if phase#is_enabled('kouho')
-    call feedkeys("\<c-n>", 'n')
+    if pumvisible()
+      call feedkeys("\<c-n>", 'n')
+    endif
   elseif phase#is_enabled('okuri')
   " nop
   elseif phase#is_enabled('machi')
@@ -85,7 +87,9 @@ endfunction
 function! func#v_kakutei(fallback_key) abort
   if phase#is_enabled('kouho')
     call phase#disable('machi')
-    call feedkeys("\<c-y>", 'n')
+    if pumvisible()
+      call feedkeys("\<c-y>", 'n')
+    endif
   elseif phase#is_enabled('okuri')
   " nop
   elseif phase#is_enabled('machi')
