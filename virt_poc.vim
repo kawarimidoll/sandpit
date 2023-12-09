@@ -69,13 +69,7 @@ function! virt_poc#enable() abort
           \ |   call store#display_odd_char()
           \ | endif
     autocmd TextChangedI * call s:auto_complete()
-    autocmd CompleteDonePre *
-          \   call phase#disable('kouho')
-          \ | if s:is_completed()
-          \ |   call phase#disable('machi')
-          \ |   call store#clear('machi')
-          \ |   call store#clear('okuri')
-          \ | endif
+    autocmd CompleteDonePre * call s:complete_done_pre()
   augroup END
 
   call phase#clear()
@@ -290,6 +284,15 @@ function! s:after_ins() abort
   elseif !exists('s:save_okuri_pos') && phase#is_enabled('okuri')
     let s:save_okuri_pos = phase#getpos('okuri')
     " echomsg 'set s:save_okuri_pos' s:save_okuri_pos
+  endif
+endfunction
+
+function! s:complete_done_pre() abort
+  call phase#disable('kouho')
+  if s:is_completed()
+    call phase#disable('machi')
+    call store#clear('machi')
+    call store#clear('okuri')
   endif
 endfunction
 
