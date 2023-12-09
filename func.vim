@@ -77,8 +77,7 @@ function! func#v_henkan(fallback_key) abort
   " nop
   elseif phase#is_enabled('machi')
     " echomsg $'machi {store#get("machi")} okuri {store#get("okuri")} choku {store#get("choku")}'
-    " call virt_poc#henkan_start()
-    call virt_poc#henkan_reserve()
+    return '_henkan_start_'
   else
     call feedkeys(utils#trans_special_key(a:fallback_key), 'n')
   endif

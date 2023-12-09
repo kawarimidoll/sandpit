@@ -210,7 +210,7 @@ function! s:get_spec(key) abort
   return a:key
 endfunction
 
-function! virt_poc#henkan_start() abort
+function! s:henkan_start() abort
   " echomsg $'henkan_start machi {store#get("machi")} okuri {store#get("okuri")}'
   call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
   let comp_list = copy(henkan_list#get())
@@ -254,18 +254,14 @@ function! s:auto_complete() abort
   endif
 endfunction
 
-let s:henkan_reserve = 0
-function! virt_poc#henkan_reserve() abort
-  let s:henkan_reserve = 1
-endfunction
-
 function! s:after_ins() abort
+  let spec_result = ''
   if !empty(s:reserved_spec)
     " funcのfeedkeysはフラグにiを使わない
     let [spec, key] = s:reserved_spec
     if has_key(spec, 'func')
       if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
-        call call($'func#v_{spec.func}', [key])
+        let spec_result = call($'func#v_{spec.func}', [key])->string()
       endif
     elseif has_key(spec, 'mode')
       call mode#set(spec.mode)
@@ -276,15 +272,13 @@ function! s:after_ins() abort
     let s:reserved_spec = []
   endif
 
-  " echomsg $'after choku {store#get("choku")}'
   call store#display_odd_char()
-  if s:henkan_reserve ||
+  if (spec_result ==# '_henkan_start_') ||
         \ (store#get('choku') ==# ''
         \ && phase#is_enabled('okuri')
         \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0)
-    call virt_poc#henkan_start()
+    call s:henkan_start()
     unlet! s:save_okuri_pos
-    let s:henkan_reserve = 0
   endif
 
   if exists('s:save_okuri_pos')
