@@ -308,11 +308,12 @@ function! s:after_ins() abort
 endfunction
 
 function! s:complete_done_pre() abort
-  if pumvisible()
+  if pumvisible() && phase#is_enabled('kouho')
     return
   endif
   call phase#disable('kouho')
-  if s:is_completed()
+  " ここでは既にCompleteDoneが発行されているのでcomplete_info()は使用できない
+  if !empty(v:completed_item)
     call phase#disable('machi')
     call store#clear('machi')
     call store#clear('okuri')
