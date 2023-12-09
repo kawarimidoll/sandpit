@@ -69,7 +69,7 @@ function! virt_poc#enable() abort
           \ |   call store#display_odd_char()
           \ | endif
     autocmd TextChangedI * call s:auto_complete()
-    autocmd CompleteDonePre * call s:complete_done_pre()
+    autocmd CompleteDonePre * call timer_start(1, {->call("\<sid>complete_done_pre", [])})
   augroup END
 
   call phase#clear()
@@ -288,6 +288,9 @@ function! s:after_ins() abort
 endfunction
 
 function! s:complete_done_pre() abort
+  if pumvisible()
+    return
+  endif
   call phase#disable('kouho')
   if s:is_completed()
     call phase#disable('machi')
