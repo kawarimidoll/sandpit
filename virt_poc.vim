@@ -219,6 +219,7 @@ function! s:henkan_start() abort
         \   'pos': getpos('.')[1:2],
         \   'machi': store#get('machi'),
         \   'okuri': store#get('okuri'),
+        \   'is_trailing': col('.') == col('$')
         \ }
   if opts#get('use_google_cgi')
     call add(comp_list, {
@@ -231,10 +232,17 @@ function! s:henkan_start() abort
           \ })
     let s:comp_offset += 1
   endif
-  " if list_len == 0
-  "   call add(comp_list, {'word': yomi, 'abbr': 'none'})
-  "   let s:comp_offset += 1
-  " endif
+
+  call add(comp_list, {
+        \ 'word': yomi,
+        \ 'abbr': '[辞書登録]',
+        \ 'menu': yomi,
+        \ 'info': yomi,
+        \ 'dup': 1,
+        \ 'user_data': { 'yomi': yomi, 'context': context, 'virt_poc_process': 'new_word' }
+        \ })
+  let s:comp_offset += 1
+
   call complete(phase#getpos('machi')[1], comp_list)
   call phase#disable('okuri')
   call phase#enable('kouho')
@@ -348,6 +356,58 @@ function! s:complete_done_pre() abort
     return
   endif
 
+  if user_data.virt_poc_process ==# 'new_word'
+    autocmd BufEnter <buffer> ++once call s:buf_enter_try_user_henkan()
+
+    let context = user_data.context
+    let yomi = context.machi
+    let b:virt_poc_context = context
+
+    let jump_line = '/okuri-nasi'
+    if context.okuri !=# ''
+      let jump_line = '/okuri-ari'
+      let consonant = utils#consonant(strcharpart(context.okuri, 0, 1))
+      let yomi ..= consonant
+    endif
+
+    let user_jisyo_winnr = bufwinnr(bufnr(opts#get('user_jisyo_path')))
+    if user_jisyo_winnr > 0
+      " ユーザー辞書がすでに開いている場合は
+      " okuri-ari/okuri-nasiの行へジャンプする
+      execute user_jisyo_winnr .. 'wincmd w'
+      normal! gg
+      execute jump_line
+    else
+      call virt_poc#open_user_jisyo($'+{jump_line}')
+    endif
+
+    call feedkeys($"\<c-o>o{yomi} //\<c-g>U\<left>\<cmd>call virt_poc#enable()\<cr>", 'n')
+  endif
+endfunction
+
+function! virt_poc#open_user_jisyo(args = '') abort
+  execute 'botright 5new' a:args opts#get("user_jisyo_path")
+endfunction
+
+function! s:buf_enter_try_user_henkan() abort
+  call cursor(b:virt_poc_context.pos)
+  if b:virt_poc_context.is_trailing
+    startinsert!
+  else
+    startinsert
+  endif
+
+  call virt_poc#enable()
+
+  call henkan_list#update_manual(b:virt_poc_context.machi, b:virt_poc_context.okuri)
+  if empty(henkan_list#get())
+    return
+  endif
+
+  call phase#enable('kouho')
+  " ここで直接実行するとインサートモードに入れておらずエラーになるので
+  " タイマーで遅延する必要がある
+  call timer_start(1, {->call('complete', [b:virt_poc_context.start_col, henkan_list#get()])})
 endfunction
 
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
