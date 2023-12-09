@@ -232,6 +232,7 @@ function! s:get_spec(key) abort
 endfunction
 
 function! virt_poc#henkan_start() abort
+  " echomsg $'henkan_start machi {store#get("machi")} okuri {store#get("okuri")}'
   call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
   let comp_list = copy(henkan_list#get())
   let list_len = len(comp_list)
@@ -260,10 +261,10 @@ function! s:auto_complete() abort
 
   if need_update || exact_match
     call henkan_list#update_fuzzy(s:latest_auto_complete_str, exact_match)
-    call utils#debug_log('henkan_list#get_fuzzy')
-    call utils#debug_log(henkan_list#get_fuzzy())
+    " call utils#debug_log('henkan_list#get_fuzzy')
+    " call utils#debug_log(henkan_list#get_fuzzy())
   endif
-  echomsg s:latest_auto_complete_str store#get('machi')
+  " echomsg s:latest_auto_complete_str store#get('machi')
 
   " yomiの前方一致で絞り込む
   let comp_list = copy(henkan_list#get_fuzzy())
@@ -317,9 +318,8 @@ endfunction
 
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
-inoremap <c-p> <cmd>echo phase#getpos('kana_input_namespace')<cr>
-
-call virt_poc#init()
+" inoremap <c-p> <cmd>echo phase#getpos('kana_input_namespace')<cr>
+" inoremap <c-d> <cmd>echomsg $'choku {store#get("choku")} machi {store#get("machi")} okuri {store#get("okuri")}'<cr>
 
 let uj = expand('~/.cache/vim/SKK-JISYO.user')
 call virt_poc#init({
