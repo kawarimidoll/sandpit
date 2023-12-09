@@ -37,7 +37,7 @@ function! virt_poc#enable() abort
   endif
 
   let s:keys_to_remaps = []
-  for [key, val] in items(s:map_keys_dict)
+  for [key, val] in items(opts#get('map_keys_dict'))
     if index(['|', ''''], key) >= 0
       continue
     endif
@@ -128,39 +128,6 @@ function! virt_poc#init(opts = {}) abort
     return
   endtry
 
-  let raw_kana_table = json_decode(join(readfile('./kana_table.json'), "\n"))
-
-  let s:preceding_keys_dict = {}
-  let s:map_keys_dict = {}
-  let s:kana_table = {}
-  for [k, val] in items(raw_kana_table)
-    let key = utils#trans_special_key(k)->keytrans()
-    let s:kana_table[key] = val
-
-    let chars = utils#trans_special_key(k)->utils#strsplit()
-
-    let tmp = copy(chars)
-    while len(tmp) > 1
-      " jsonのキーが'kya'だったら'ky'と'k'を先行入力キーリストに追加する
-      call remove(tmp, -1)
-      let s:preceding_keys_dict[tmp->join('')] = 1
-    endwhile
-
-    for char in chars
-      let s:map_keys_dict[char] = 0
-    endfor
-  endfor
-
-  " [!-~]のキーはjsonに含まれていないものもすべてマッピングする
-  " 英字大文字でpreceding_keys_dictにないものは
-  " 変換開始キーとなるのでtrueをたてておく
-  for nr in range(char2nr('!'), char2nr('~'))
-    let c = nr2char(nr)
-    let s:map_keys_dict[c] = c =~# '^\u$' && !has_key(s:preceding_keys_dict, c)
-  endfor
-  " echomsg s:preceding_keys_dict
-  " echomsg s:map_keys_dict
-
   let s:is_enable = v:false
 endfunction
 
@@ -209,25 +176,25 @@ function! s:get_spec(key) abort
   let current = store#get('choku') .. a:key
   " echomsg $'spec choku {store#get("choku")}'
 
-  if has_key(s:kana_table, current)
+  if has_key(opts#get('kana_table'), current)
     " s:store.chokuの残存文字と合わせて完成した場合
-    if type(s:kana_table[current]) == v:t_dict
+    if type(opts#get('kana_table')[current]) == v:t_dict
       call store#clear('choku')
-      return s:kana_table[current]
+      return opts#get('kana_table')[current]
     endif
-    let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
+    let [kana, roma; _rest] = opts#get('kana_table')[current]->split('\A*\zs') + ['']
     call store#set('choku', roma)
     return kana
-  elseif has_key(s:preceding_keys_dict, current)
+  elseif has_key(opts#get('preceding_keys_dict'), current)
     " 完成はしていないが、先行入力の可能性がある場合
     call store#set('choku', current)
     " echomsg $'choku {store#get("choku")}'
     return ''
   endif
 
-  " echomsg $'oh choku {store#get("choku")} key {a:key} has_key {has_key(s:kana_table, a:key)}'
-  if has_key(s:kana_table, a:key)
-    let spec = s:kana_table[a:key]
+  " echomsg $'oh choku {store#get("choku")} key {a:key} has_key {has_key(opts#get('kana_table'), a:key)}'
+  if has_key(opts#get('kana_table'), a:key)
+    let spec = opts#get('kana_table')[a:key]
 
     " 半端な文字はバッファに載せる
     " ただしspecが文字列でdel_odd_charがtrueなら消す(残さない)
@@ -244,7 +211,7 @@ function! s:get_spec(key) abort
     return spec
   endif
 
-  if has_key(s:preceding_keys_dict, a:key)
+  if has_key(opts#get('preceding_keys_dict'), a:key)
     call store#set('choku', a:key)
     return ''
   endif

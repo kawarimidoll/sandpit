@@ -1,14 +1,6 @@
-let s:keyboard_key_list = 'abcdefghijklmnopqrstuvwxyz'
-      \ .. 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-      \ .. '0123456789!@#$%^&*()'
-" \ .. "`-=[]|;',./"
-" \ .. '~_+{}\:"<>?'
-let s:keyboard_key_list = s:keyboard_key_list->split('\zs')
-" let s:keyboard_key_list = range(32, 126)->map('nr2char(v:val)')
-" if strcharlen(key) > 1 && preceding_keys !~ '\p'
-"   echoerr $"[t#initialize] マッピング対象の文字列は最後の1字以外に特殊文字は使えません {k}"
-"   return
-" endif
+function! opts#default_kana_table() abort
+  return json_decode(join(readfile('./kana_table.json'), "\n"))
+endfunction
 
 function! opts#parse(opts) abort
   " マーカー
@@ -104,12 +96,11 @@ function! opts#parse(opts) abort
   endfor
 
   " かなテーブル
-  let kana_table = get(a:opts, 'kana_table', json_decode(join(readfile('./kana_table.json'), "\n")))
-  " let kana_table = get(a:opts, 'kana_table', t#default_kana_table())
+  let raw_kana_table = get(a:opts, 'kana_table', opts#default_kana_table())
 
   let shift_key_list = []
   let s:keymap_dict = {}
-  for [k, val] in items(kana_table)
+  for [k, val] in items(raw_kana_table)
     let keys = utils#trans_special_key(k)->utils#strsplit()
     let preceding_keys = slice(keys, 0, -1)->join('')
     let start_key = slice(keys, 0, 1)->join('')
@@ -141,6 +132,37 @@ function! opts#parse(opts) abort
   for k in shift_key_list
     call add(s:map_cmds, [k, $"inoremap {k} <cmd>call t#ins('{tolower(k)}',1)<cr>"])
   endfor
+
+  let s:preceding_keys_dict = {}
+  let s:map_keys_dict = {}
+  let s:kana_table = {}
+  for [k, val] in items(raw_kana_table)
+    let key = utils#trans_special_key(k)->keytrans()
+    let s:kana_table[key] = val
+
+    let chars = utils#trans_special_key(k)->utils#strsplit()
+
+    let tmp = copy(chars)
+    while len(tmp) > 1
+      " jsonのキーが'kya'だったら'ky'と'k'を先行入力キーリストに追加する
+      call remove(tmp, -1)
+      let s:preceding_keys_dict[tmp->join('')] = 1
+    endwhile
+
+    for char in chars
+      let s:map_keys_dict[char] = 0
+    endfor
+  endfor
+
+  " [!-~]のキーはjsonに含まれていないものもすべてマッピングする
+  " 英字大文字でpreceding_keys_dictにないものは
+  " 変換開始キーとなるのでtrueをたてておく
+  for nr in range(char2nr('!'), char2nr('~'))
+    let c = nr2char(nr)
+    let s:map_keys_dict[c] = c =~# '^\u$' && !has_key(s:preceding_keys_dict, c)
+  endfor
+  " echomsg s:preceding_keys_dict
+  " echomsg s:map_keys_dict
 endfunction
 
 function! opts#get(name) abort
