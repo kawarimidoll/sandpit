@@ -5,6 +5,7 @@ if !exists('?keytrans') || exists(':defer') != 2
   finish
 endif
 
+source ./google_cgi.vim
 source ./inline_mark.vim
 source ./converters.vim
 source ./henkan_list.vim
@@ -211,10 +212,29 @@ function! s:henkan_start() abort
   call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
   let comp_list = copy(henkan_list#get())
   let list_len = len(comp_list)
-  if list_len == 0
-    call add(comp_list, {'word': store#get("machi") .. store#get("okuri"), 'abbr': 'none'})
+
+  let yomi = store#get('machi') .. store#get('okuri')
+  let context = {
+        \   'start_col': phase#getpos('machi')[1],
+        \   'pos': getpos('.')[1:2],
+        \   'machi': store#get('machi'),
+        \   'okuri': store#get('okuri'),
+        \ }
+  if opts#get('use_google_cgi')
+    call add(comp_list, {
+          \ 'word': yomi,
+          \ 'abbr': '[Google変換]',
+          \ 'menu': yomi,
+          \ 'info': yomi,
+          \ 'dup': 1,
+          \ 'user_data': { 'yomi': yomi, 'context': context, 'virt_poc_process': 'google' }
+          \ })
     let s:comp_offset += 1
   endif
+  " if list_len == 0
+  "   call add(comp_list, {'word': yomi, 'abbr': 'none'})
+  "   let s:comp_offset += 1
+  " endif
   call complete(phase#getpos('machi')[1], comp_list)
   call phase#disable('okuri')
   call phase#enable('kouho')
@@ -297,6 +317,36 @@ function! s:complete_done_pre() abort
     call store#clear('machi')
     call store#clear('okuri')
   endif
+
+  let user_data = get(v:completed_item, 'user_data', {})
+  if type(user_data) != v:t_dict || !has_key(user_data, 'virt_poc_process')
+    return
+  endif
+
+  if user_data.virt_poc_process ==# 'google'
+    let google_result = google_cgi#henkan(user_data.yomi)
+    if google_result ==# ''
+      echomsg 'Google変換で結果が得られませんでした。'
+      return
+    endif
+
+    let comp_list = [{
+          \ 'word': google_result,
+          \ 'menu': '[Google]',
+          \ 'info': '[Google]',
+          \ 'user_data': { 'yomi': user_data.yomi, 'context': user_data.context, 'virt_poc_process': 'set_to_user_jisyo' }
+          \ }]
+    call complete(user_data.context.start_col, comp_list)
+    call phase#enable('kouho')
+    return
+  endif
+
+  if user_data.virt_poc_process ==# 'set_to_user_jisyo'
+    let line = $'{user_data.yomi} /{v:completed_item.word}/'
+    call writefile([line], opts#get('user_jisyo_path'), "a")
+    return
+  endif
+
 endfunction
 
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
