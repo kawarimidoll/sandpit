@@ -123,12 +123,26 @@ function! henkan_list#update_manual(str, okuri = '') abort
     let str ..= consonant
   endif
 
+  let numstr_list = a:str->split('\D\+')
+  if !empty(numstr_list)
+    let str = str->substitute('\d\+', '#', 'g')
+  endif
+
   let henkan_list = []
   for jisyo in opts#get('jisyo_list')
     let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str} /', '')
     let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
     call extend(henkan_list, s:parse_henkan_list(lines, jisyo, a:okuri))
   endfor
+  if !empty(numstr_list)
+    for item in henkan_list
+      for numstr in numstr_list
+        let item.word = item.word->substitute('#0', numstr, '')
+              \ ->substitute('#1', tr(numstr, '0123456789', '０１２３４５６７８９'), '')
+              \ ->substitute('#2', tr(numstr, '0123456789', '〇一二三四五六七八九'), '')
+      endfor
+    endfor
+  endif
   let s:latest_henkan_list = henkan_list
 endfunction
 
