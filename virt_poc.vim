@@ -143,25 +143,22 @@ function! virt_poc#ins(key, with_sticky = v:false) abort
   let spec = a:key =~ '^[!-~]$' && mode#is_direct() ? a:key
         \ : s:get_spec(key)
 
-  if type(spec) == v:t_string
-    " ここは不要？
-    " if phase#is_enabled('kouho') && pumvisible()
-    "   call feedkeys("\<c-y>", 'n')
-    " endif
-    if spec !=# ''
-      call feedkeys(mode#convert(spec), 'ni')
-      if phase#is_enabled('okuri')
-        call store#push('okuri', spec)
-      elseif phase#is_enabled('machi')
-        call store#push('machi', spec)
-        " echomsg 'machi' store#get('machi')
-      endif
-    endif
+  if type(spec) == v:t_dict
+    " echomsg spec
+    let s:reserved_spec = [spec, key]
     return
   endif
 
-  " echomsg spec
-  let s:reserved_spec = [spec, key]
+  if spec ==# ''
+    return
+  endif
+
+  call feedkeys(mode#convert(spec), 'ni')
+  if phase#is_enabled('okuri')
+    call store#push('okuri', spec)
+  elseif phase#is_enabled('machi')
+    call store#push('machi', spec)
+  endif
 endfunction
 
 function! s:get_spec(key) abort
