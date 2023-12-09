@@ -84,20 +84,28 @@ function! func#v_henkan(fallback_key) abort
 endfunction
 
 function! func#v_kakutei(fallback_key) abort
+  let feed = ''
   if phase#is_enabled('kouho')
     call phase#disable('machi')
     if pumvisible()
-      call feedkeys("\<c-y>", 'n')
+      let feed = "\<c-y>"
     endif
   elseif phase#is_enabled('okuri')
   " nop
   elseif phase#is_enabled('machi')
     call phase#disable('machi')
     if pumvisible()
-      call feedkeys("\<c-y>", 'n')
+      let feed = "\<c-y>"
     endif
   else
-    call feedkeys(utils#trans_special_key(a:fallback_key), 'n')
+    if pumvisible()
+      let feed = "\<c-y>"
+    else
+      let feed = utils#trans_special_key(a:fallback_key)
+    endif
+  endif
+  if feed !=# ''
+    call feedkeys(feed, 'n')
   endif
   call store#clear()
 endfunction
