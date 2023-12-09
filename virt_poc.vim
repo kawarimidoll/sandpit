@@ -6,6 +6,7 @@ source ./opts.vim
 source ./phase.vim
 source ./store.vim
 source ./func.vim
+source ./mode.vim
 
 function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
@@ -58,7 +59,7 @@ function! virt_poc#enable() abort
 
   call phase#clear()
   call store#clear()
-  let s:mode = s:hira_mode
+  call mode#clear()
   let s:is_enable = v:true
 endfunction
 
@@ -142,33 +143,22 @@ endfunction
 
 let s:kana_input_namespace = 'kana_input_namespace'
 
-let s:hira_mode = {
-      \ 'name': 'hira',
-      \ 'conv': {c->c}
-      \ }
-let s:mode = s:hira_mode
-
 function! virt_poc#ins(key, with_sticky = v:false) abort
-  if a:key =~ '^[!-~]$' && index(['zen_alnum',  'zen_alnum'], s:mode.name) >= 0
-    call feedkeys(call(s:mode.conv, [a:key]), 'ni')
-    return
-  endif
-
   let key = a:key
   if a:with_sticky
     call func#v_sticky('')
     let key = a:key->tolower()
   endif
 
-  let spec = s:get_spec(key)
+  let spec = a:key =~ '^[!-~]$' && mode#is_direct() ? a:key
+        \ : s:get_spec(key)
 
   if type(spec) == v:t_string
     if phase#is_enabled('kouho')
       call feedkeys("\<c-y>", 'ni')
     endif
     if spec !=# ''
-      " echomsg 'feed' spec
-      call feedkeys(call(s:mode.conv, [spec]), 'ni')
+      call feedkeys(mode#convert(spec), 'ni')
       if phase#is_enabled('okuri')
         call store#push('okuri', spec)
       elseif phase#is_enabled('machi')
@@ -186,31 +176,8 @@ function! virt_poc#ins(key, with_sticky = v:false) abort
       call call($'func#v_{spec.func}', [key])
     endif
   elseif has_key(spec, 'mode')
-    let conv_name = {
-          \ 'zen_kata': 'converters#hira_to_kata',
-          \ 'han_kata': 'converters#hira_to_han_kata',
-          \ 'zen_alnum': 'converters#alnum_to_zen_alnum',
-          \ 'abbrev': 's:hira_mode.conv',
-          \ }[spec.mode]
-    if phase#is_enabled('kouho')
-    " nop
-    elseif phase#is_enabled('okuri')
-    " nop
-    elseif phase#is_enabled('machi')
-      call store#clear('choku')
-      let machistr = store#get('machi')
-      let feed = repeat("\<bs>", strcharlen(machistr)) .. call(conv_name, [machistr])
-      call feedkeys(feed, 'n')
-      call store#clear('machi')
-      call phase#disable('machi')
-    else
-      let s:mode = s:mode.name ==# spec.mode ? s:hira_mode : {
-            \ 'name': spec.mode,
-            \ 'conv': funcref(conv_name)
-            \ }
-      echomsg $'{s:mode.name} mode'
-    endif
-    if s:mode.name ==# 'abbrev'
+    call mode#set(spec.mode)
+    if mode#is_start_sticky()
       call func#v_sticky('')
     endif
   endif
@@ -223,6 +190,7 @@ function! s:get_spec(key) abort
   if has_key(s:kana_table, current)
     " s:store.chokuの残存文字と合わせて完成した場合
     if type(s:kana_table[current]) == v:t_dict
+      call store#set('choku', '')
       return s:kana_table[current]
     endif
     let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
