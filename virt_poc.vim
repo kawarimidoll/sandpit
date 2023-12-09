@@ -64,6 +64,7 @@ function! virt_poc#enable() abort
           \   echo $'{v:event.size}件'
           \ | if s:is_completed() && phase#is_enabled('machi') && store#get('choku') !=# ''
           \ |   call store#clear('choku')
+          \ |   call store#display_odd_char()
           \ | endif
     autocmd TextChangedI * call s:auto_complete()
     autocmd CompleteDonePre *
@@ -305,6 +306,7 @@ endfunction
 
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
+  call store#display_odd_char()
   if store#get('choku') ==# ''
         \ && phase#is_enabled('okuri')
         \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0

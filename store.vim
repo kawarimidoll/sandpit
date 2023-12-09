@@ -1,7 +1,7 @@
 let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
 let s:show_choku_namespace = 'show_choku_namespace'
 
-function! s:show_choku() abort
+function! store#display_odd_char() abort
   if store#get('choku') ==# ''
     call inline_mark#clear(s:show_choku_namespace)
     return
@@ -17,9 +17,6 @@ endfunction
 
 function! store#set(target, str) abort
   let s:store[a:target] = a:str
-  if a:target ==# 'choku'
-    call s:show_choku()
-  endif
 endfunction
 
 function! store#get(target) abort
