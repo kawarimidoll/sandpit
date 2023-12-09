@@ -95,8 +95,8 @@ function! func#v_kakutei(fallback_key) abort
     endif
   else
     call feedkeys(utils#trans_special_key(a:fallback_key), 'n')
-    call store#clear('choku')
   endif
+  call store#clear()
 endfunction
 
 function! func#v_backspace(...) abort

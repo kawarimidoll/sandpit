@@ -19,8 +19,8 @@ function! s:is_completed() abort
 endfunction
 
 function! s:doautocmd(event_name) abort
-  if exists($'#User#{event_name}')
-    execute $'doautocmd User {event_name}'
+  if exists($'#User#{a:event_name}')
+    execute $'doautocmd User {a:event_name}'
   endif
 endfunction
 
