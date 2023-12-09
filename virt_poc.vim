@@ -79,6 +79,7 @@ function! virt_poc#enable() abort
   call phase#clear()
   call store#clear()
   call mode#clear()
+  let s:reserved_spec = []
   let s:is_enable = v:true
 endfunction
 
@@ -110,6 +111,7 @@ function! virt_poc#disable() abort
 
   call phase#clear()
   call store#clear()
+  let s:reserved_spec = []
   let s:is_enable = v:false
 endfunction
 
@@ -159,17 +161,7 @@ function! virt_poc#ins(key, with_sticky = v:false) abort
   endif
 
   " echomsg spec
-  " funcのfeedkeysはフラグにiを使わない
-  if has_key(spec, 'func')
-    if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
-      call call($'func#v_{spec.func}', [key])
-    endif
-  elseif has_key(spec, 'mode')
-    call mode#set(spec.mode)
-    if mode#is_start_sticky()
-      call func#v_sticky('')
-    endif
-  endif
+  let s:reserved_spec = [spec, key]
 endfunction
 
 function! s:get_spec(key) abort
@@ -270,6 +262,22 @@ function! virt_poc#henkan_reserve() abort
 endfunction
 
 function! virt_poc#after_ins() abort
+  if !empty(s:reserved_spec)
+    " funcのfeedkeysはフラグにiを使わない
+    let [spec, key] = s:reserved_spec
+    if has_key(spec, 'func')
+      if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
+        call call($'func#v_{spec.func}', [key])
+      endif
+    elseif has_key(spec, 'mode')
+      call mode#set(spec.mode)
+      if mode#is_start_sticky()
+        call func#v_sticky('')
+      endif
+    endif
+    let s:reserved_spec = []
+  endif
+
   " echomsg $'after choku {store#get("choku")}'
   call store#display_odd_char()
   if s:henkan_reserve ||
