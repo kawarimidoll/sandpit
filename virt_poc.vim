@@ -1,6 +1,6 @@
 source ./utils.vim
 
-if !exists('?keytrans')
+if !exists('?keytrans') || exists(':defer') != 2
   call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
   finish
 endif
@@ -18,10 +18,18 @@ function! s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
+function! s:doautocmd(event_name) abort
+  if exists($'#User#{event_name}')
+    execute $'doautocmd User {event_name}'
+  endif
+endfunction
+
 function! virt_poc#enable() abort
   if s:is_enable
     return
   endif
+  call s:doautocmd('virt_poc_enable_pre')
+  defer s:doautocmd('virt_poc_enable_post')
 
   if opts#get('textwidth_zero')
     let s:save_textwidth = &textwidth
@@ -73,6 +81,8 @@ function! virt_poc#disable() abort
   if !s:is_enable
     return
   endif
+  call s:doautocmd('virt_poc_disable_pre')
+  defer s:doautocmd('virt_poc_disable_post')
 
   for k in s:keys_to_remaps
     try
@@ -103,6 +113,8 @@ function! virt_poc#toggle() abort
 endfunction
 
 function! virt_poc#init(opts = {}) abort
+  call s:doautocmd('virt_poc_initialize_pre')
+  defer s:doautocmd('virt_poc_initialize_post')
   try
     call opts#parse(a:opts)
   catch
