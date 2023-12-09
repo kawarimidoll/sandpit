@@ -37,6 +37,7 @@ function! virt_poc#enable() abort
   endif
 
   let s:keys_to_remaps = []
+  let sid = "\<sid>"
   for [key, val] in items(opts#get('map_keys_dict'))
     if index(['|', ''''], key) >= 0
       continue
@@ -44,18 +45,18 @@ function! virt_poc#enable() abort
     let current_map = maparg(key, 'i', 0, 1)
     let k = keytrans(key)
     call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
-    execute $"inoremap {k} <cmd>call virt_poc#ins('{keytrans(k)}', {val})<cr><cmd>call virt_poc#after_ins()<cr>"
+    execute $"inoremap {k} <cmd>call {sid}ins('{keytrans(k)}', {val})<cr><cmd>call {sid}after_ins()<cr>"
   endfor
 
   " 以下の2つはループでの処理が困難なので個別対応
   " single quote
   let current_map = maparg("'", 'i', 0, 1)
   call add(s:keys_to_remaps, empty(current_map) ? "'" : current_map)
-  inoremap ' <cmd>call virt_poc#ins("'")<cr><cmd>call virt_poc#after_ins()<cr>
+  inoremap ' <cmd>call s:ins("'")<cr><cmd>call s:after_ins()<cr>
   " bar
   let current_map = maparg('<bar>', 'i', 0, 1)
   call add(s:keys_to_remaps, empty(current_map) ? '<bar>' : current_map)
-  inoremap <bar> <cmd>call virt_poc#ins("<bar>")<cr><cmd>call virt_poc#after_ins()<cr>
+  inoremap <bar> <cmd>call s:ins("<bar>")<cr><cmd>call s:after_ins()<cr>
 
   augroup virt_poc#augroup
     autocmd!
@@ -133,7 +134,7 @@ function! virt_poc#init(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
-function! virt_poc#ins(key, with_sticky = v:false) abort
+function! s:ins(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
     call func#v_sticky('')
@@ -258,7 +259,7 @@ function! virt_poc#henkan_reserve() abort
   let s:henkan_reserve = 1
 endfunction
 
-function! virt_poc#after_ins() abort
+function! s:after_ins() abort
   if !empty(s:reserved_spec)
     " funcのfeedkeysはフラグにiを使わない
     let [spec, key] = s:reserved_spec
