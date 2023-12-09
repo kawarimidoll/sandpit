@@ -259,8 +259,6 @@ function! s:auto_complete() abort
   let comp_list = copy(henkan_list#get_fuzzy())
         \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
 
-  let s:comp_list = comp_list
-
   if len(comp_list) > 0
     call complete(phase#getpos('machi')[1], comp_list)
   endif
@@ -274,16 +272,13 @@ endfunction
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
   call store#display_odd_char()
-  if store#get('choku') ==# ''
+  if s:henkan_reserve ||
+        \ (store#get('choku') ==# ''
         \ && phase#is_enabled('okuri')
-        \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
+        \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0)
     call virt_poc#henkan_start()
     unlet! s:save_okuri_pos
-  endif
-
-  if s:henkan_reserve
     let s:henkan_reserve = 0
-    call virt_poc#henkan_start()
   endif
 
   if exists('s:save_okuri_pos')
