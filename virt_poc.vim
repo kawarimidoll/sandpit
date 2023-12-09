@@ -60,7 +60,11 @@ function! virt_poc#enable() abort
   augroup virt_poc#augroup
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
-    autocmd CompleteChanged * echo $'{v:event.size}件'
+    autocmd CompleteChanged *
+          \   echo $'{v:event.size}件'
+          \ | if s:is_completed() && phase#is_enabled('machi') && store#get('choku') !=# ''
+          \ |   call store#clear('choku')
+          \ | endif
     autocmd TextChangedI * call s:auto_complete()
     autocmd CompleteDonePre *
           \   call phase#disable('kouho')
@@ -159,8 +163,6 @@ function! virt_poc#init(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
-let s:kana_input_namespace = 'kana_input_namespace'
-
 function! virt_poc#ins(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
@@ -208,7 +210,7 @@ function! s:get_spec(key) abort
   if has_key(s:kana_table, current)
     " s:store.chokuの残存文字と合わせて完成した場合
     if type(s:kana_table[current]) == v:t_dict
-      call store#set('choku', '')
+      call store#clear('choku')
       return s:kana_table[current]
     endif
     let [kana, roma; _rest] = s:kana_table[current]->split('\A*\zs') + ['']
@@ -236,7 +238,7 @@ function! s:get_spec(key) abort
       endif
     endif
 
-    call store#set('choku', '')
+    call store#clear('choku')
     return spec
   endif
 
@@ -245,7 +247,7 @@ function! s:get_spec(key) abort
     return ''
   endif
 
-  call store#set('choku', '')
+  call store#clear('choku')
   return a:key
 endfunction
 
@@ -303,28 +305,17 @@ endfunction
 function! virt_poc#after_ins() abort
   " echomsg $'after choku {store#get("choku")}'
   if store#get('choku') ==# ''
-    call inline_mark#clear(s:kana_input_namespace)
-    if phase#is_enabled('okuri')
-      if utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
-        call virt_poc#henkan_start()
-        unlet! s:save_okuri_pos
-      endif
-    else
-    endif
-  else
-    let [lnum, col] = getpos('.')[1:2]
-    let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
-    let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
-    call inline_mark#put(lnum, col, {
-          \ 'name': s:kana_input_namespace,
-          \ 'text': store#get('choku'),
-          \ 'hl': hlname })
+        \ && phase#is_enabled('okuri')
+        \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0
+    call virt_poc#henkan_start()
+    unlet! s:save_okuri_pos
   endif
 
   if s:henkan_reserve
     let s:henkan_reserve = 0
     call virt_poc#henkan_start()
   endif
+
   if exists('s:save_okuri_pos')
     " echomsg 'get s:save_okuri_pos' s:save_okuri_pos
     call phase#move('okuri', s:save_okuri_pos)
@@ -336,7 +327,6 @@ endfunction
 
 inoremap <c-j> <cmd>call virt_poc#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
-" inoremap <c-p> <cmd>echo phase#getpos('kana_input_namespace')<cr>
 " inoremap <c-d> <cmd>echomsg $'choku {store#get("choku")} machi {store#get("machi")} okuri {store#get("okuri")}'<cr>
 
 let uj = expand('~/.cache/vim/SKK-JISYO.user')
