@@ -258,7 +258,7 @@ function! s:after_ins() abort
     let [spec, key] = s:reserved_spec
     if has_key(spec, 'func')
       if index(['backspace', 'kakutei', 'henkan', 'sticky'], spec.func) >= 0
-        let spec_result = call($'func#v_{spec.func}', [key])->string()
+        let spec_result = call($'func#v_{spec.func}', [key])
       endif
     elseif has_key(spec, 'mode')
       call mode#set(spec.mode)
@@ -270,7 +270,7 @@ function! s:after_ins() abort
   endif
 
   call store#display_odd_char()
-  if (spec_result ==# '_henkan_start_') ||
+  if (type(spec_result) == v:t_string && spec_result ==# '_henkan_start_') ||
         \ (store#get('choku') ==# ''
         \ && phase#is_enabled('okuri')
         \ && utils#compare_pos(phase#getpos('okuri'), getpos('.')[1:2]) > 0)
