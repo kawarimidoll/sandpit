@@ -143,7 +143,16 @@ function! s:ins(key, with_sticky = v:false) abort
 
   if type(spec) == v:t_dict
     " echomsg spec
-    let s:reserved_spec = [spec, key]
+    if has_key(spec, 'expr')
+      let spec = call(spec.expr[0], spec.expr[1:])
+    else
+      let s:reserved_spec = [spec, key]
+      return
+    endif
+  endif
+
+  if type(spec) != v:t_string
+    call utils#echoerr('input must be string')
     return
   endif
 
