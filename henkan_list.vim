@@ -140,6 +140,7 @@ function! henkan_list#update_manual(str, okuri = '') abort
         let item.word = item.word->substitute('#0', numstr, '')
               \ ->substitute('#1', tr(numstr, '0123456789', '０１２３４５６７８９'), '')
               \ ->substitute('#2', tr(numstr, '0123456789', '〇一二三四五六七八九'), '')
+              \ ->substitute('#8', utils#thousands_separate(numstr), '')
       endfor
     endfor
   endif
