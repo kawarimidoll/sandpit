@@ -34,3 +34,34 @@ endfunction
 function! converters#as_is(str) abort
   return a:str
 endfunction
+
+" https://zenn.dev/vim_jp/articles/a1f91726d7e656
+function! converters#numconv1(numstr) abort
+  return a:numstr->tr('0123456789', '０１２３４５６７８９')
+endfunction
+function! converters#numconv2(numstr) abort
+  return a:numstr->tr('0123456789', '〇一二三四五六七八九')
+endfunction
+function! converters#numconv3(numstr) abort
+  return converters#numconv5(a:numstr)
+        \ ->tr('壱弐参拾', '一二三十')
+        \ ->substitute('一\ze[十百千]', '', 'g')
+endfunction
+function! converters#numconv5(numstr) abort
+  let inner_keta = [''] + '拾百千'->split('\zs')
+  let outer_keta = [''] + '万億兆京垓𥝱'->split('\zs')
+  return a:numstr->reverse()
+        \ ->split('\d\{4}\zs')
+        \ ->map({i,v -> outer_keta[i] .. v->split('\zs')->map({j,u -> inner_keta[j] .. u})->filter('v:val !~ "0"')->join('')})
+        \ ->join('')
+        \ ->tr('123456789', '壱弐参四五六七八九')
+        \ ->reverse()
+endfunction
+function! converters#numconv8(numstr) abort
+  return a:numstr->reverse()->substitute('\d\{3}\ze.', '\0,', 'g')->reverse()
+endfunction
+function! converters#numconv9(numstr) abort
+  return a:numstr
+        \ ->substitute('\d', {m->tr(m[0], '123456789', '１２３４５６７８９')}, '')
+        \ ->substitute('\d', {m->tr(m[0], '123456789', '一二三四五六七八九')}, '')
+endfunction

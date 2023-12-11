@@ -95,7 +95,3 @@ function! utils#strsplit(str) abort
   endwhile
   return result
 endfunction
-
-function! utils#thousands_separate(numstr) abort
-  return a:numstr->reverse()->substitute('\d\{3}\ze.', '\0,', 'g')->reverse()
-endfunction

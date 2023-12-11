@@ -138,9 +138,12 @@ function! henkan_list#update_manual(str, okuri = '') abort
     for item in henkan_list
       for numstr in numstr_list
         let item.word = item.word->substitute('#0', numstr, '')
-              \ ->substitute('#1', tr(numstr, '0123456789', '０１２３４５６７８９'), '')
-              \ ->substitute('#2', tr(numstr, '0123456789', '〇一二三四五六七八九'), '')
-              \ ->substitute('#8', utils#thousands_separate(numstr), '')
+              \ ->substitute('#1', converters#numconv1(numstr), '')
+              \ ->substitute('#2', converters#numconv2(numstr), '')
+              \ ->substitute('#3', converters#numconv3(numstr), '')
+              \ ->substitute('#5', converters#numconv5(numstr), '')
+              \ ->substitute('#8', converters#numconv8(numstr), '')
+              \ ->substitute('#9', converters#numconv9(numstr), '')
       endfor
     endfor
   endif
