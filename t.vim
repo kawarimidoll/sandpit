@@ -39,6 +39,13 @@ function! t#enable() abort
           \ | endif
     autocmd CompleteDonePre *
           \ call states#off('kouho')
+
+    if opts#get('min_auto_complete_length') > 0
+      autocmd TextChangedI,TextChangedP *
+            \   if !s:is_completed()
+            \ |   call s:auto_complete()
+            \ | endif
+    endif
   augroup END
 
   let s:keys_to_remaps = []
@@ -169,8 +176,10 @@ function! t#ins(key, henkan = v:false) abort
     return
   endif
   if a:henkan
+    " echomsg 'henkan' key
     call states#on('machi')
   endif
+
   call states#on('choku')
 
   call feedkeys(call(s:mode.conv, [spec]), 'n')
@@ -185,7 +194,7 @@ function! t#ins(key, henkan = v:false) abort
     let okuristr = states#getstr('okuri')[0 : -bs_count-1] .. spec
 
     call henkan_list#update_manual(machistr, okuristr)
-
+    " echomsg machistr okuristr states#getstr('machi')
     " この時点ではまだ「おくr」の状態で、specが入力されていない
     " 下のfeedkeysを実行することで上のも実行されるようだ
     call feedkeys($"\<c-r>=t#completefunc()\<cr>", 'n')
@@ -220,16 +229,73 @@ function! t#completefunc()
   let comp_list = copy(henkan_list#get())
 
   let list_len = len(comp_list)
+  if empty(comp_list)
+    call add(comp_list, {'word': preceding_str, 'abbr': 'none'})
+  endif
 
   call complete(states#get('machi')[1], comp_list)
 
-  echo $'{preceding_str}: {complete_info(["items"])->len()}件'
+  echo $'{preceding_str}: {list_len}件'
   return list_len > 0 ? "\<c-n>" : ''
+endfunction
+
+let s:latest_auto_complete_str = ''
+function! s:auto_complete() abort
+  let preceding_str = states#getstr('machi')->substitute('\a*$', '', '')
+
+  let min_length = 3
+  " let min_length = opts#get('min_auto_complete_length')
+  let str_len = strcharlen(preceding_str)
+  if str_len ==# ''
+    return
+  endif
+  " if str_len < min_length
+  "   return
+  " endif
+
+  " 3文字目までは完全一致で検索
+  let exact_match = str_len <= min_length
+
+  " 4文字目が異なった場合はhenkan_listを更新
+  let need_update = strcharpart(preceding_str, min_length, 1) !=# strcharpart(s:latest_auto_complete_str, min_length, 1)
+
+  let s:latest_auto_complete_str = preceding_str
+
+  if exact_match || need_update
+    call henkan_list#update_async(preceding_str, exact_match)
+  else
+    call t#autocompletefunc()
+  endif
+endfunction
+
+function! t#autocompletefunc()
+  if mode() !=# 'i' || !states#in('machi') || states#in('okuri') || states#in('kouho')
+    echomsg 'exit autocomplete'
+    return
+  endif
+  let start_col = states#get('machi')[1]
+  if start_col < 1
+    return
+  endif
+
+  " yomiの前方一致で絞り込む
+  let comp_list = copy(henkan_list#get(1))
+        \ ->filter($"v:val.user_data.yomi =~# '^{s:latest_auto_complete_str}'")
+
+  echomsg $'auto comp from {start_col} {s:latest_auto_complete_str}'
+  echo $'{s:latest_auto_complete_str}: {len(comp_list)}件'
+  if empty(comp_list)
+    return
+  endif
+  call complete(start_col, comp_list)
+
+  return
 endfunction
 
 " cnoremap <c-j> <cmd>call t#cmd_buf()<cr>
 inoremap <c-j> <cmd>call t#toggle()<cr>
 inoremap <c-k> <cmd>imap<cr>
+inoremap <c-l> <cmd>call states#show()<cr>
 
 let uj = expand('~/.cache/vim/SKK-JISYO.user')
 call t#initialize({
@@ -249,3 +315,17 @@ call t#initialize({
       \ 'textwidth_zero': v:true,
       \ 'abbrev_ignore_case': v:true,
       \ })
+if has('nvim')
+  autocmd InsertEnter * ++once lua require('cmp').setup.buffer({ enabled = false })
+endif
+
+
+inoremap <c-f> <C-R>=ListMonths()<CR>
+
+func ListMonths()
+  " call complete(col('.'), ['January', 'February', 'March',
+  call complete(1, ['January', 'February', 'March',
+        \ 'April', 'May', 'June', 'July', 'August', 'September',
+        \ 'October', 'November', 'December'])
+  return ''
+endfunc
