@@ -22,6 +22,7 @@ function! insert#map() abort
   inoremap <bar> <cmd>call s:i1("<bar>")<cr><cmd>call s:i2()<cr>
 
   let s:reserved_spec = []
+  let s:comp_offset = 0
 endfunction
 
 function! insert#unmap() abort
@@ -38,7 +39,16 @@ function! insert#unmap() abort
   endfor
 
   let s:reserved_spec = []
+  let s:comp_offset = 0
 endfunction
+
+" function! insert#henkan_count(list_size) abort
+"   ここをCompleteChangedでよび出せば良いかと思ったが<c-n>で
+"   候補を選択したタイミングでも毎回呼び出されてしまうのでクリアされてしまって困る
+"   let result = a:list_size - s:comp_offset
+"   let s:comp_offset = 0
+"   return result
+" endfunction
 
 function! s:get_spec(key) abort
   let current = store#get('choku') .. a:key

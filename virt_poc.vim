@@ -42,8 +42,7 @@ function! virt_poc#enable() abort
     autocmd!
     autocmd InsertLeave * call virt_poc#disable()
     autocmd CompleteChanged *
-          \   echo $'{v:event.size - s:comp_offset}件'
-          \ | let s:comp_offset = 0
+          \   echo $'{v:event.size}件'
           \ | if s:is_completed() && phase#is_enabled('machi') && store#get('choku') !=# ''
           \ |   call store#clear('choku')
           \ |   call store#display_odd_char()
@@ -56,7 +55,6 @@ function! virt_poc#enable() abort
   call phase#clear()
   call store#clear()
   call mode#clear()
-  let s:comp_offset = 0
   let s:is_enable = v:true
 endfunction
 
