@@ -30,7 +30,7 @@ endfunction
 function! s:gen_henkan_query(str, opts = {}) abort
   let str = a:str
   if opts#get('merge_tsu')
-  let str = substitute(str, 'っ\+', 'っ', 'g')
+    let str = substitute(str, 'っ\+', 'っ', 'g')
   endif
   if opts#get('trailing_n') && !get(a:opts, 'no_trailing_n', v:false)
     let str = substitute(str, 'n$', 'ん', '')
