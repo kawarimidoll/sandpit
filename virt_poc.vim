@@ -47,7 +47,7 @@ function! virt_poc#enable() abort
           \ |   call store#clear('choku')
           \ |   call store#display_odd_char()
           \ | endif
-    autocmd TextChangedI * call s:auto_complete()
+    " autocmd TextChangedI * call s:auto_complete()
     autocmd CompleteDonePre * call timer_start(1, {->call("\<sid>complete_done_pre", [])})
   augroup END
 
