@@ -41,9 +41,11 @@ function! utils#uniq_add(list, item) abort
   endif
 endfunction
 
-function! utils#echoerr(str) abort
+function! utils#echoerr(...) abort
   echohl ErrorMsg
-  echomsg a:str
+  for str in a:000
+    echomsg '[sandpit]' str
+  endfor
   echohl NONE
 endfunction
 
