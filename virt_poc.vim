@@ -1,6 +1,6 @@
 source ./utils.vim
 
-if !exists('?keytrans') || exists(':defer') != 2
+if !exists('*keytrans') || exists(':defer') != 2
   call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
   finish
 endif
