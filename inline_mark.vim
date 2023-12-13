@@ -87,13 +87,6 @@ else
     endif
     call inline_mark#clear(name)
 
-    let props =  { 'type': name }
-    if text ==# ''
-      let props.length = 0
-    else
-      let props.text = text
-    endif
-
-    call prop_add(a:lnum, a:col, props)
+    call prop_add(a:lnum, a:col, { 'type': name, 'text': text })
   endfunction
 endif
