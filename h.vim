@@ -3,6 +3,19 @@ source ./utils.vim
 source ./opts.vim
 source ./store.vim
 
+" feedkeysだと動きが遅いことがあるので特殊文字意外はsetlineで反映する
+function! h#feed(str) abort
+  if a:str !~ '^\p\+$'
+    call feedkeys(a:str, 'n')
+  else
+    let [lnum, cnum] = getcurpos()[1:2]
+    let idx = cnum - 1
+    let line = getline('.')
+    call setline('.', strpart(line, 0, idx) .. a:str .. strpart(line, idx))
+    call cursor(lnum, cnum + strlen(a:str))
+  endif
+endfunction
+
 function! h#enable() abort
   if s:is_enable
     return
@@ -51,6 +64,10 @@ function! h#disable() abort
       echomsg k v:exception
     endtry
   endfor
+
+  call inline_mark#clear(s:show_machi_namespace)
+  call inline_mark#clear(s:show_choku_namespace)
+  call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
 
   call store#clear()
   let s:current_store_name = 'choku'
@@ -155,6 +172,7 @@ function! s:i1(key, with_sticky = v:false) abort
     let key = a:key->tolower()
   endif
   let spec = s:get_spec(key)
+  let spec.original_key = a:key
   let spec.key = key
   return spec
 endfunction
@@ -201,7 +219,7 @@ function! s:i2(args) abort
   endif
 
   if s:current_store_name == 'choku'
-    call feedkeys(utils#trans_special_key(feed), 'n')
+    call h#feed(utils#trans_special_key(feed))
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
     " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
