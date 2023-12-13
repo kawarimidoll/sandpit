@@ -73,6 +73,9 @@ else
   endfunction
 
   function! inline_mark#get(name) abort
+    if prop_type_get(a:name)->empty()
+      return []
+    endif
     let prop = prop_find({'type': a:name, 'lnum': 1})
     return empty(prop) ? [] : [prop.lnum, prop.col]
   endfunction
