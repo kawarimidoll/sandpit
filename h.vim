@@ -1,21 +1,7 @@
 source ./inline_mark.vim
 source ./utils.vim
 source ./opts.vim
-
-let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
-function! s:store_get(target) abort
-  return s:store[a:target]
-endfunction
-function! s:store_set(target, str) abort
-  let s:store[a:target] = a:str
-endfunction
-function! s:store_clear(target = '') abort
-  if a:target ==# ''
-    let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
-  else
-    call s:store_set(a:target, '')
-  endif
-endfunction
+source ./store.vim
 
 function! h#enable() abort
   if s:is_enable
@@ -39,7 +25,10 @@ function! h#enable() abort
     execute $"inoremap {k} <cmd>call {sid}i1('{keytrans(k)}', {val})->{sid}i2()<cr>"
   endfor
 
-  call s:store_clear()
+  call store#clear()
+  let s:current_store_name = 'choku'
+
+  let s:phase = { 'choku': '', 'machi': '', 'okuri': '' }
 
   let s:is_enable = v:true
 endfunction
@@ -62,6 +51,9 @@ function! h#disable() abort
       echomsg k v:exception
     endtry
   endfor
+
+  call store#clear()
+  let s:current_store_name = 'choku'
 
   let s:is_enable = v:false
 endfunction
@@ -102,7 +94,8 @@ function! s:get_spec(key) abort
   " store: ローマ字入力バッファの文字列（上書き）
   " その他：関数など func / mode / expr
   let spec = { 'string': '', 'store': '' }
-  let current = s:store_get('choku') .. a:key
+
+  let current = store#get('choku') .. a:key
   if has_key(opts#get('kana_table'), current)
     let spec.message = 'full found'
     " s:store.chokuの残存文字と合わせて完成した場合
@@ -111,14 +104,14 @@ function! s:get_spec(key) abort
       return spec
     endif
     let [kana, roma; _rest] = opts#get('kana_table')[current]->split('\A*\zs') + ['']
-    " call s:store_set('choku', roma)
+    " call store#set('choku', roma)
     let spec.string = kana
     let spec.store = roma
     return spec
   elseif has_key(opts#get('preceding_keys_dict'), current)
     let spec.message = 'full candidate'
     " 完成はしていないが、先行入力の可能性がある場合
-    " call s:store_set('choku', current)
+    " call store#set('choku', current)
     let spec.store = current
     return spec
   endif
@@ -128,10 +121,11 @@ function! s:get_spec(key) abort
     " 先行入力を無視して単体で完成した場合
     if type(opts#get('kana_table')[a:key]) == v:t_dict
       call extend(spec, opts#get('kana_table')[a:key])
+      let spec.store = store#get('choku')
     else
       " specが文字列でdel_odd_charがfalseの場合、
       " storeに残っていた半端な文字をバッファに載せずに消す
-      let prefix = opts#get('del_odd_char') ? '' : s:store_get('choku')
+      let prefix = opts#get('del_odd_char') ? '' : store#get('choku')
       let [kana, roma; _rest] = opts#get('kana_table')[a:key]->split('\A*\zs') + ['']
       let spec.string = prefix .. kana
       let spec.store = roma
@@ -149,7 +143,7 @@ function! s:get_spec(key) abort
   " ここまで完成しない（かなテーブルに定義が何もない）場合
   " specが文字列でdel_odd_charがfalseの場合、
   " storeに残っていた半端な文字をバッファに載せずに消す
-  let prefix = opts#get('del_odd_char') ? '' : s:store_get('choku')
+  let prefix = opts#get('del_odd_char') ? '' : store#get('choku')
   let spec.string = prefix .. a:key
   let spec.store = ''
   return spec
@@ -166,35 +160,62 @@ function! s:i1(key, with_sticky = v:false) abort
 endfunction
 
 let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
+let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
+let s:current_store_name = 'choku'
 function! s:i2(args) abort
   echomsg a:args
 
   let hlname = ''
-  if s:store_get('choku') ==# ''
+  if store#get('choku') ==# ''
     let [lnum, col] = getpos('.')[1:2]
     let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
-  call s:store_set('choku', a:args.store)
+  call store#set('choku', a:args.store)
 
-  if s:store_get('choku') ==# ''
-    call inline_mark#clear(s:show_choku_namespace)
+  let feed = ''
+  if has_key(a:args, 'func')
+    " handle func
+    if a:args.func ==# 'sticky'
+      let s:current_store_name = 'machi'
+    elseif a:args.func ==# 'backspace'
+      if store#get('choku') !=# ''
+        call store#pop('choku')
+      elseif store#get('machi') !=# ''
+        call store#pop('machi')
+      else
+        let feed = "<bs>"
+      endif
+    elseif a:args.func ==# 'kakutei'
+      let s:current_store_name = 'choku'
+      let feed = store#get('machi')
+      call store#clear('machi')
+    endif
+  elseif has_key(a:args, 'mode')
+  " handle mode
+  elseif has_key(a:args, 'expr')
+  " handle expr
   else
-    call inline_mark#put_text(s:show_choku_namespace, s:store_get('choku'), hlname)
+    let feed = a:args.string
   endif
 
-  if has_key(a:args, 'func')
-    " TODO: handle func
-    call feedkeys(utils#trans_special_key(a:args.key), 'n')
-  elseif has_key(a:args, 'mode')
-    " TODO: handle mode
-    call feedkeys(utils#trans_special_key(a:args.key), 'n')
-  elseif has_key(a:args, 'expr')
-    " TODO: handle expr
-    call feedkeys(utils#trans_special_key(a:args.key), 'n')
+  if s:current_store_name == 'choku'
+    call feedkeys(utils#trans_special_key(feed), 'n')
+  elseif s:current_store_name == 'machi'
+    call store#push('machi', feed)
+    " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
+  endif
+
+  if store#get('machi') ==# ''
+    call inline_mark#clear(s:show_machi_namespace)
   else
-    call feedkeys(utils#trans_special_key(a:args.string), 'n')
+    call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
+  endif
+  if store#get('choku') ==# ''
+    call inline_mark#clear(s:show_choku_namespace)
+  else
+    call inline_mark#put_text(s:show_choku_namespace, store#get('choku'), hlname)
   endif
 endfunction
 
