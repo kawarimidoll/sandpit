@@ -13,6 +13,12 @@
 let s:file_name = expand('%:p')
 let s:default_hl = 'Normal'
 
+function! inline_mark#put_text(name, text, hl = '') abort
+  let pos = inline_mark#get(a:name)
+  let [lnum, col] = empty(pos) ? getcurpos('.')[1:2] : pos
+  call inline_mark#put(lnum, col, { 'name': a:name, 'text': a:text, 'hl': a:hl })
+endfunction
+
 if has('nvim')
   let s:ns_dict = {}
 
