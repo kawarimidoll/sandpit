@@ -23,7 +23,7 @@ function! h#enable() abort
 
   augroup h#augroup
     autocmd!
-    autocmd InsertLeave * call h#disable()
+    autocmd InsertLeavePre * call h#disable()
   augroup END
 
   let s:keys_to_remaps = []
@@ -65,6 +65,7 @@ function! h#disable() abort
     endtry
   endfor
 
+  call inline_mark#clear(s:show_okuri_namespace)
   call inline_mark#clear(s:show_machi_namespace)
   call inline_mark#clear(s:show_choku_namespace)
   call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
@@ -179,6 +180,7 @@ endfunction
 
 let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
+let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:current_store_name = 'choku'
 function! s:i2(args) abort
   echomsg a:args
@@ -196,19 +198,36 @@ function! s:i2(args) abort
   if has_key(a:args, 'func')
     " handle func
     if a:args.func ==# 'sticky'
-      let s:current_store_name = 'machi'
+      if s:current_store_name == 'machi'
+        let s:current_store_name = 'okuri'
+      elseif s:current_store_name == 'okuri'
+      " ここで確定？
+      else
+        let s:current_store_name = 'machi'
+      endif
     elseif a:args.func ==# 'backspace'
       if store#get('choku') !=# ''
         call store#pop('choku')
+      elseif store#get('okuri') !=# ''
+        call store#pop('okuri')
+        if store#get('okuri') ==# ''
+          let s:current_store_name = 'machi'
+        endif
       elseif store#get('machi') !=# ''
         call store#pop('machi')
+        if store#get('machi') ==# ''
+          let s:current_store_name = 'choku'
+        endif
       else
-        let feed = "<bs>"
+        let feed = a:args.key
       endif
     elseif a:args.func ==# 'kakutei'
       let s:current_store_name = 'choku'
-      let feed = store#get('machi')
-      call store#clear('machi')
+      let feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
+      call store#clear()
+      if feed ==# ''
+        let feed = a:args.key
+      endif
     endif
   elseif has_key(a:args, 'mode')
   " handle mode
@@ -223,12 +242,19 @@ function! s:i2(args) abort
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
     " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
+  elseif s:current_store_name == 'okuri'
+    call store#push('okuri', feed)
   endif
 
   if store#get('machi') ==# ''
     call inline_mark#clear(s:show_machi_namespace)
   else
     call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
+  endif
+  if store#get('okuri') ==# ''
+    call inline_mark#clear(s:show_okuri_namespace)
+  else
+    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
   endif
   if store#get('choku') ==# ''
     call inline_mark#clear(s:show_choku_namespace)
