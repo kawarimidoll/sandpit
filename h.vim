@@ -3,17 +3,8 @@ source ./utils.vim
 source ./opts.vim
 source ./store.vim
 
-" feedkeysだと動きが遅いことがあるので特殊文字意外はsetlineで反映する
 function! h#feed(str) abort
-  if a:str !~ '^\p\+$'
-    call feedkeys(a:str, 'n')
-  else
-    let [lnum, cnum] = getcurpos()[1:2]
-    let idx = cnum - 1
-    let line = getline('.')
-    call setline('.', strpart(line, 0, idx) .. a:str .. strpart(line, idx))
-    call cursor(lnum, cnum + strlen(a:str))
-  endif
+  call feedkeys(a:str, 'ni')
 endfunction
 
 function! h#enable() abort
@@ -53,6 +44,12 @@ function! h#disable() abort
 
   autocmd! h#augroup
 
+  call inline_mark#clear(s:show_okuri_namespace)
+  call inline_mark#clear(s:show_machi_namespace)
+  call inline_mark#clear(s:show_choku_namespace)
+  " call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
+  let after_feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
+
   for k in s:keys_to_remaps
     try
       if type(k) == v:t_string
@@ -65,15 +62,11 @@ function! h#disable() abort
     endtry
   endfor
 
-  call inline_mark#clear(s:show_okuri_namespace)
-  call inline_mark#clear(s:show_machi_namespace)
-  call inline_mark#clear(s:show_choku_namespace)
-  call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
-
   call store#clear()
   let s:current_store_name = 'choku'
 
   let s:is_enable = v:false
+  call h#feed(after_feed)
 endfunction
 
 function! h#toggle() abort
