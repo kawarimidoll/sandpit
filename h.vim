@@ -227,13 +227,6 @@ let s:phase_kouho = v:false
 function! s:i2(args) abort
   echomsg a:args
 
-  let hlname = ''
-  if store#is_blank('choku')
-    let [lnum, col] = getpos('.')[1:2]
-    let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
-    let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
-  endif
-
   call store#set('choku', a:args.store)
 
   let next_kouho = v:false
@@ -283,16 +276,22 @@ function! s:i2(args) abort
   elseif has_key(a:args, 'call')
     call call(a:args.call[0], a:args.call[1:])
   else
-    let feed = a:args.string
+    if complete_info(['selected']).selected >= 0
+      " kakutei
+      let s:current_store_name = 'choku'
+      let feed = store#get('machi') .. store#get('okuri')
+      call store#clear('machi')
+      call store#clear('okuri')
+    endif
+    let feed ..= a:args.string
   endif
 
   let s:phase_kouho = next_kouho
-
   if s:current_store_name == 'choku' || feed !~ '\p'
-    call h#feed(utils#trans_special_key(feed))
+    call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
+    return
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
-  " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
   elseif s:current_store_name == 'okuri'
     call store#push('okuri', feed)
 
@@ -300,6 +299,16 @@ function! s:i2(args) abort
       let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
       call h#feed(utils#trans_special_key(feed))
     endif
+  endif
+  call s:i3()
+endfunction
+
+function! s:i3(...) abort
+  let hlname = ''
+  if store#is_blank('choku')
+    let [lnum, col] = getpos('.')[1:2]
+    let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
+    let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
   if store#is_blank('machi')
