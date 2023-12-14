@@ -96,6 +96,9 @@ function! s:on_complete_changed(event) abort
     call store#set('machi', a:event.completed_item.abbr)
   endif
   call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
+  if store#is_present('okuri')
+    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
+  endif
 endfunction
 
 function! s:get_spec(key) abort
@@ -289,9 +292,14 @@ function! s:i2(args) abort
     call h#feed(utils#trans_special_key(feed))
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
-    " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
+  " call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
   elseif s:current_store_name == 'okuri'
     call store#push('okuri', feed)
+
+    if store#is_blank('choku')
+      let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
+      call h#feed(utils#trans_special_key(feed))
+    endif
   endif
 
   if store#get('machi') ==# ''

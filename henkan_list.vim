@@ -192,7 +192,7 @@ function! henkan_list#insert(item) abort
   return insert(s:latest_henkan_list, a:item)
 endfunction
 
-function! s:parse_henkan_list_v2(lines, jisyo, okuri = '') abort
+function! s:parse_henkan_list_v2(lines, jisyo) abort
   if empty(a:lines)
     return []
   endif
@@ -211,7 +211,7 @@ function! s:parse_henkan_list_v2(lines, jisyo, okuri = '') abort
       " :h complete-items
       call add(henkan_list, {
             \ 'word': '',
-            \ 'abbr': word .. a:okuri,
+            \ 'abbr': word,
             \ 'menu': $'{a:jisyo.mark}{info}',
             \ 'dup': 1,
             \ 'empty': 1,
@@ -224,27 +224,25 @@ function! s:parse_henkan_list_v2(lines, jisyo, okuri = '') abort
   return henkan_list
 endfunction
 
-" 送りなし検索→str='けんさく',okuri=''
-" 送りあり検索→str='しら',okuri='べ'
-function! henkan_list#update_manual_v2(str, okuri = '') abort
-  let str = s:gen_henkan_query(a:str)
+" 送りなし検索→machi='けんさく',okuri=''
+" 送りあり検索→machi='しら',okuri='べ'
+function! henkan_list#update_manual_v2(machi, okuri = '') abort
+  let query = s:gen_henkan_query(a:machi)
 
   if a:okuri !=# ''
-    let consonant = utils#consonant(strcharpart(a:okuri, 0, 1))
-    let str ..= consonant
+    let query ..= utils#consonant(strcharpart(a:okuri, 0, 1))
   endif
 
-  let numstr_list = a:str->split('\D\+')
+  let numstr_list = a:machi->split('\D\+')
   if !empty(numstr_list)
-    let str = str->substitute('\d\+', '#', 'g')
+    let query = query->substitute('\d\+', '#', 'g')
   endif
 
   let already_add_dict = {}
   let henkan_list = []
   for jisyo in opts#get('jisyo_list')
-    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str} /', '')
-    let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
-    let kouho_list = s:parse_henkan_list_v2(lines, jisyo, a:okuri)
+    let lines = jisyo.grep_cmd->substitute(':q:', $'{query} /', '')->systemlist()
+    let kouho_list = s:parse_henkan_list_v2(lines, jisyo)
     for kouho in kouho_list
       if !has_key(already_add_dict, kouho.abbr)
         let already_add_dict[kouho.abbr] = 1
