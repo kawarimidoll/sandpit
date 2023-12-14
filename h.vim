@@ -174,6 +174,18 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
+function! s:henkan_start(machistr, okuristr = '') abort
+  echowindow 'henkan' a:machistr a:okuristr
+  call henkan_list#update_manual_v2(a:machistr, a:okuristr)
+  let comp_list = copy(henkan_list#get())
+  let feed = ''
+  if !empty(comp_list)
+    call complete(col('.'), comp_list)
+    let feed = "\<c-n>"
+  endif
+  return feed
+endfunction
+
 function! s:henkan() abort
   let feed = ''
   if store#get('okuri') !=# ''
@@ -184,17 +196,8 @@ function! s:henkan() abort
       return feed
     endif
 
-    let s:henkan_context = {
-          \ 'query': store#get('machi') .. store#get('choku')
-          \ }
+    let feed = s:henkan_start(store#get('machi') .. store#get('choku'))
 
-    echowindow 'henkan' s:henkan_context.query
-    call henkan_list#update_manual_v2(s:henkan_context.query)
-    let comp_list = copy(henkan_list#get())
-    if !empty(comp_list)
-      call complete(col('.'), comp_list)
-      let feed = "\<c-n>"
-    endif
   else
     let feed = store#get('choku') .. a:args.key
     call store#clear('choku')
