@@ -273,7 +273,7 @@ function! s:i2(args) abort
   elseif has_key(a:args, 'mode')
   " handle mode
   elseif has_key(a:args, 'expr')
-  " handle expr
+    let feed = call(a:args.expr[0], a:args.expr[1:])
   elseif has_key(a:args, 'call')
     call call(a:args.call[0], a:args.call[1:])
   else
