@@ -191,3 +191,91 @@ endfunction
 function! henkan_list#insert(item) abort
   return insert(s:latest_henkan_list, a:item)
 endfunction
+
+function! s:parse_henkan_list_v2(lines, jisyo, okuri = '') abort
+  if empty(a:lines)
+    return []
+  endif
+
+  let henkan_list = []
+
+  for line in a:lines
+    " よみ /変換1/変換2/.../
+    " stridxがバイトインデックスなのでstrpartを使う
+    let space_idx = stridx(line, ' /')
+    let yomi = strpart(line, 0, space_idx)
+    let henkan_str = strpart(line, space_idx+1)
+    for v in split(henkan_str, '/')
+      " ;があってもなくても良いよう_restを使う
+      let [word, info; _rest] = split(v, ';') + ['']
+      " :h complete-items
+      call add(henkan_list, {
+            \ 'word': '',
+            \ 'abbr': word .. a:okuri,
+            \ 'menu': $'{a:jisyo.mark}{info}',
+            \ 'dup': 1,
+            \ 'empty': 1,
+            \ 'user_data': { 'yomi': trim(yomi), 'path': a:jisyo.path }
+            \ })
+            " \ 'info': $'{a:jisyo.mark}{info}',
+    endfor
+  endfor
+
+  return henkan_list
+endfunction
+
+" 送りなし検索→str='けんさく',okuri=''
+" 送りあり検索→str='しら',okuri='べ'
+function! henkan_list#update_manual_v2(str, okuri = '') abort
+  let str = s:gen_henkan_query(a:str)
+
+  if a:okuri !=# ''
+    let consonant = utils#consonant(strcharpart(a:okuri, 0, 1))
+    let str ..= consonant
+  endif
+
+  let numstr_list = a:str->split('\D\+')
+  if !empty(numstr_list)
+    let str = str->substitute('\d\+', '#', 'g')
+  endif
+
+  let already_add_dict = {}
+  let henkan_list = []
+  for jisyo in opts#get('jisyo_list')
+    let cmd = substitute(jisyo.grep_cmd, ':q:', $'{str} /', '')
+    let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
+    let kouho_list = s:parse_henkan_list_v2(lines, jisyo, a:okuri)
+    for kouho in kouho_list
+      if !has_key(already_add_dict, kouho.abbr)
+        let already_add_dict[kouho.abbr] = 1
+        call add(henkan_list, kouho)
+      endif
+    endfor
+  endfor
+
+  if empty(numstr_list)
+    let s:latest_henkan_list = henkan_list
+    return
+  endif
+
+  " 数値用変換リスト整形
+  " 効率的ではないが数値の変換候補はそれほどの量にはならない想定なので気にしない
+  let num_henkan_list = []
+  for item in henkan_list
+    if item.word =~ '#4' ||
+          \ (item.word =~ '#8' && numstr_list->len() > 1) || (item.word =~ '#8' && numstr_list[0] !~ '\d\d')
+      continue
+    endif
+    for numstr in numstr_list
+      let item.word = item.word->substitute('#0', numstr, '')
+            \ ->substitute('#1', converters#numconv1(numstr), '')
+            \ ->substitute('#2', converters#numconv2(numstr), '')
+            \ ->substitute('#3', converters#numconv3(numstr), '')
+            \ ->substitute('#5', converters#numconv5(numstr), '')
+            \ ->substitute('#8', converters#numconv8(numstr), '')
+            \ ->substitute('#9', converters#numconv9(numstr), '')
+    endfor
+    call add (num_henkan_list, item)
+  endfor
+  let s:latest_henkan_list = num_henkan_list
+endfunction

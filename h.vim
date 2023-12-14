@@ -2,6 +2,7 @@ source ./inline_mark.vim
 source ./utils.vim
 source ./opts.vim
 source ./store.vim
+source ./henkan_list.vim
 
 function! h#feed(str) abort
   call feedkeys(a:str, 'ni')
@@ -14,6 +15,7 @@ function! h#enable() abort
 
   augroup h#augroup
     autocmd!
+    autocmd CompleteChanged * call s:on_complete_changed(v:event)
   augroup END
 
   let s:keys_to_remaps = []
@@ -85,6 +87,15 @@ function! h#init(opts = {}) abort
   endtry
 
   let s:is_enable = v:false
+endfunction
+
+function! s:on_complete_changed(event) abort
+  if a:event.completed_item->empty()
+    call store#set('machi', s:henkan_context.query)
+  else
+    call store#set('machi', a:event.completed_item.abbr)
+  endif
+  call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
 endfunction
 
 function! s:get_spec(key) abort
@@ -223,6 +234,24 @@ function! s:i2(args) abort
       call store#clear()
       if feed ==# ''
         let feed = a:args.key
+      endif
+    elseif a:args.func ==# 'henkan'
+      if store#get('okuri') !=# ''
+      " nop
+      elseif store#get('machi') !=# ''
+        let s:henkan_context = {
+              \ 'query': store#get('machi') .. store#get('choku')
+              \ }
+        echowindow 'henkan' s:henkan_context.query
+        call henkan_list#update_manual_v2(s:henkan_context.query)
+        let comp_list = copy(henkan_list#get())
+        if !empty(comp_list)
+          call complete(col('.'), comp_list)
+          let feed = "\<c-n>"
+        endif
+      else
+        let feed = store#get('choku') .. a:args.key
+        call store#clear('choku')
       endif
     endif
   elseif has_key(a:args, 'mode')
