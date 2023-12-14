@@ -191,9 +191,9 @@ endfunction
 
 function! s:henkan() abort
   let feed = ''
-  if store#get('okuri') !=# ''
+  if store#is_present('okuri')
     return ''
-  elseif store#get('machi') !=# ''
+  elseif store#is_present('machi')
     if s:phase_kouho
       let feed = "\<c-n>"
       return feed
@@ -228,7 +228,7 @@ function! s:i2(args) abort
   echomsg a:args
 
   let hlname = ''
-  if store#get('choku') ==# ''
+  if store#is_blank('choku')
     let [lnum, col] = getpos('.')[1:2]
     let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
@@ -250,16 +250,16 @@ function! s:i2(args) abort
         let s:current_store_name = 'machi'
       endif
     elseif a:args.func ==# 'backspace'
-      if store#get('choku') !=# ''
+      if store#is_present('choku')
         call store#pop('choku')
-      elseif store#get('okuri') !=# ''
+      elseif store#is_present('okuri')
         call store#pop('okuri')
-        if store#get('okuri') ==# ''
+        if store#is_blank('okuri')
           let s:current_store_name = 'machi'
         endif
-      elseif store#get('machi') !=# ''
+      elseif store#is_present('machi')
         call store#pop('machi')
-        if store#get('machi') ==# ''
+        if store#is_blank('machi')
           let s:current_store_name = 'choku'
         endif
       else
@@ -302,17 +302,17 @@ function! s:i2(args) abort
     endif
   endif
 
-  if store#get('machi') ==# ''
+  if store#is_blank('machi')
     call inline_mark#clear(s:show_machi_namespace)
   else
     call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
   endif
-  if store#get('okuri') ==# ''
+  if store#is_blank('okuri')
     call inline_mark#clear(s:show_okuri_namespace)
   else
     call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
   endif
-  if store#get('choku') ==# ''
+  if store#is_blank('choku')
     call inline_mark#clear(s:show_choku_namespace)
   else
     call inline_mark#put_text(s:show_choku_namespace, store#get('choku'), hlname)
