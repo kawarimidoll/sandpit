@@ -174,6 +174,34 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
+function! s:henkan() abort
+  let feed = ''
+  if store#get('okuri') !=# ''
+    return ''
+  elseif store#get('machi') !=# ''
+    if s:phase_kouho
+      let feed = "\<c-n>"
+      return feed
+    endif
+
+    let s:henkan_context = {
+          \ 'query': store#get('machi') .. store#get('choku')
+          \ }
+
+    echowindow 'henkan' s:henkan_context.query
+    call henkan_list#update_manual_v2(s:henkan_context.query)
+    let comp_list = copy(henkan_list#get())
+    if !empty(comp_list)
+      call complete(col('.'), comp_list)
+      let feed = "\<c-n>"
+    endif
+  else
+    let feed = store#get('choku') .. a:args.key
+    call store#clear('choku')
+  endif
+  return feed
+endfunction
+
 function! s:i1(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
@@ -189,6 +217,7 @@ let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
 let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:current_store_name = 'choku'
+let s:phase_kouho = v:false
 function! s:i2(args) abort
   echomsg a:args
 
@@ -200,6 +229,8 @@ function! s:i2(args) abort
   endif
 
   call store#set('choku', a:args.store)
+
+  let next_kouho = v:false
 
   let feed = ''
   if has_key(a:args, 'func')
@@ -236,23 +267,8 @@ function! s:i2(args) abort
         let feed = a:args.key
       endif
     elseif a:args.func ==# 'henkan'
-      if store#get('okuri') !=# ''
-      " nop
-      elseif store#get('machi') !=# ''
-        let s:henkan_context = {
-              \ 'query': store#get('machi') .. store#get('choku')
-              \ }
-        echowindow 'henkan' s:henkan_context.query
-        call henkan_list#update_manual_v2(s:henkan_context.query)
-        let comp_list = copy(henkan_list#get())
-        if !empty(comp_list)
-          call complete(col('.'), comp_list)
-          let feed = "\<c-n>"
-        endif
-      else
-        let feed = store#get('choku') .. a:args.key
-        call store#clear('choku')
-      endif
+      let feed = s:henkan()
+      let next_kouho = v:true
     endif
   elseif has_key(a:args, 'mode')
   " handle mode
@@ -264,7 +280,9 @@ function! s:i2(args) abort
     let feed = a:args.string
   endif
 
-  if s:current_store_name == 'choku'
+  let s:phase_kouho = next_kouho
+
+  if s:current_store_name == 'choku' || feed !~ '\p'
     call h#feed(utils#trans_special_key(feed))
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
