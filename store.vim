@@ -2,7 +2,7 @@ let s:store = { 'choku': '', 'machi': '', 'okuri': '' }
 let s:show_choku_namespace = 'show_choku_namespace'
 
 function! store#display_odd_char() abort
-  if store#get('choku') ==# ''
+  if store#is_blank('choku')
     call inline_mark#clear(s:show_choku_namespace)
     return
   endif
@@ -39,4 +39,12 @@ endfunction
 
 function! store#pop(target) abort
   call store#set(a:target, store#get(a:target)->substitute('.$', '', ''))
+endfunction
+
+function! store#is_blank(target) abort
+  return store#get(a:target) ==# ''
+endfunction
+
+function! store#is_present(target) abort
+  return !store#is_blank(a:target)
 endfunction
