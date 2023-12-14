@@ -227,5 +227,6 @@
   "<space>": { "func": "henkan" },
   "zq": { "mode": "han_kata" },
   "<c-l>": { "mode": "zen_alnum" },
+  "<esc>": { "call": ["h#disable", 1] },
   "@": { "expr": ["strftime", "%Y/%m/%d"] }
 }

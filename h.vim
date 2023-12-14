@@ -14,7 +14,6 @@ function! h#enable() abort
 
   augroup h#augroup
     autocmd!
-    autocmd InsertLeavePre * call h#disable()
   augroup END
 
   let s:keys_to_remaps = []
@@ -37,7 +36,7 @@ function! h#enable() abort
   let s:is_enable = v:true
 endfunction
 
-function! h#disable() abort
+function! h#disable(escape = v:false) abort
   if !s:is_enable
     return
   endif
@@ -66,6 +65,10 @@ function! h#disable() abort
   let s:current_store_name = 'choku'
 
   let s:is_enable = v:false
+  if a:escape
+    let after_feed ..= "\<esc>"
+    " call timer_start(1, {->call('h#feed', ["\<esc>"])})
+  endif
   call h#feed(after_feed)
 endfunction
 
@@ -226,6 +229,8 @@ function! s:i2(args) abort
   " handle mode
   elseif has_key(a:args, 'expr')
   " handle expr
+  elseif has_key(a:args, 'call')
+    call call(a:args.call[0], a:args.call[1:])
   else
     let feed = a:args.string
   endif
