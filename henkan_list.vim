@@ -134,20 +134,32 @@ function! henkan_list#update_manual(str, okuri = '') abort
     let lines = systemlist(substitute(cmd, ':query:', $'{str} ', 'g'))
     call extend(henkan_list, s:parse_henkan_list(lines, jisyo, a:okuri))
   endfor
-  if !empty(numstr_list)
-    for item in henkan_list
-      for numstr in numstr_list
-        let item.word = item.word->substitute('#0', numstr, '')
-              \ ->substitute('#1', converters#numconv1(numstr), '')
-              \ ->substitute('#2', converters#numconv2(numstr), '')
-              \ ->substitute('#3', converters#numconv3(numstr), '')
-              \ ->substitute('#5', converters#numconv5(numstr), '')
-              \ ->substitute('#8', converters#numconv8(numstr), '')
-              \ ->substitute('#9', converters#numconv9(numstr), '')
-      endfor
-    endfor
+
+  if empty(numstr_list)
+    let s:latest_henkan_list = henkan_list
+    return
   endif
-  let s:latest_henkan_list = henkan_list
+
+  " 数値用変換リスト整形
+  " 効率的ではないが数値の変換候補はそれほどの量にはならない想定なので気にしない
+  let num_henkan_list = []
+  for item in henkan_list
+    if item.word =~ '#4' ||
+          \ (item.word =~ '#8' && numstr_list->len() > 1) || (item.word =~ '#8' && numstr_list[0] !~ '\d\d')
+      continue
+    endif
+    for numstr in numstr_list
+      let item.word = item.word->substitute('#0', numstr, '')
+            \ ->substitute('#1', converters#numconv1(numstr), '')
+            \ ->substitute('#2', converters#numconv2(numstr), '')
+            \ ->substitute('#3', converters#numconv3(numstr), '')
+            \ ->substitute('#5', converters#numconv5(numstr), '')
+            \ ->substitute('#8', converters#numconv8(numstr), '')
+            \ ->substitute('#9', converters#numconv9(numstr), '')
+    endfor
+    call add (num_henkan_list, item)
+  endfor
+  let s:latest_henkan_list = num_henkan_list
 endfunction
 
 function! henkan_list#update_fuzzy(str, exact_match = '') abort
