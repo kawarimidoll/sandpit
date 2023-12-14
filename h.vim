@@ -257,7 +257,7 @@ function! s:i2(args) abort
           let s:current_store_name = 'choku'
         endif
       else
-        let feed = a:args.key
+        let feed = '<bs>'
       endif
     elseif a:args.func ==# 'kakutei'
       let s:current_store_name = 'choku'
