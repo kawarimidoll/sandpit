@@ -189,13 +189,53 @@ function! s:henkan_start(machistr, okuristr = '') abort
 endfunction
 
 function! s:sticky() abort
+  if store#is_present('choku')
+    " ひらがなになりきれていない文字が残っている場合はスキップ
+    return ''
+  endif
+
+  if complete_info(['selected']).selected >= 0
+    return s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+  endif
   if s:current_store_name == 'machi'
-    let s:current_store_name = 'okuri'
+    if store#is_present('machi')
+      let s:current_store_name = 'okuri'
+    endif
   elseif s:current_store_name == 'okuri'
-  " ここで確定？
+  " nop
   else
     let s:current_store_name = 'machi'
   endif
+  return ''
+endfunction
+
+function! s:backspace() abort
+  let feed = ''
+  if store#is_present('choku')
+    call store#pop('choku')
+  elseif store#is_present('okuri')
+    call store#pop('okuri')
+    if store#is_blank('okuri')
+      let s:current_store_name = 'machi'
+    endif
+  elseif store#is_present('machi')
+    call store#pop('machi')
+    if store#is_blank('machi')
+      let s:current_store_name = 'choku'
+    endif
+  else
+    let feed = '<bs>'
+  endif
+  return feed
+endfunction
+
+function! s:kakutei(fallback_key) abort
+  let s:current_store_name = 'choku'
+  let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
+  call store#clear('kouho')
+  call store#clear('machi')
+  call store#clear('okuri')
+  return feed ==# '' ? a:fallback_key : feed
 endfunction
 
 function! s:henkan(fallback_key) abort
@@ -220,6 +260,7 @@ endfunction
 function! s:i1(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
+    " TODO: 候補選択中に大文字で確定を行った場合の処理
     call s:sticky()
     let key = a:key->tolower()
   endif
@@ -246,30 +287,12 @@ function! s:i2(args) abort
   if has_key(a:args, 'func')
     " handle func
     if a:args.func ==# 'sticky'
-      call s:sticky()
+      let feed = s:sticky()
     elseif a:args.func ==# 'backspace'
-      if store#is_present('choku')
-        call store#pop('choku')
-      elseif store#is_present('okuri')
-        call store#pop('okuri')
-        if store#is_blank('okuri')
-          let s:current_store_name = 'machi'
-        endif
-      elseif store#is_present('machi')
-        call store#pop('machi')
-        if store#is_blank('machi')
-          let s:current_store_name = 'choku'
-        endif
-      else
-        let feed = '<bs>'
-      endif
+      let feed = s:backspace()
     elseif a:args.func ==# 'kakutei'
-      let s:current_store_name = 'choku'
-      let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri') .. store#get('choku')
+      let feed = s:kakutei(a:args.key) .. store#get('choku')
       call store#clear()
-      if feed ==# ''
-        let feed = a:args.key
-      endif
     elseif a:args.func ==# 'henkan'
       let feed = s:henkan(a:args.key)
       let next_kouho = v:true
@@ -282,17 +305,13 @@ function! s:i2(args) abort
     call call(a:args.call[0], a:args.call[1:])
   else
     if complete_info(['selected']).selected >= 0
-      " kakutei
-      let s:current_store_name = 'choku'
-      let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
-      call store#clear('kouho')
-      call store#clear('machi')
-      call store#clear('okuri')
+      let feed = s:kakutei('')
     endif
     let feed ..= a:args.string
   endif
 
   let s:phase_kouho = next_kouho
+  " echowindow s:current_store_name feed
   if s:current_store_name == 'choku' || feed !~ '\p'
     call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
     return
