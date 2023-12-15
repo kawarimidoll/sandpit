@@ -27,7 +27,7 @@ function! h#enable() abort
     let current_map = maparg(key, 'i', 0, 1)
     let k = keytrans(key)
     call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
-    execute $"inoremap {k} <cmd>call {sid}i1('{keytrans(k)}', {val})->{sid}i2()<cr>"
+    execute $"inoremap {k} <cmd>call {sid}i1('{keytrans(k)}', {val})<cr>"
   endfor
 
   call store#clear()
@@ -258,16 +258,42 @@ function! s:henkan(fallback_key) abort
 endfunction
 
 function! s:i1(key, with_sticky = v:false) abort
+  let feed = ''
   let key = a:key
+  let kakutei_feed = ''
   if a:with_sticky
     " TODO: 候補選択中に大文字で確定を行った場合の処理
-    call s:sticky()
+    if complete_info(['selected']).selected >= 0
+      let kakutei_feed = s:kakutei('')
+      let s:current_store_name = 'machi'
+    else
+      call s:sticky()
+    endif
     let key = a:key->tolower()
   endif
   let spec = s:get_spec(key)
   let spec.original_key = a:key
   let spec.key = key
-  return spec
+  let spec.with_sticky = a:with_sticky
+
+  " if a:with_sticky
+  "   " TODO: 候補選択中に大文字で確定を行った場合の処理
+  "   let feed = s:i2({ 'string': '', 'store': '', 'func': 'sticky' })
+  " endif
+
+  let feed ..= s:i2(spec)
+
+  echowindow $'kakutei_feed {kakutei_feed} feed {feed}'
+
+  if kakutei_feed !=# ''
+    call store#set('machi', feed)
+    let feed = kakutei_feed
+  endif
+  if feed ==# ''
+    call s:i3()
+  else
+    call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
+  endif
 endfunction
 
 let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
@@ -277,7 +303,7 @@ let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
 let s:current_store_name = 'choku'
 let s:phase_kouho = v:false
 function! s:i2(args) abort
-  echomsg a:args
+  echomsg s:current_store_name a:args
 
   call store#set('choku', a:args.store)
 
@@ -304,7 +330,7 @@ function! s:i2(args) abort
   elseif has_key(a:args, 'call')
     call call(a:args.call[0], a:args.call[1:])
   else
-    if complete_info(['selected']).selected >= 0
+    if complete_info(['selected']).selected >= 0 && !a:args.with_sticky
       let feed = s:kakutei('')
     endif
     let feed ..= a:args.string
@@ -312,9 +338,11 @@ function! s:i2(args) abort
 
   let s:phase_kouho = next_kouho
   " echowindow s:current_store_name feed
+  echomsg s:current_store_name a:args
   if s:current_store_name == 'choku' || feed !~ '\p'
-    call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
-    return
+    " call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
+    " return
+    return feed
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
   elseif s:current_store_name == 'okuri'
@@ -322,10 +350,12 @@ function! s:i2(args) abort
 
     if store#is_blank('choku')
       let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
-      call h#feed(utils#trans_special_key(feed))
+      " call h#feed(utils#trans_special_key(feed))
+      return feed
     endif
   endif
-  call s:i3()
+  " call s:i3()
+  return ''
 endfunction
 
 function! s:i3(...) abort
