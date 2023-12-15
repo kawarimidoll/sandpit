@@ -47,6 +47,7 @@ function! h#disable(escape = v:false) abort
 
   call inline_mark#clear(s:show_okuri_namespace)
   call inline_mark#clear(s:show_machi_namespace)
+  call inline_mark#clear(s:show_kouho_namespace)
   call inline_mark#clear(s:show_choku_namespace)
   " call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
   let after_feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
@@ -90,15 +91,8 @@ function! h#init(opts = {}) abort
 endfunction
 
 function! s:on_complete_changed(event) abort
-  if a:event.completed_item->empty()
-    call store#set('machi', s:henkan_context.query)
-  else
-    call store#set('machi', a:event.completed_item.abbr)
-  endif
-  call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), 'IncSearch')
-  if store#is_present('okuri')
-    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
-  endif
+  call store#set('kouho', get(a:event.completed_item, 'abbr', ''))
+  call s:i3()
 endfunction
 
 function! s:get_spec(key) abort
@@ -178,18 +172,23 @@ function! s:get_spec(key) abort
 endfunction
 
 function! s:henkan_start(machistr, okuristr = '') abort
+  let s:henkan_context = {
+        \ 'machi': a:machistr,
+        \ 'okuri': a:okuristr,
+        \ }
   echowindow 'henkan' a:machistr a:okuristr
   call henkan_list#update_manual_v2(a:machistr, a:okuristr)
   let comp_list = copy(henkan_list#get())
   let feed = ''
   if !empty(comp_list)
+    " call inline_mark#clear(s:show_machi_namespace)
     call complete(col('.'), comp_list)
     let feed = "\<c-n>"
   endif
   return feed
 endfunction
 
-function! s:henkan() abort
+function! s:henkan(fallback_key) abort
   let feed = ''
   if store#is_present('okuri')
     return ''
@@ -202,7 +201,7 @@ function! s:henkan() abort
     let feed = s:henkan_start(store#get('machi') .. store#get('choku'))
 
   else
-    let feed = store#get('choku') .. a:args.key
+    let feed = store#get('choku') .. a:fallback_key
     call store#clear('choku')
   endif
   return feed
@@ -222,6 +221,7 @@ endfunction
 let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
 let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
+let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
 let s:current_store_name = 'choku'
 let s:phase_kouho = v:false
 function! s:i2(args) abort
@@ -260,13 +260,13 @@ function! s:i2(args) abort
       endif
     elseif a:args.func ==# 'kakutei'
       let s:current_store_name = 'choku'
-      let feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
+      let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri') .. store#get('choku')
       call store#clear()
       if feed ==# ''
         let feed = a:args.key
       endif
     elseif a:args.func ==# 'henkan'
-      let feed = s:henkan()
+      let feed = s:henkan(a:args.key)
       let next_kouho = v:true
     endif
   elseif has_key(a:args, 'mode')
@@ -279,7 +279,8 @@ function! s:i2(args) abort
     if complete_info(['selected']).selected >= 0
       " kakutei
       let s:current_store_name = 'choku'
-      let feed = store#get('machi') .. store#get('okuri')
+      let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
+      call store#clear('kouho')
       call store#clear('machi')
       call store#clear('okuri')
     endif
@@ -311,10 +312,16 @@ function! s:i3(...) abort
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
-  if store#is_blank('machi')
-    call inline_mark#clear(s:show_machi_namespace)
+  if store#is_blank('kouho')
+    call inline_mark#clear(s:show_kouho_namespace)
+    if store#is_blank('machi')
+      call inline_mark#clear(s:show_machi_namespace)
+    else
+      call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
+    endif
   else
-    call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
+    call inline_mark#clear(s:show_machi_namespace)
+    call inline_mark#put_text(s:show_kouho_namespace, store#get('kouho'),  'Search')
   endif
   if store#is_blank('okuri')
     call inline_mark#clear(s:show_okuri_namespace)
