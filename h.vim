@@ -194,16 +194,16 @@ function! s:henkan(fallback_key) abort
     return ''
   elseif store#is_present('machi')
     if s:phase_kouho
-      let feed = "\<c-n>"
-      return feed
+      return "\<c-n>"
     endif
-
-    let feed = s:henkan_start(store#get('machi') .. store#get('choku'))
-
+    if opts#get('trailing_n') && store#get('choku') ==# 'n' && store#get('machi')->slice(-1) != 'ん'
+      call store#push('machi', 'ん')
+    endif
+    let feed = s:henkan_start(store#get('machi'))
   else
     let feed = store#get('choku') .. a:fallback_key
-    call store#clear('choku')
   endif
+  call store#clear('choku')
   return feed
 endfunction
 
