@@ -188,10 +188,20 @@ function! s:henkan_start(machistr, okuristr = '') abort
   return feed
 endfunction
 
+function! s:sticky() abort
+  if s:current_store_name == 'machi'
+    let s:current_store_name = 'okuri'
+  elseif s:current_store_name == 'okuri'
+  " ここで確定？
+  else
+    let s:current_store_name = 'machi'
+  endif
+endfunction
+
 function! s:henkan(fallback_key) abort
   let feed = ''
   if store#is_present('okuri')
-    return ''
+    return "\<c-n>"
   elseif store#is_present('machi')
     if s:phase_kouho
       return "\<c-n>"
@@ -210,6 +220,7 @@ endfunction
 function! s:i1(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
+    call s:sticky()
     let key = a:key->tolower()
   endif
   let spec = s:get_spec(key)
@@ -235,13 +246,7 @@ function! s:i2(args) abort
   if has_key(a:args, 'func')
     " handle func
     if a:args.func ==# 'sticky'
-      if s:current_store_name == 'machi'
-        let s:current_store_name = 'okuri'
-      elseif s:current_store_name == 'okuri'
-      " ここで確定？
-      else
-        let s:current_store_name = 'machi'
-      endif
+      call s:sticky()
     elseif a:args.func ==# 'backspace'
       if store#is_present('choku')
         call store#pop('choku')
