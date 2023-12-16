@@ -288,8 +288,9 @@ let s:current_store_name = 'choku'
 let s:phase_kouho = v:false
 function! s:i2(args) abort
   let prev_store_name = s:current_store_name
+  let spec = a:args
 
-  call store#set('choku', a:args.store)
+  call store#set('choku', spec.store)
 
   " kouho状態に入る(継続する)かのフラグ
   let next_kouho = v:false
@@ -303,9 +304,9 @@ function! s:i2(args) abort
   let after_sticky = v:false
 
   let feed = ''
-  if has_key(a:args, 'func')
+  if has_key(spec, 'func')
     " handle func
-    if a:args.func ==# 'sticky'
+    if spec.func ==# 'sticky'
       if s:is_complete_selected()
         let feed = s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
         let after_sticky = v:true
@@ -314,40 +315,40 @@ function! s:i2(args) abort
         let feed = s:sticky()
       endif
 
-    elseif a:args.func ==# 'backspace'
+    elseif spec.func ==# 'backspace'
       let feed = s:backspace()
-    elseif a:args.func ==# 'kakutei'
-      let feed = s:kakutei(a:args.key) .. store#get('choku')
+    elseif spec.func ==# 'kakutei'
+      let feed = s:kakutei(spec.key) .. store#get('choku')
       call store#clear()
-    elseif a:args.func ==# 'henkan'
-      let feed = s:henkan(a:args.key)
+    elseif spec.func ==# 'henkan'
+      let feed = s:henkan(spec.key)
       let next_kouho = v:true
     endif
-  elseif has_key(a:args, 'mode')
+  elseif has_key(spec, 'mode')
     if store#is_present('okuri')
     " nop
     elseif store#is_present('machi')
       if s:phase_kouho
       " nop
       else
-        let feed ..= mode#convert_alt(a:args.mode, s:kakutei(''))
+        let feed ..= mode#convert_alt(spec.mode, s:kakutei(''))
         let allow_convert = v:false
       endif
     else
-      call mode#set_alt(a:args.mode)
+      call mode#set_alt(spec.mode)
       if mode#is_start_sticky()
         let after_sticky = v:true
       endif
     endif
-  elseif has_key(a:args, 'expr')
-    let feed = call(a:args.expr[0], a:args.expr[1:])
-  elseif has_key(a:args, 'call')
-    call call(a:args.call[0], a:args.call[1:])
+  elseif has_key(spec, 'expr')
+    let feed = call(spec.expr[0], spec.expr[1:])
+  elseif has_key(spec, 'call')
+    call call(spec.call[0], spec.call[1:])
   else
     if s:is_complete_selected()
       let feed = s:kakutei('')
     endif
-    let feed ..= a:args.string
+    let feed ..= spec.string
   endif
 
   let s:phase_kouho = next_kouho
