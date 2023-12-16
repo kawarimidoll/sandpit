@@ -1,8 +1,10 @@
 source ./inline_mark.vim
+source ./converters.vim
 source ./utils.vim
 source ./opts.vim
 source ./store.vim
 source ./henkan_list.vim
+source ./mode.vim
 
 function! h#feed(str) abort
   call feedkeys(a:str, 'ni')
@@ -198,9 +200,9 @@ function! s:sticky() abort
     return ''
   endif
 
-  if s:is_complete_selected()
-    return s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
-  endif
+  " if s:is_complete_selected()
+  "   return s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+  " endif
   if s:current_store_name == 'machi'
     if store#is_present('machi')
       let s:current_store_name = 'okuri'
@@ -292,13 +294,29 @@ function! s:i2(args) abort
 
   call store#set('choku', a:args.store)
 
+  " kouho状態に入る(継続する)かのフラグ
   let next_kouho = v:false
+
+  " 多重コンバートを防止
+  let allow_convert = v:true
+
+  " 末尾でstickyを実行するかどうかのフラグ
+  " 変換候補選択中にstickyを実行した場合、いちど確定してからstickyを実行するため、
+  " このフラグを見て実行を後回しにする必要がある
+  let after_sticky = v:false
 
   let feed = ''
   if has_key(a:args, 'func')
     " handle func
     if a:args.func ==# 'sticky'
-      let feed = s:sticky()
+      if s:is_complete_selected()
+        let feed = s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+        let after_sticky = v:true
+        let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+      else
+        let feed = s:sticky()
+      endif
+
     elseif a:args.func ==# 'backspace'
       let feed = s:backspace()
     elseif a:args.func ==# 'kakutei'
@@ -309,7 +327,22 @@ function! s:i2(args) abort
       let next_kouho = v:true
     endif
   elseif has_key(a:args, 'mode')
-  " handle mode
+    if store#is_present('okuri')
+    " nop
+    elseif store#is_present('machi')
+      if s:phase_kouho
+      " nop
+      else
+        let feed ..= mode#convert_alt(a:args.mode, s:kakutei(''))
+        let allow_convert = v:false
+      endif
+    else
+      call mode#set_alt(a:args.mode)
+      if mode#is_start_sticky()
+        let after_sticky = v:true
+        " let feed = s:sticky()
+      endif
+    endif
   elseif has_key(a:args, 'expr')
     let feed = call(a:args.expr[0], a:args.expr[1:])
   elseif has_key(a:args, 'call')
@@ -324,6 +357,15 @@ function! s:i2(args) abort
   let s:phase_kouho = next_kouho
   " echowindow s:current_store_name feed
   echomsg prev_store_name '->' s:current_store_name a:args
+
+  if allow_convert
+    let feed = mode#convert(feed)
+  endif
+
+  if after_sticky
+    let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+  endif
+
   if s:current_store_name == 'choku' || feed !~ '\p'
     " call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
     " return

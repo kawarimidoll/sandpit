@@ -49,6 +49,19 @@ function! mode#set(mode_name) abort
   endif
 endfunction
 
+function! mode#get_alt(mode_name) abort
+  return (a:mode_name ==# mode#current_name()) ? s:mode_dict.hira : s:mode_dict[a:mode_name]
+endfunction
+function! mode#convert_alt(mode_name, ...) abort
+  let selected_mode = mode#get_alt(a:mode_name)
+  return call(selected_mode.conv, a:000)
+endfunction
+function! mode#set_alt(mode_name) abort
+  let s:current_mode = mode#get_alt(a:mode_name)
+  echo $'{mode#current_name()} mode'
+  return s:current_mode
+endfunction
+
 " initialize dict
 for [key, val] in items(s:mode_dict)
   let val.name = key
