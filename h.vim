@@ -200,9 +200,6 @@ function! s:sticky() abort
     return ''
   endif
 
-  " if s:is_complete_selected()
-  "   return s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
-  " endif
   if s:current_store_name == 'machi'
     if store#is_present('machi')
       let s:current_store_name = 'okuri'
@@ -340,7 +337,6 @@ function! s:i2(args) abort
       call mode#set_alt(a:args.mode)
       if mode#is_start_sticky()
         let after_sticky = v:true
-        " let feed = s:sticky()
       endif
     endif
   elseif has_key(a:args, 'expr')
@@ -355,8 +351,6 @@ function! s:i2(args) abort
   endif
 
   let s:phase_kouho = next_kouho
-  " echowindow s:current_store_name feed
-  echomsg prev_store_name '->' s:current_store_name a:args
 
   if allow_convert
     let feed = mode#convert(feed)
@@ -367,8 +361,6 @@ function! s:i2(args) abort
   endif
 
   if s:current_store_name == 'choku' || feed !~ '\p'
-    " call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
-    " return
     return feed
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
@@ -377,11 +369,9 @@ function! s:i2(args) abort
 
     if store#is_blank('choku')
       let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
-      " call h#feed(utils#trans_special_key(feed))
       return feed
     endif
   endif
-  " call s:i3()
   return ''
 endfunction
 
