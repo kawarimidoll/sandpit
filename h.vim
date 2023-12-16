@@ -8,6 +8,10 @@ function! h#feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
+function! s:is_complete_selected() abort
+  return complete_info(['selected']).selected >= 0
+endfunction
+
 function! h#enable() abort
   if s:is_enable
     return
@@ -194,7 +198,7 @@ function! s:sticky() abort
     return ''
   endif
 
-  if complete_info(['selected']).selected >= 0
+  if s:is_complete_selected()
     return s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
   endif
   if s:current_store_name == 'machi'
@@ -311,7 +315,7 @@ function! s:i2(args) abort
   elseif has_key(a:args, 'call')
     call call(a:args.call[0], a:args.call[1:])
   else
-    if complete_info(['selected']).selected >= 0
+    if s:is_complete_selected()
       let feed = s:kakutei('')
     endif
     let feed ..= a:args.string
