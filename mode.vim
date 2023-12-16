@@ -18,6 +18,10 @@ function! mode#is_direct() abort
   return get(s:current_mode, 'direct', v:false)
 endfunction
 
+function! mode#is_direct_v2(char) abort
+  return a:char =~ '^[!-~]$' && get(s:current_mode, 'direct', v:false)
+endfunction
+
 function! mode#convert(...) abort
   return call(funcref(s:current_mode.conv), a:000)
 endfunction

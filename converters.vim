@@ -28,7 +28,9 @@ function! converters#hira_to_han_kata(str) abort
 endfunction
 
 function! converters#alnum_to_zen_alnum(str) abort
-  return a:str->substitute('[!-~]', {m->nr2char(char2nr(m[0], v:true) + 65248, v:true)}, 'g')
+  return utils#strsplit(a:str)
+        \ ->map({_,c -> c =~ '^[!-~]$' ? nr2char(char2nr(c, v:true) + 65248, v:true) : c})
+        \ ->join('')
 endfunction
 
 function! converters#as_is(str) abort

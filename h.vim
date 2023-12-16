@@ -37,6 +37,7 @@ function! h#enable() abort
   endfor
 
   call store#clear()
+  call mode#clear()
   let s:current_store_name = 'choku'
 
   let s:phase = { 'choku': '', 'machi': '', 'okuri': '' }
@@ -71,6 +72,7 @@ function! h#disable(escape = v:false) abort
   endfor
 
   call store#clear()
+  call mode#clear()
   let s:current_store_name = 'choku'
 
   let s:is_enable = v:false
@@ -225,9 +227,12 @@ function! s:backspace() abort
     call store#pop('machi')
     if store#is_blank('machi')
       let s:current_store_name = 'choku'
+      if mode#is_start_sticky()
+        call mode#set('hira')
+      endif
     endif
   else
-    let feed = '<bs>'
+    let feed = "\<bs>"
   endif
   return feed
 endfunction
@@ -238,7 +243,10 @@ function! s:kakutei(fallback_key) abort
   call store#clear('kouho')
   call store#clear('machi')
   call store#clear('okuri')
-  return feed ==# '' ? a:fallback_key : feed
+  if mode#is_start_sticky()
+    call mode#set('hira')
+  endif
+  return feed ==# '' ? utils#trans_special_key(a:fallback_key) : feed
 endfunction
 
 function! s:henkan(fallback_key) abort
@@ -254,14 +262,14 @@ function! s:henkan(fallback_key) abort
     endif
     let feed = s:henkan_start(store#get('machi'))
   else
-    let feed = store#get('choku') .. a:fallback_key
+    let feed = store#get('choku') .. utils#trans_special_key(a:fallback_key)
   endif
   call store#clear('choku')
   return feed
 endfunction
 
 function! s:i1(key, with_sticky = v:false) abort
-  if a:with_sticky
+  if a:with_sticky && !mode#is_direct_v2(a:key)
     let feed = s:i2({ 'string': '', 'store': '', 'func': 'sticky' })
 
     let key = a:key->tolower()
@@ -289,6 +297,10 @@ let s:phase_kouho = v:false
 function! s:i2(args) abort
   let prev_store_name = s:current_store_name
   let spec = a:args
+
+  if !s:is_complete_selected() && mode#is_direct_v2(get(spec, 'key', ''))
+    let spec = { 'string': spec.key, 'store': '', 'key': spec.key }
+  endif
 
   call store#set('choku', spec.store)
 
