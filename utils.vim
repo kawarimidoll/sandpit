@@ -97,3 +97,14 @@ function! utils#strsplit(str) abort
   endwhile
   return result
 endfunction
+
+" run last one call in wait time
+" https://github.com/lambdalisue/gin.vim/blob/937cc4dd3b5b1fbc90a21a8b8318b1c9d2d7c2cd/autoload/gin/internal/util.vim
+let s:debounce_timers = {}
+function! utils#debounce(fn, wait, args = [], timer_name = '') abort
+  let timer_name = a:timer_name !=# '' ? a:timer_name
+        \ : type(a:fn) == v:t_string ? a:fn
+        \ : string(a:fn)
+  call get(s:debounce_timers, timer_name, 0)->timer_stop()
+  let s:debounce_timers[timer_name] = timer_start(a:wait, {-> call(a:fn, a:args) })
+endfunction
