@@ -35,6 +35,13 @@ function s:phase_forget() abort
   let s:phase.reason = ''
 endfunction
 
+function s:mark_put(target, hlname) abort
+  call inline_mark#put_text(a:target, store#get(a:target), a:hlname)
+endfunction
+function s:mark_clear(target = '') abort
+  call inline_mark#clear(a:target)
+endfunction
+
 function s:feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
@@ -95,10 +102,7 @@ function h#disable(escape = v:false) abort
 
   autocmd! h_inner_augroup
 
-  call inline_mark#clear(s:show_okuri_namespace)
-  call inline_mark#clear(s:show_machi_namespace)
-  call inline_mark#clear(s:show_kouho_namespace)
-  call inline_mark#clear(s:show_hanpa_namespace)
+  call s:mark_clear()
   let after_feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi'))
         \ .. store#get('okuri') .. store#get('hanpa')
 
@@ -352,10 +356,6 @@ function s:ins(key, with_sticky = v:false) abort
   endif
 endfunction
 
-let s:show_hanpa_namespace = 'SHOW_hanpa_NAMESPACE'
-let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
-let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
-let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
 " kouho状態の判定は他のphaseとは独立して判定する
 let s:phase_kouho = v:false
 function s:handle_spec(args) abort
@@ -463,29 +463,29 @@ function s:display_marks(...) abort
     let hlname = opts#get('highlight_machi')
   endif
   if store#is_present('kouho')
-    call inline_mark#clear(s:show_machi_namespace)
+    call s:mark_clear('machi')
     let hlname = opts#get('highlight_kouho')
-    call inline_mark#put_text(s:show_kouho_namespace, store#get('kouho'), hlname)
+    call s:mark_put('kouho', hlname)
   elseif store#is_present('machi')
-    call inline_mark#clear(s:show_kouho_namespace)
+    call s:mark_clear('kouho')
     let hlname = opts#get('highlight_machi')
-    call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), hlname)
+    call s:mark_put('machi', hlname)
   else
-    call inline_mark#clear(s:show_kouho_namespace)
-    call inline_mark#clear(s:show_machi_namespace)
+    call s:mark_clear('kouho')
+    call s:mark_clear('machi')
   endif
   if s:phase_is('okuri')
     let hlname = opts#get('highlight_okuri')
   endif
   if store#is_present('okuri')
-    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'), hlname)
+    call s:mark_put('okuri', hlname)
   else
-    call inline_mark#clear(s:show_okuri_namespace)
+    call s:mark_clear('okuri')
   endif
   if store#is_present('hanpa')
-    call inline_mark#put_text(s:show_hanpa_namespace, store#get('hanpa'), hlname)
+    call s:mark_put('hanpa', hlname)
   else
-    call inline_mark#clear(s:show_hanpa_namespace)
+    call s:mark_clear('hanpa')
   endif
 endfunction
 
