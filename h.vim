@@ -115,7 +115,7 @@ function h#init(opts = {}) abort
   try
     call opts#parse(a:opts)
   catch
-    call utils#echoerr($'[h#init] {v:exception}', 'abort')
+    call utils#echoerr($'[init] {v:exception}', 'abort')
     return
   endtry
 
@@ -151,7 +151,7 @@ function s:get_spec(key) abort
 
   let current = store#get('hanpa') .. a:key
   if has_key(opts#get('kana_table'), current)
-    let spec.message = 'full found'
+    let spec.reason = 'combined:found'
     " s:store.hanpaの残存文字と合わせて完成した場合
     if type(opts#get('kana_table')[current]) == v:t_dict
       call extend(spec, opts#get('kana_table')[current])
@@ -162,14 +162,14 @@ function s:get_spec(key) abort
     let spec.store = roma
     return spec
   elseif has_key(opts#get('preceding_keys_dict'), current)
-    let spec.message = 'full candidate'
+    let spec.reason = 'combined:probably'
     " 完成はしていないが、先行入力の可能性がある場合
     let spec.store = current
     return spec
   endif
 
   if has_key(opts#get('kana_table'), a:key)
-    let spec.message = 'alone found'
+    let spec.reason = 'alone:found'
     " 先行入力を無視して単体で完成した場合
     if type(opts#get('kana_table')[a:key]) == v:t_dict
       call extend(spec, opts#get('kana_table')[a:key])
@@ -185,13 +185,13 @@ function s:get_spec(key) abort
 
     return spec
   elseif has_key(opts#get('preceding_keys_dict'), a:key)
-    let spec.message = 'alone candidate'
+    let spec.reason = 'alone:probably'
     " 完成はしていないが、単体で先行入力の可能性がある場合
     let spec.store = a:key
     return spec
   endif
 
-  let spec.message = 'not found'
+  let spec.reason = 'unfound'
   " ここまで完成しない（かなテーブルに定義が何もない）場合
   " specが文字列でdel_odd_charがfalseの場合、
   " storeに残っていた半端な文字をバッファに載せずに消す
@@ -202,10 +202,6 @@ function s:get_spec(key) abort
 endfunction
 
 function s:henkan_fuzzy() abort
-  let s:henkan_context = {
-        \ 'machi': store#get('machi'),
-        \ 'okuri': store#get('okuri'),
-        \ }
   " echowindow 'henkan' a:machistr a:okuristr
   let exact_match = store#get('machi')->strcharlen() < 5
   call henkan_list#update_fuzzy_v2(store#get('machi'), exact_match)
@@ -223,20 +219,15 @@ function s:henkan_fuzzy() abort
   call complete(col, comp_list)
 endfunction
 
-function s:henkan_start(machistr, okuristr = '') abort
-  let s:henkan_context = {
-        \ 'machi': a:machistr,
-        \ 'okuri': a:okuristr,
-        \ }
+function s:henkan_start() abort
   " echowindow 'henkan' a:machistr a:okuristr
-  call henkan_list#update_manual_v2(a:machistr, a:okuristr)
+  call henkan_list#update_manual_v2(store#get('machi'), store#get('okuri'))
   let comp_list = copy(henkan_list#get())
-  let feed = ''
   if !empty(comp_list)
     call complete(col('.'), comp_list)
-    let feed = "\<c-n>"
+    return "\<c-n>"
   endif
-  return feed
+  return ''
 endfunction
 
 function s:sticky() abort
@@ -303,7 +294,7 @@ function s:henkan(fallback_key) abort
     if opts#get('trailing_n') && store#get('hanpa') ==# 'n' && store#get('machi')->slice(-1) != 'ん'
       call store#push('machi', 'ん')
     endif
-    let feed = s:henkan_start(store#get('machi'))
+    let feed = s:henkan_start()
   else
     let feed = store#get('hanpa') .. utils#trans_special_key(a:fallback_key)
   endif
@@ -430,8 +421,7 @@ function s:handle_spec(args) abort
     call store#push('okuri', feed)
 
     if store#is_blank('hanpa')
-      let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
-      return feed
+      return s:henkan_start()
     endif
   endif
   return ''
