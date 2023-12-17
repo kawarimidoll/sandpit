@@ -46,12 +46,6 @@ function s:feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
-function s:doautocmd(event_name) abort
-  if exists($'#User#{a:event_name}')
-    execute $'doautocmd User {a:event_name}'
-  endif
-endfunction
-
 function s:is_complete_selected() abort
   return complete_info(['selected']).selected >= 0
 endfunction
@@ -60,8 +54,8 @@ function h#enable() abort
   if s:is_enable
     return
   endif
-  call s:doautocmd('h_autocmd_enable_pre')
-  defer s:doautocmd('h_autocmd_enable_post')
+  call utils#do_user('h_autocmd_enable_pre')
+  defer utils#do_user('h_autocmd_enable_post')
 
   augroup h_inner_augroup
     autocmd!
@@ -97,8 +91,8 @@ function h#disable(escape = v:false) abort
   if !s:is_enable
     return
   endif
-  call s:doautocmd('h_autocmd_disable_pre')
-  defer s:doautocmd('h_autocmd_disable_post')
+  call utils#do_user('h_autocmd_disable_pre')
+  defer utils#do_user('h_autocmd_disable_post')
 
   autocmd! h_inner_augroup
 
@@ -137,8 +131,8 @@ function h#toggle() abort
 endfunction
 
 function h#init(opts = {}) abort
-  call s:doautocmd('h_autocmd_initialize_pre')
-  defer s:doautocmd('h_autocmd_initialize_post')
+  call utils#do_user('h_autocmd_initialize_pre')
+  defer utils#do_user('h_autocmd_initialize_post')
   try
     call opts#parse(a:opts)
   catch

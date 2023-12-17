@@ -98,6 +98,12 @@ function utils#strsplit(str) abort
   return result
 endfunction
 
+function utils#do_user(event_name) abort
+  if exists($'#User#{a:event_name}')
+    execute $'doautocmd User {a:event_name}'
+  endif
+endfunction
+
 " run last one call in wait time
 " https://github.com/lambdalisue/gin.vim/blob/937cc4dd3b5b1fbc90a21a8b8318b1c9d2d7c2cd/autoload/gin/internal/util.vim
 let s:debounce_timers = {}
