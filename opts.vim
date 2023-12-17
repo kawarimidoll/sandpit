@@ -17,6 +17,11 @@ function opts#parse(opts) abort
         \ 'okuri': { 'marker': s:okuri_marker, 'hl': s:okuri_hl },
         \ }
 
+  let s:highlight_hanpa = get(a:opts, 'highlight_hanpa', '')
+  let s:highlight_machi = get(a:opts, 'highlight_machi', 'Search')
+  let s:highlight_kouho = get(a:opts, 'highlight_kouho', 'IncSearch')
+  let s:highlight_okuri = get(a:opts, 'highlight_okuri', 'Visual')
+
   let s:phase_dict = s:states
 
   " 自動補完最小文字数 (0の場合は自動補完しない)

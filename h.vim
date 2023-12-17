@@ -446,8 +446,8 @@ function s:handle_spec(args) abort
 endfunction
 
 function s:display_marks(...) abort
-  let hlname = ''
-  if store#is_blank('hanpa')
+  let hlname = opts#get('highlight_hanpa')
+  if hlname == ''
     let [lnum, col] = getpos('.')[1:2]
     let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
@@ -458,16 +458,19 @@ function s:display_marks(...) abort
     if store#is_blank('machi')
       call inline_mark#clear(s:show_machi_namespace)
     else
-      call inline_mark#put_text(s:show_machi_namespace, store#get('machi'),  'IncSearch')
+      let hlname = opts#get('highlight_machi')
+      call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), hlname)
     endif
   else
     call inline_mark#clear(s:show_machi_namespace)
-    call inline_mark#put_text(s:show_kouho_namespace, store#get('kouho'),  'Search')
+    let hlname = opts#get('highlight_kouho')
+    call inline_mark#put_text(s:show_kouho_namespace, store#get('kouho'), hlname)
   endif
   if store#is_blank('okuri')
     call inline_mark#clear(s:show_okuri_namespace)
   else
-    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
+    let hlname = opts#get('highlight_okuri')
+    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'), hlname)
   endif
   if store#is_blank('hanpa')
     call inline_mark#clear(s:show_hanpa_namespace)
