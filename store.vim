@@ -1,4 +1,4 @@
-let s:store = { 'choku': '', 'machi': '', 'okuri': '', 'kouho': '' }
+let s:store = { 'hanpa': '', 'choku': '', 'machi': '', 'okuri': '', 'kouho': '' }
 let s:show_choku_namespace = 'show_choku_namespace'
 
 function store#display_odd_char() abort

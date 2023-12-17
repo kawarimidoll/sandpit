@@ -58,7 +58,7 @@ function h#enable() abort
 
   call store#clear()
   call mode#clear()
-  let s:current_store_name = 'choku'
+  let s:current_store_name = 'hanpa'
 
   let s:is_enable = v:true
 endfunction
@@ -75,9 +75,9 @@ function h#disable(escape = v:false) abort
   call inline_mark#clear(s:show_okuri_namespace)
   call inline_mark#clear(s:show_machi_namespace)
   call inline_mark#clear(s:show_kouho_namespace)
-  call inline_mark#clear(s:show_choku_namespace)
+  call inline_mark#clear(s:show_hanpa_namespace)
   let after_feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi'))
-        \ .. store#get('okuri') .. store#get('choku')
+        \ .. store#get('okuri') .. store#get('hanpa')
 
   for k in s:keys_to_remaps
     try
@@ -93,7 +93,7 @@ function h#disable(escape = v:false) abort
 
   call store#clear()
   call mode#clear()
-  let s:current_store_name = 'choku'
+  let s:current_store_name = 'hanpa'
 
   let s:is_enable = v:false
   if mode() !=# 'i'
@@ -149,10 +149,10 @@ function s:get_spec(key) abort
   " その他：関数など func / mode / expr
   let spec = { 'string': '', 'store': '', 'key': a:key }
 
-  let current = store#get('choku') .. a:key
+  let current = store#get('hanpa') .. a:key
   if has_key(opts#get('kana_table'), current)
     let spec.message = 'full found'
-    " s:store.chokuの残存文字と合わせて完成した場合
+    " s:store.hanpaの残存文字と合わせて完成した場合
     if type(opts#get('kana_table')[current]) == v:t_dict
       call extend(spec, opts#get('kana_table')[current])
       return spec
@@ -173,11 +173,11 @@ function s:get_spec(key) abort
     " 先行入力を無視して単体で完成した場合
     if type(opts#get('kana_table')[a:key]) == v:t_dict
       call extend(spec, opts#get('kana_table')[a:key])
-      let spec.store = store#get('choku')
+      let spec.store = store#get('hanpa')
     else
       " specが文字列でdel_odd_charがfalseの場合、
       " storeに残っていた半端な文字をバッファに載せずに消す
-      let prefix = opts#get('del_odd_char') ? '' : store#get('choku')
+      let prefix = opts#get('del_odd_char') ? '' : store#get('hanpa')
       let [kana, roma; _rest] = opts#get('kana_table')[a:key]->split('\A*\zs') + ['']
       let spec.string = prefix .. kana
       let spec.store = roma
@@ -195,7 +195,7 @@ function s:get_spec(key) abort
   " ここまで完成しない（かなテーブルに定義が何もない）場合
   " specが文字列でdel_odd_charがfalseの場合、
   " storeに残っていた半端な文字をバッファに載せずに消す
-  let prefix = opts#get('del_odd_char') ? '' : store#get('choku')
+  let prefix = opts#get('del_odd_char') ? '' : store#get('hanpa')
   let spec.string = prefix .. a:key
   let spec.store = ''
   return spec
@@ -240,7 +240,7 @@ function s:henkan_start(machistr, okuristr = '') abort
 endfunction
 
 function s:sticky() abort
-  if store#is_present('choku')
+  if store#is_present('hanpa')
     " ひらがなになりきれていない文字が残っている場合はスキップ
     return ''
   endif
@@ -259,8 +259,8 @@ endfunction
 
 function s:backspace() abort
   let feed = ''
-  if store#is_present('choku')
-    call store#pop('choku')
+  if store#is_present('hanpa')
+    call store#pop('hanpa')
   elseif store#is_present('okuri')
     call store#pop('okuri')
     if store#is_blank('okuri')
@@ -269,7 +269,7 @@ function s:backspace() abort
   elseif store#is_present('machi')
     call store#pop('machi')
     if store#is_blank('machi')
-      let s:current_store_name = 'choku'
+      let s:current_store_name = 'hanpa'
       if mode#is_start_sticky()
         call mode#set_anyway('hira')
       endif
@@ -281,7 +281,7 @@ function s:backspace() abort
 endfunction
 
 function s:kakutei(fallback_key) abort
-  let s:current_store_name = 'choku'
+  let s:current_store_name = 'hanpa'
   let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
   call store#clear('kouho')
   call store#clear('machi')
@@ -300,14 +300,14 @@ function s:henkan(fallback_key) abort
     if s:phase_kouho
       return "\<c-n>"
     endif
-    if opts#get('trailing_n') && store#get('choku') ==# 'n' && store#get('machi')->slice(-1) != 'ん'
+    if opts#get('trailing_n') && store#get('hanpa') ==# 'n' && store#get('machi')->slice(-1) != 'ん'
       call store#push('machi', 'ん')
     endif
     let feed = s:henkan_start(store#get('machi'))
   else
-    let feed = store#get('choku') .. utils#trans_special_key(a:fallback_key)
+    let feed = store#get('hanpa') .. utils#trans_special_key(a:fallback_key)
   endif
-  call store#clear('choku')
+  call store#clear('hanpa')
   return feed
 endfunction
 
@@ -329,18 +329,18 @@ function s:ins(key, with_sticky = v:false) abort
     call s:display_marks()
     if s:current_store_name == 'machi'
       call utils#debounce(funcref('s:henkan_fuzzy'), 100)
-      " TODO machi->chokuに更新されたタイミングでs:feed("\<c-e>")する
+      " TODO machi->hanpaに更新されたタイミングでs:feed("\<c-e>")する
     endif
   else
     call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}display_marks()\<cr>")
   endif
 endfunction
 
-let s:show_choku_namespace = 'SHOW_CHOKU_NAMESPACE'
+let s:show_hanpa_namespace = 'SHOW_hanpa_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
 let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
-let s:current_store_name = 'choku'
+let s:current_store_name = 'hanpa'
 let s:phase_kouho = v:false
 function s:handle_spec(args) abort
   let prev_store_name = s:current_store_name
@@ -350,7 +350,7 @@ function s:handle_spec(args) abort
     let spec = { 'string': spec.key, 'store': '', 'key': spec.key }
   endif
 
-  call store#set('choku', spec.store)
+  call store#set('hanpa', spec.store)
 
   " kouho状態に入る(継続する)かのフラグ
   let next_kouho = v:false
@@ -378,7 +378,7 @@ function s:handle_spec(args) abort
     elseif spec.func ==# 'backspace'
       let feed = s:backspace()
     elseif spec.func ==# 'kakutei'
-      let feed = s:kakutei(spec.key) .. store#get('choku')
+      let feed = s:kakutei(spec.key) .. store#get('hanpa')
       call store#clear()
     elseif spec.func ==# 'henkan'
       let feed = s:henkan(spec.key)
@@ -422,14 +422,14 @@ function s:handle_spec(args) abort
     let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
   endif
 
-  if s:current_store_name == 'choku' || feed !~ '\p'
+  if s:current_store_name == 'hanpa' || feed !~ '\p'
     return feed
   elseif s:current_store_name == 'machi'
     call store#push('machi', feed)
   elseif s:current_store_name == 'okuri'
     call store#push('okuri', feed)
 
-    if store#is_blank('choku')
+    if store#is_blank('hanpa')
       let feed = s:henkan_start(store#get('machi'), store#get('okuri'))
       return feed
     endif
@@ -439,7 +439,7 @@ endfunction
 
 function s:display_marks(...) abort
   let hlname = ''
-  if store#is_blank('choku')
+  if store#is_blank('hanpa')
     let [lnum, col] = getpos('.')[1:2]
     let syn_offset = (col > 1 && col == col('$')) ? 1 : 0
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
@@ -461,10 +461,10 @@ function s:display_marks(...) abort
   else
     call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'),  'Error')
   endif
-  if store#is_blank('choku')
-    call inline_mark#clear(s:show_choku_namespace)
+  if store#is_blank('hanpa')
+    call inline_mark#clear(s:show_hanpa_namespace)
   else
-    call inline_mark#put_text(s:show_choku_namespace, store#get('choku'), hlname)
+    call inline_mark#put_text(s:show_hanpa_namespace, store#get('hanpa'), hlname)
   endif
 endfunction
 
