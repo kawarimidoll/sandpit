@@ -13,7 +13,7 @@
 let s:file_name = expand('%:p')
 let s:default_hl = 'Normal'
 
-function! inline_mark#put_text(name, text, hl = '') abort
+function inline_mark#put_text(name, text, hl = '') abort
   let pos = inline_mark#get(a:name)
   let [lnum, col] = empty(pos) ? getcurpos('.')[1:2] : pos
   call inline_mark#put(lnum, col, { 'name': a:name, 'text': a:text, 'hl': a:hl })
@@ -22,7 +22,7 @@ endfunction
 if has('nvim')
   let s:ns_dict = {}
 
-  function! inline_mark#clear(name = '') abort
+  function inline_mark#clear(name = '') abort
     if a:name ==# ''
       call nvim_buf_clear_namespace(0, -1, 0, -1)
       let s:ns_dict = {}
@@ -32,7 +32,7 @@ if has('nvim')
     endif
   endfunction
 
-  function! inline_mark#get(name) abort
+  function inline_mark#get(name) abort
     if has_key(s:ns_dict, a:name)
       let extmarks = nvim_buf_get_extmarks(0, s:ns_dict[a:name], 0, -1, {'limit':1})
       " extmarks = [ [extmark_id, row, col], ... ]
@@ -43,7 +43,7 @@ if has('nvim')
     return []
   endfunction
 
-  function! inline_mark#put(lnum, col, opts = {}) abort
+  function inline_mark#put(lnum, col, opts = {}) abort
     let hl = get(a:opts, 'hl', '')->empty() ? s:default_hl : a:opts.hl
     let text = get(a:opts, 'text', '')
     let name = get(a:opts, 'name', s:file_name)
@@ -62,7 +62,7 @@ if has('nvim')
 else
   let s:prop_types = {}
 
-  function! inline_mark#clear(name = '') abort
+  function inline_mark#clear(name = '') abort
     if a:name ==# ''
       for k in s:prop_types->keys()
         call inline_mark#clear(k)
@@ -72,7 +72,7 @@ else
     endif
   endfunction
 
-  function! inline_mark#get(name) abort
+  function inline_mark#get(name) abort
     if prop_type_get(a:name)->empty()
       return []
     endif
@@ -80,7 +80,7 @@ else
     return empty(prop) ? [] : [prop.lnum, prop.col]
   endfunction
 
-  function! inline_mark#put(lnum, col, opts = {}) abort
+  function inline_mark#put(lnum, col, opts = {}) abort
     let hl = get(a:opts, 'hl', '')->empty() ? s:default_hl : a:opts.hl
     let text = get(a:opts, 'text', '')
     let name = get(a:opts, 'name', s:file_name)

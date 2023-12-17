@@ -1,4 +1,4 @@
-function! func#sticky(...) abort
+function func#sticky(...) abort
   if states#getstr('choku') =~ '\a$'
     return ''
   endif
@@ -6,7 +6,7 @@ function! func#sticky(...) abort
   return ''
 endfunction
 
-function! func#henkan(fallback_key) abort
+function func#henkan(fallback_key) abort
   call states#off('choku')
   echomsg $'henkan {states#in("kouho")}'
   if states#in('kouho')
@@ -24,7 +24,7 @@ function! func#henkan(fallback_key) abort
   return "\<c-r>=t#completefunc()\<cr>"
 endfunction
 
-function! func#kakutei(fallback_key) abort
+function func#kakutei(fallback_key) abort
   call states#off('choku')
   if !states#in('machi')
     return a:fallback_key
@@ -34,7 +34,7 @@ function! func#kakutei(fallback_key) abort
   return pumvisible() ? "\<c-y>" : ''
 endfunction
 
-function! func#backspace(...) abort
+function func#backspace(...) abort
   let pos = getpos('.')[1:2]
   let canceled = v:false
   for target in ['machi', 'okuri', 'kouho']
@@ -46,7 +46,7 @@ function! func#backspace(...) abort
   return canceled ? '' : "\<bs>"
 endfunction
 
-function! func#v_sticky(...) abort
+function func#v_sticky(...) abort
   if phase#is_enabled('kouho')
     " kakutei & restart machi
     " 普通に待ち状態に入ろうとすると失敗したので
@@ -68,7 +68,7 @@ function! func#v_sticky(...) abort
   endif
 endfunction
 
-function! func#v_henkan(fallback_key) abort
+function func#v_henkan(fallback_key) abort
   if phase#is_enabled('kouho')
     if pumvisible()
       call feedkeys("\<c-n>", 'n')
@@ -83,7 +83,7 @@ function! func#v_henkan(fallback_key) abort
   endif
 endfunction
 
-function! func#v_kakutei(fallback_key) abort
+function func#v_kakutei(fallback_key) abort
   let feed = ''
   if phase#is_enabled('kouho')
     call phase#disable('machi')
@@ -110,7 +110,7 @@ function! func#v_kakutei(fallback_key) abort
   call store#clear()
 endfunction
 
-function! func#v_backspace(...) abort
+function func#v_backspace(...) abort
   if phase#is_enabled('kouho')
     call phase#disable('kouho')
   elseif phase#is_enabled('okuri')

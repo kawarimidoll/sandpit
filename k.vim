@@ -12,15 +12,15 @@ augroup k_heroes_group
   autocmd User k_* echon
 augroup END
 
-function! s:is_completed() abort
+function s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
-function! k#is_enable() abort
+function k#is_enable() abort
   return get(s:, 'is_enable', v:false)
 endfunction
 
-function! k#enable() abort
+function k#enable() abort
   if !exists('s:is_enable')
     call utils#echoerr('[k#enable] not initialized')
     call utils#echoerr('[k#enable] abort')
@@ -69,7 +69,7 @@ function! k#enable() abort
   let s:is_enable = v:true
 endfunction
 
-function! k#disable() abort
+function k#disable() abort
   if !exists('s:is_enable')
     call utils#echoerr('[k#enable] not initialized')
     call utils#echoerr('[k#enable] abort')
@@ -98,15 +98,15 @@ function! k#disable() abort
   let s:is_enable = v:false
 endfunction
 
-function! k#toggle() abort
+function k#toggle() abort
   return k#is_enable() ? k#disable() : k#enable()
 endfunction
 
-function! k#default_kana_table() abort
+function k#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
 
-function! k#initialize(opts = {}) abort
+function k#initialize(opts = {}) abort
   try
     call opts#parse(a:opts)
   catch
@@ -121,14 +121,14 @@ endfunction
 " hira / zen_kata / han_kata / abbrev
 let s:inner_mode = 'hira'
 
-function! s:set_inner_mode(mode) abort
+function s:set_inner_mode(mode) abort
   let s:inner_mode = a:mode
 endfunction
-function! s:toggle_inner_mode(mode) abort
+function s:toggle_inner_mode(mode) abort
   call s:set_inner_mode(s:inner_mode == a:mode ? 'hira' : a:mode)
 endfunction
 
-function! s:is_same_line_right_col(target) abort
+function s:is_same_line_right_col(target) abort
   if a:target ==# 'henkan'
     return states#in('machi')
   endif
@@ -141,7 +141,7 @@ function! s:is_same_line_right_col(target) abort
   return pos_l ==# cur_l && pos_c <= cur_c
 endfunction
 
-function! s:get_preceding_str(target, trim_trail_n = v:true) abort
+function s:get_preceding_str(target, trim_trail_n = v:true) abort
   if a:target !=# 'kana' && a:target !=# 'henkan'
     throw 'wrong target name'
   endif
@@ -158,7 +158,7 @@ function! s:get_preceding_str(target, trim_trail_n = v:true) abort
   return a:trim_trail_n ? str->substitute("n$", "ん", "") : str
 endfunction
 
-function! k#zen_kata(...) abort
+function k#zen_kata(...) abort
   if !states#in('machi')
     call s:toggle_inner_mode('zen_kata')
     return ''
@@ -169,7 +169,7 @@ function! k#zen_kata(...) abort
   return repeat("\<bs>", strcharlen(preceding_str)) .. converters#hira_to_kata(preceding_str)
 endfunction
 
-function! k#han_kata(...) abort
+function k#han_kata(...) abort
   if !states#in('machi')
     call s:toggle_inner_mode('han_kata')
     return ''
@@ -200,7 +200,7 @@ for c in consonant_list
   endfor
 endfor
 
-function! k#ins(key, henkan = v:false) abort
+function k#ins(key, henkan = v:false) abort
   let key = utils#trans_special_key(a:key)
   call states#on('choku')
   let spec = s:get_insert_spec(key, a:henkan)
@@ -240,7 +240,7 @@ function! k#ins(key, henkan = v:false) abort
   endif
 endfunction
 
-function! s:get_insert_spec(key, henkan = v:false) abort
+function s:get_insert_spec(key, henkan = v:false) abort
   let kana_dict = get(opts#get('keymap_dict'), a:key, {})
   let next_okuri = get(s:, 'next_okuri', v:false)
   if a:henkan || next_okuri
@@ -283,7 +283,7 @@ function! s:get_insert_spec(key, henkan = v:false) abort
 endfunction
 
 let s:latest_auto_complete_str = ''
-function! s:auto_complete() abort
+function s:auto_complete() abort
   let preceding_str = s:get_preceding_str('henkan', v:false)
         \ ->substitute('\a*$', '', '')
 
@@ -308,7 +308,7 @@ function! s:auto_complete() abort
   endif
 endfunction
 
-function! k#autocompletefunc()
+function k#autocompletefunc()
   if !states#in('machi')
     echomsg 'exit autocomplete'
     return ''
@@ -328,7 +328,7 @@ function! k#autocompletefunc()
   return ''
 endfunction
 
-function! k#completefunc(suffix_key = '')
+function k#completefunc(suffix_key = '')
   call s:set_henkan_select_mark()
   " 補完の始点のcol
   let start_col = states#get('machi')[1]
@@ -390,15 +390,15 @@ function! k#completefunc(suffix_key = '')
   return ''
 endfunction
 
-function! s:char_col_to_byte_col(char_pos) abort
+function s:char_col_to_byte_col(char_pos) abort
   return getline(a:char_pos[0])->slice(0, a:char_pos[1]-1)->strlen()+1
 endfunction
 
-function! s:set_henkan_select_mark() abort
+function s:set_henkan_select_mark() abort
   call states#on('kouho')
 endfunction
 
-function! s:clear_henkan_start_pos() abort
+function s:clear_henkan_start_pos() abort
   call states#off('machi')
   call states#off('kouho')
   call states#off('okuri')
@@ -406,12 +406,12 @@ endfunction
 
 " 変換中→送りあり変換を予約
 " それ以外→現在位置に変換ポイントを設定
-function! k#sticky(...) abort
+function k#sticky(...) abort
   call states#on('machi')
   return ''
 endfunction
 
-function! k#henkan(fallback_key) abort
+function k#henkan(fallback_key) abort
   " echomsg 'henkan'
   if states#in('kouho')
     return "\<c-n>"
@@ -429,7 +429,7 @@ function! k#henkan(fallback_key) abort
   return "\<c-r>=k#completefunc()\<cr>"
 endfunction
 
-function! k#kakutei(fallback_key) abort
+function k#kakutei(fallback_key) abort
   if !states#in('machi')
     return a:fallback_key
   endif
@@ -438,7 +438,7 @@ function! k#kakutei(fallback_key) abort
   return pumvisible() ? "\<c-y>" : ''
 endfunction
 
-function! s:complete_done_pre(complete_info, completed_item) abort
+function s:complete_done_pre(complete_info, completed_item) abort
   " echomsg a:complete_info a:completed_item
 
   if states#in('machi')
@@ -499,7 +499,7 @@ function! s:complete_done_pre(complete_info, completed_item) abort
   endif
 endfunction
 
-function! s:buf_enter_try_user_henkan() abort
+function s:buf_enter_try_user_henkan() abort
   call setcursorcharpos(b:jisyo_touroku_ctx.cursor_pos)
   if b:jisyo_touroku_ctx.is_trailing
     startinsert!
@@ -525,7 +525,7 @@ function! s:buf_enter_try_user_henkan() abort
   endif
 endfunction
 
-function! k#cmd_buf() abort
+function k#cmd_buf() abort
   let cmdtype = getcmdtype()
   if ':/?' !~# cmdtype
     return

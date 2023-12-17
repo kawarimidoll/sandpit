@@ -1,10 +1,10 @@
-function! s:url_encode(str)
+function s:url_encode(str)
   return range(0, strlen(a:str)-1)
         \ ->map({i -> a:str[i] =~ '[-.~]\|\w' ? a:str[i] : printf("%%%02x", char2nr(a:str[i]))})
         \ ->join('')
 endfunction
 
-function! google_cgi#henkan(str) abort
+function google_cgi#henkan(str) abort
   let url_base = 'http://www.google.com/transliterate?langpair=ja-Hira|ja&text='
   let encoded = s:url_encode(a:str)
   " echomsg encoded

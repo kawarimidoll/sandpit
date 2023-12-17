@@ -7,15 +7,15 @@ source ./henkan_list.vim
 source ./states.vim
 source ./func.vim
 
-function! s:is_completed() abort
+function s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
-function! t#is_enable() abort
+function t#is_enable() abort
   return get(s:, 'is_enable', v:false)
 endfunction
 
-function! t#enable() abort
+function t#enable() abort
   if !exists('s:is_enable')
     call utils#echoerr('[t#enable] not initialized')
     call utils#echoerr('[t#enable] abort')
@@ -61,7 +61,7 @@ function! t#enable() abort
   let s:is_enable = v:true
 endfunction
 
-function! t#disable() abort
+function t#disable() abort
   if !exists('s:is_enable')
     call utils#echoerr('[t#enable] not initialized')
     call utils#echoerr('[t#enable] abort')
@@ -89,15 +89,15 @@ function! t#disable() abort
   let s:is_enable = v:false
 endfunction
 
-function! t#toggle() abort
+function t#toggle() abort
   return t#is_enable() ? t#disable() : t#enable()
 endfunction
 
-function! t#default_kana_table() abort
+function t#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
 
-function! t#initialize(opts = {}) abort
+function t#initialize(opts = {}) abort
   try
     call opts#parse(a:opts)
   catch
@@ -114,7 +114,7 @@ let s:hira_mode = {
       \ 'conv': {c->c}
       \ }
 let s:mode = s:hira_mode
-function! t#ins(key, henkan = v:false) abort
+function t#ins(key, henkan = v:false) abort
   " feedkeys直後はバッファに文字が反映されていないので
   " bs_countを使って文字を一部取り出すテクニックが必要
   let key = utils#trans_special_key(a:key)
@@ -202,7 +202,7 @@ function! t#ins(key, henkan = v:false) abort
   endif
 endfunction
 
-function! s:get_insert_spec(key) abort
+function s:get_insert_spec(key) abort
   let kana_dict = get(opts#get('keymap_dict'), a:key, {})
   if empty(kana_dict)
     return [0, a:key]
@@ -222,7 +222,7 @@ function! s:get_insert_spec(key) abort
   return [0, get(kana_dict, '', a:key)]
 endfunction
 
-function! t#completefunc()
+function t#completefunc()
   call states#on('kouho')
 
   let preceding_str = states#getstr('machi')
@@ -240,7 +240,7 @@ function! t#completefunc()
 endfunction
 
 let s:latest_auto_complete_str = ''
-function! s:auto_complete() abort
+function s:auto_complete() abort
   let preceding_str = states#getstr('machi')->substitute('\a*$', '', '')
 
   let min_length = 3
@@ -268,7 +268,7 @@ function! s:auto_complete() abort
   endif
 endfunction
 
-function! t#autocompletefunc()
+function t#autocompletefunc()
   if mode() !=# 'i' || !states#in('machi') || states#in('okuri') || states#in('kouho')
     echomsg 'exit autocomplete'
     return

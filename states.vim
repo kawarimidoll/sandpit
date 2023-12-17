@@ -30,15 +30,15 @@ let s:states = {
       \ 'kouho': [],
       \ }
 
-function! s:getpos() abort
+function s:getpos() abort
   return getpos('.')[1:2]
 endfunction
 
-function! states#show() abort
+function states#show() abort
   echomsg s:states
 endfunction
 
-function! states#on(target) abort
+function states#on(target) abort
   " validate
   if a:target ==# 'choku'
     if states#in('choku')
@@ -73,13 +73,13 @@ function! states#on(target) abort
   let s:states[a:target] = [lnum, col]
 endfunction
 
-function! states#clear() abort
+function states#clear() abort
   call states#off('choku')
   " machiがoffになったらkouhoとokuriもoffなのでこれでよし
   call states#off('machi')
 endfunction
 
-function! states#off(target) abort
+function states#off(target) abort
   call inline_mark#clear(a:target)
   let s:states[a:target] = []
   if a:target ==# 'machi'
@@ -97,11 +97,11 @@ function! states#off(target) abort
   endif
 endfunction
 
-function! states#get(target) abort
+function states#get(target) abort
   return s:states[a:target]
 endfunction
 
-function! states#in(target) abort
+function states#in(target) abort
   if empty(s:states[a:target])
     return v:false
   elseif a:target ==# 'kouho'
@@ -114,7 +114,7 @@ function! states#in(target) abort
   return pos_l ==# cur_l && pos_c <= cur_c
 endfunction
 
-function! states#getstr(target) abort
+function states#getstr(target) abort
   if empty(s:states[a:target]) || !states#in(a:target)
     return ''
   endif

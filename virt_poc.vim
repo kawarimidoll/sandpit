@@ -16,17 +16,17 @@ source ./func.vim
 source ./mode.vim
 source ./insert.vim
 
-function! s:is_completed() abort
+function s:is_completed() abort
   return get(complete_info(), 'selected', -1) >= 0
 endfunction
 
-function! s:doautocmd(event_name) abort
+function s:doautocmd(event_name) abort
   if exists($'#User#{a:event_name}')
     execute $'doautocmd User {a:event_name}'
   endif
 endfunction
 
-function! virt_poc#enable() abort
+function virt_poc#enable() abort
   if s:is_enable
     return
   endif
@@ -58,7 +58,7 @@ function! virt_poc#enable() abort
   let s:is_enable = v:true
 endfunction
 
-function! virt_poc#disable() abort
+function virt_poc#disable() abort
   if !s:is_enable
     return
   endif
@@ -78,11 +78,11 @@ function! virt_poc#disable() abort
   let s:is_enable = v:false
 endfunction
 
-function! virt_poc#toggle() abort
+function virt_poc#toggle() abort
   return s:is_enable ? virt_poc#disable() : virt_poc#enable()
 endfunction
 
-function! virt_poc#init(opts = {}) abort
+function virt_poc#init(opts = {}) abort
   call s:doautocmd('virt_poc_initialize_pre')
   defer s:doautocmd('virt_poc_initialize_post')
   try
@@ -97,7 +97,7 @@ function! virt_poc#init(opts = {}) abort
 endfunction
 
 let s:latest_auto_complete_str = ''
-function! s:auto_complete() abort
+function s:auto_complete() abort
   let min_length = 5
   if phase#is_enabled('kouho') || phase#is_enabled('okuri') || phase#is_disabled('machi') || store#get('machi') ==# ''
     return
@@ -124,7 +124,7 @@ function! s:auto_complete() abort
   endif
 endfunction
 
-function! s:complete_done_pre() abort
+function s:complete_done_pre() abort
   if pumvisible() && phase#is_enabled('kouho')
     return
   endif
@@ -194,11 +194,11 @@ function! s:complete_done_pre() abort
   endif
 endfunction
 
-function! virt_poc#open_user_jisyo(args = '') abort
+function virt_poc#open_user_jisyo(args = '') abort
   execute 'botright 5new' a:args opts#get("user_jisyo_path")
 endfunction
 
-function! s:buf_enter_try_user_henkan() abort
+function s:buf_enter_try_user_henkan() abort
   call cursor(b:virt_poc_context.pos)
   if b:virt_poc_context.is_trailing
     startinsert!
@@ -219,7 +219,7 @@ function! s:buf_enter_try_user_henkan() abort
   call timer_start(1, {->call('complete', [b:virt_poc_context.start_col, henkan_list#get()])})
 endfunction
 
-function! virt_poc#cmd_buf() abort
+function virt_poc#cmd_buf() abort
   let cmdtype = getcmdtype()
   if ':/?' !~# cmdtype
     return

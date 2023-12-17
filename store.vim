@@ -1,7 +1,7 @@
 let s:store = { 'choku': '', 'machi': '', 'okuri': '', 'kouho': '' }
 let s:show_choku_namespace = 'show_choku_namespace'
 
-function! store#display_odd_char() abort
+function store#display_odd_char() abort
   if store#is_blank('choku')
     call inline_mark#clear(s:show_choku_namespace)
     return
@@ -15,15 +15,15 @@ function! store#display_odd_char() abort
         \ 'hl': hlname })
 endfunction
 
-function! store#set(target, str) abort
+function store#set(target, str) abort
   let s:store[a:target] = a:str
 endfunction
 
-function! store#get(target) abort
+function store#get(target) abort
   return s:store[a:target]
 endfunction
 
-function! store#clear(target = '') abort
+function store#clear(target = '') abort
   if a:target !=# ''
     call store#set(a:target, '')
     return
@@ -33,18 +33,18 @@ function! store#clear(target = '') abort
   endfor
 endfunction
 
-function! store#push(target, str) abort
+function store#push(target, str) abort
   call store#set(a:target, store#get(a:target) .. a:str)
 endfunction
 
-function! store#pop(target) abort
+function store#pop(target) abort
   call store#set(a:target, store#get(a:target)->substitute('.$', '', ''))
 endfunction
 
-function! store#is_blank(target) abort
+function store#is_blank(target) abort
   return store#get(a:target) ==# ''
 endfunction
 
-function! store#is_present(target) abort
+function store#is_present(target) abort
   return !store#is_blank(a:target)
 endfunction

@@ -1,4 +1,4 @@
-function! insert#map() abort
+function insert#map() abort
   let s:keys_to_remaps = []
   let sid = "\<sid>"
   for [key, val] in items(opts#get('map_keys_dict'))
@@ -25,7 +25,7 @@ function! insert#map() abort
   let s:comp_offset = 0
 endfunction
 
-function! insert#unmap() abort
+function insert#unmap() abort
   for k in s:keys_to_remaps
     try
       if type(k) == v:t_string
@@ -42,7 +42,7 @@ function! insert#unmap() abort
   let s:comp_offset = 0
 endfunction
 
-" function! insert#henkan_count(list_size) abort
+" function insert#henkan_count(list_size) abort
 "   ここをCompleteChangedでよび出せば良いかと思ったが<c-n>で
 "   候補を選択したタイミングでも毎回呼び出されてしまうのでクリアされてしまって困る
 "   let result = a:list_size - s:comp_offset
@@ -50,7 +50,7 @@ endfunction
 "   return result
 " endfunction
 
-function! s:get_spec(key) abort
+function s:get_spec(key) abort
   let current = store#get('choku') .. a:key
   " echomsg $'spec choku {store#get("choku")}'
 
@@ -98,7 +98,7 @@ function! s:get_spec(key) abort
   return a:key
 endfunction
 
-function! s:i1(key, with_sticky = v:false) abort
+function s:i1(key, with_sticky = v:false) abort
   let key = a:key
   if a:with_sticky
     call func#v_sticky('')
@@ -135,7 +135,7 @@ function! s:i1(key, with_sticky = v:false) abort
   endif
 endfunction
 
-function! s:i2() abort
+function s:i2() abort
   let spec_result = ''
   if !empty(s:reserved_spec)
     " funcのfeedkeysはフラグにiを使わない
@@ -172,7 +172,7 @@ function! s:i2() abort
 endfunction
 
 " yomiは必須
-function! s:make_special_henkan_item(opts) abort
+function s:make_special_henkan_item(opts) abort
   let yomi = a:opts.yomi
   let word = get(a:opts, 'word', yomi)
   let abbr = get(a:opts, 'abbr', word)
@@ -196,7 +196,7 @@ function! s:make_special_henkan_item(opts) abort
         \ }
 endfunction
 
-function! s:henkan_start() abort
+function s:henkan_start() abort
   " echomsg $'henkan_start machi {store#get("machi")} okuri {store#get("okuri")}'
   call henkan_list#update_manual(store#get("machi"), store#get("okuri"))
   let comp_list = copy(henkan_list#get())

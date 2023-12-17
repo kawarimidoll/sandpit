@@ -1,8 +1,8 @@
-function! opts#default_kana_table() abort
+function opts#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
 
-function! opts#parse(opts) abort
+function opts#parse(opts) abort
   " マーカー
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
   let s:select_marker = get(a:opts, 'select_marker', '▼')
@@ -167,6 +167,6 @@ function! opts#parse(opts) abort
   " echomsg s:map_keys_dict
 endfunction
 
-function! opts#get(name) abort
+function opts#get(name) abort
   return s:[a:name]
 endfunction

@@ -1,4 +1,4 @@
-function! s:parse_henkan_list(lines, jisyo, okuri = '') abort
+function s:parse_henkan_list(lines, jisyo, okuri = '') abort
   if empty(a:lines)
     return []
   endif
@@ -27,7 +27,7 @@ function! s:parse_henkan_list(lines, jisyo, okuri = '') abort
   return henkan_list
 endfunction
 
-function! s:gen_henkan_query(str, opts = {}) abort
+function s:gen_henkan_query(str, opts = {}) abort
   let str = a:str
   if opts#get('merge_tsu')
     let str = substitute(str, 'っ\+', 'っ', 'g')
@@ -51,7 +51,7 @@ function! s:gen_henkan_query(str, opts = {}) abort
   return str
 endfunction
 
-function! henkan_list#update_async(str, exact_match) abort
+function henkan_list#update_async(str, exact_match) abort
   call utils#debug_log($'async start {a:str}')
   let str = s:gen_henkan_query(a:str, { 'no_trailing_n': v:true })
   let suffix = a:exact_match ? '' : '[^!-~]*'
@@ -69,7 +69,7 @@ endfunction
 
 let s:async_result_dict = {}
 
-function! s:on_exit(data, job_id) abort
+function s:on_exit(data, job_id) abort
   let s:async_result_dict[a:job_id] = a:data
   " call utils#debug_log($'on_exit {a:job_id}')
   " call utils#debug_log($'list {s:run_job_list->copy()->map("v:val[0]")->join(" ")} / {s:async_result_dict->keys()->join(" ")}')
@@ -115,7 +115,7 @@ endfunction
 
 " 送りなし検索→str='けんさく',okuri=''
 " 送りあり検索→str='しら',okuri='べ'
-function! henkan_list#update_manual(str, okuri = '') abort
+function henkan_list#update_manual(str, okuri = '') abort
   let str = s:gen_henkan_query(a:str)
 
   if a:okuri !=# ''
@@ -162,7 +162,7 @@ function! henkan_list#update_manual(str, okuri = '') abort
   let s:latest_henkan_list = num_henkan_list
 endfunction
 
-function! henkan_list#update_fuzzy(str, exact_match = '') abort
+function henkan_list#update_fuzzy(str, exact_match = '') abort
   let str = s:gen_henkan_query(a:str)
   let suffix = a:exact_match ? '' : '[^!-~]*'
 
@@ -179,20 +179,20 @@ function! henkan_list#update_fuzzy(str, exact_match = '') abort
 
   let s:latest_fuzzy_henkan_list = henkan_list
 endfunction
-function! henkan_list#get_fuzzy() abort
+function henkan_list#get_fuzzy() abort
   return get(s:, 'latest_fuzzy_henkan_list', [])
 endfunction
 
-function! henkan_list#get(async = v:false) abort
+function henkan_list#get(async = v:false) abort
   let target = a:async ? 'latest_async_henkan_list' : 'latest_henkan_list'
   return get(s:, target, [])
 endfunction
 
-function! henkan_list#insert(item) abort
+function henkan_list#insert(item) abort
   return insert(s:latest_henkan_list, a:item)
 endfunction
 
-function! s:parse_henkan_list_v2(lines, jisyo) abort
+function s:parse_henkan_list_v2(lines, jisyo) abort
   if empty(a:lines)
     return []
   endif
@@ -226,7 +226,7 @@ endfunction
 
 " 送りなし検索→machi='けんさく',okuri=''
 " 送りあり検索→machi='しら',okuri='べ'
-function! henkan_list#update_manual_v2(machi, okuri = '') abort
+function henkan_list#update_manual_v2(machi, okuri = '') abort
   let query = s:gen_henkan_query(a:machi)
 
   if a:okuri !=# ''
@@ -278,7 +278,7 @@ function! henkan_list#update_manual_v2(machi, okuri = '') abort
   let s:latest_henkan_list = num_henkan_list
 endfunction
 
-function! henkan_list#update_fuzzy_v2(str, exact_match = v:false) abort
+function henkan_list#update_fuzzy_v2(str, exact_match = v:false) abort
   let query = s:gen_henkan_query(a:str)
   let suffix = a:exact_match ? '' : '[^!-~]*'
 

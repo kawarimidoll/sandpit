@@ -1,10 +1,10 @@
 " ref: https://github.com/tani/vim-jetpack/blob/b5cf6209866c1acdf06d4047ff33e7734bfa2879/plugin/jetpack.vim#L170-L217
 
-function! s:jobcount(jobs) abort
+function s:jobcount(jobs) abort
   return len(filter(copy(a:jobs), {_, val -> s:jobstatus(val) ==# 'run'}))
 endfunction
 
-function! s:jobwait(jobs, njobs) abort
+function s:jobwait(jobs, njobs) abort
   let running = s:jobcount(a:jobs)
   while running > a:njobs
     let running = s:jobcount(a:jobs)
@@ -14,11 +14,11 @@ endfunction
 let s:jobs = {}
 
 if has('nvim')
-  function! s:jobstatus(job) abort
+  function s:jobstatus(job) abort
     return jobwait([a:job], 0)[0] == -1 ? 'run' : 'dead'
   endfunction
 
-  function! job#list() abort
+  function job#list() abort
     let result = []
     for id in keys(s:jobs)
       call add(result, {'id': id, 'status': s:jobstatus(id)})
@@ -26,7 +26,7 @@ if has('nvim')
     return result
   endfunction
 
-  function! job#start(cmd, opts = {}) abort
+  function job#start(cmd, opts = {}) abort
     let buf = []
     let On_out = get(a:opts, 'out', {data->0})
     let On_err = get(a:opts, 'err', {data->0})
@@ -41,22 +41,22 @@ if has('nvim')
     return job_id
   endfunction
 else
-  function! s:jobstatus(job) abort
+  function s:jobstatus(job) abort
     return job_status(a:job)
   endfunction
 
-  function! s:job_id(job)
+  function s:job_id(job)
     return job_info(a:job).process
   endfunction
 
-  function! s:job_exit_cb(buf, cb, job, ...) abort
+  function s:job_exit_cb(buf, cb, job, ...) abort
     let ch = job_getchannel(a:job)
     while ch_status(ch) ==# 'open' | sleep 1ms | endwhile
     while ch_status(ch) ==# 'buffered' | sleep 1ms | endwhile
     call a:cb(a:buf, s:job_id(a:job))
   endfunction
 
-  function! job#list() abort
+  function job#list() abort
     let result = []
     for [id, job] in items(s:jobs)
       call add(result, {'id': id, 'status': s:jobstatus(job)})
@@ -64,7 +64,7 @@ else
     return result
   endfunction
 
-  function! job#start(cmd, opts = {}) abort
+  function job#start(cmd, opts = {}) abort
     let buf = []
     let On_out = get(a:opts, 'out', {_->0})
     let On_err = get(a:opts, 'err', {_->0})

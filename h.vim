@@ -6,15 +6,15 @@ source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
 
-function! h#feed(str) abort
+function h#feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
-function! s:is_complete_selected() abort
+function s:is_complete_selected() abort
   return complete_info(['selected']).selected >= 0
 endfunction
 
-function! h#enable() abort
+function h#enable() abort
   if s:is_enable
     return
   endif
@@ -45,7 +45,7 @@ function! h#enable() abort
   let s:is_enable = v:true
 endfunction
 
-function! h#disable(escape = v:false) abort
+function h#disable(escape = v:false) abort
   if !s:is_enable
     return
   endif
@@ -83,11 +83,11 @@ function! h#disable(escape = v:false) abort
   call h#feed(after_feed)
 endfunction
 
-function! h#toggle() abort
+function h#toggle() abort
   return s:is_enable ? h#disable() : h#enable()
 endfunction
 
-function! h#init(opts = {}) abort
+function h#init(opts = {}) abort
   try
     call opts#parse(a:opts)
   catch
@@ -98,12 +98,12 @@ function! h#init(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
-function! s:on_complete_changed(event) abort
+function s:on_complete_changed(event) abort
   call store#set('kouho', get(a:event.completed_item, 'abbr', ''))
   call s:i3()
 endfunction
 
-function! s:get_spec(key) abort
+function s:get_spec(key) abort
   " 先行入力と合わせて
   "   完成した
   "     辞書
@@ -179,7 +179,7 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
-function! s:henkan_fuzzy() abort
+function s:henkan_fuzzy() abort
   let s:henkan_context = {
         \ 'machi': store#get('machi'),
         \ 'okuri': store#get('okuri'),
@@ -201,7 +201,7 @@ function! s:henkan_fuzzy() abort
   call complete(col, comp_list)
 endfunction
 
-function! s:henkan_start(machistr, okuristr = '') abort
+function s:henkan_start(machistr, okuristr = '') abort
   let s:henkan_context = {
         \ 'machi': a:machistr,
         \ 'okuri': a:okuristr,
@@ -218,7 +218,7 @@ function! s:henkan_start(machistr, okuristr = '') abort
   return feed
 endfunction
 
-function! s:sticky() abort
+function s:sticky() abort
   if store#is_present('choku')
     " ひらがなになりきれていない文字が残っている場合はスキップ
     return ''
@@ -236,7 +236,7 @@ function! s:sticky() abort
   return ''
 endfunction
 
-function! s:backspace() abort
+function s:backspace() abort
   let feed = ''
   if store#is_present('choku')
     call store#pop('choku')
@@ -259,7 +259,7 @@ function! s:backspace() abort
   return feed
 endfunction
 
-function! s:kakutei(fallback_key) abort
+function s:kakutei(fallback_key) abort
   let s:current_store_name = 'choku'
   let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
   call store#clear('kouho')
@@ -271,7 +271,7 @@ function! s:kakutei(fallback_key) abort
   return feed ==# '' ? utils#trans_special_key(a:fallback_key) : feed
 endfunction
 
-function! s:henkan(fallback_key) abort
+function s:henkan(fallback_key) abort
   let feed = ''
   if store#is_present('okuri')
     return "\<c-n>"
@@ -290,7 +290,7 @@ function! s:henkan(fallback_key) abort
   return feed
 endfunction
 
-function! s:i1(key, with_sticky = v:false) abort
+function s:i1(key, with_sticky = v:false) abort
   if a:with_sticky && !mode#is_direct_v2(a:key)
     let feed = s:i2({ 'string': '', 'store': '', 'func': 'sticky' })
 
@@ -320,7 +320,7 @@ let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
 let s:current_store_name = 'choku'
 let s:phase_kouho = v:false
-function! s:i2(args) abort
+function s:i2(args) abort
   let prev_store_name = s:current_store_name
   let spec = a:args
 
@@ -414,7 +414,7 @@ function! s:i2(args) abort
   return ''
 endfunction
 
-function! s:i3(...) abort
+function s:i3(...) abort
   let hlname = ''
   if store#is_blank('choku')
     let [lnum, col] = getpos('.')[1:2]

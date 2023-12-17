@@ -1,6 +1,6 @@
 let s:state = { 'machi': 0, 'okuri': 0, 'kouho': 0 }
 
-function! phase#enable(target) abort
+function phase#enable(target) abort
   if !has_key(s:state, a:target)
     echoerr 'invalid target'
   endif
@@ -32,7 +32,7 @@ function! phase#enable(target) abort
   call inline_mark#put(lnum, col, {'name': a:target, 'text': text, 'hl': hl})
 endfunction
 
-function! phase#move(target, pos) abort
+function phase#move(target, pos) abort
   if !has_key(s:state, a:target)
     echoerr 'invalid target'
   endif
@@ -41,7 +41,7 @@ function! phase#move(target, pos) abort
   call inline_mark#put(lnum, col, {'name': a:target, 'text': text})
 endfunction
 
-function! phase#disable(target) abort
+function phase#disable(target) abort
   if !has_key(s:state, a:target)
     echoerr 'invalid target'
   endif
@@ -63,22 +63,22 @@ function! phase#disable(target) abort
   endif
 endfunction
 
-function! phase#clear() abort
+function phase#clear() abort
   " machiがoffになったらkouhoとokuriもoffなのでこれでよし
   call phase#disable('machi')
 endfunction
 
-function! phase#is_enabled(target) abort
+function phase#is_enabled(target) abort
   if !has_key(s:state, a:target)
     echoerr 'invalid target'
   endif
   return s:state[a:target]
 endfunction
 
-function! phase#is_disabled(target) abort
+function phase#is_disabled(target) abort
   return !phase#is_enabled(a:target)
 endfunction
 
-function! phase#getpos(target) abort
+function phase#getpos(target) abort
   return phase#is_enabled(a:target) ? inline_mark#get(a:target) : []
 endfunction
