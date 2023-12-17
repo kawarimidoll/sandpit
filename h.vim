@@ -53,7 +53,7 @@ function h#enable() abort
     let current_map = maparg(key, 'i', 0, 1)
     let k = keytrans(key)
     call add(s:keys_to_remaps, empty(current_map) ? k : current_map)
-    execute $"inoremap {k} <cmd>call {sid}i1('{keytrans(k)}', {val})<cr>"
+    execute $"inoremap {k} <cmd>call {sid}ins('{keytrans(k)}', {val})<cr>"
   endfor
 
   call store#clear()
@@ -125,7 +125,7 @@ endfunction
 
 function s:on_complete_changed(event) abort
   call store#set('kouho', get(a:event.completed_item, 'abbr', ''))
-  call s:i3()
+  call s:display_marks()
 endfunction
 
 function s:get_spec(key) abort
@@ -314,27 +314,27 @@ function s:henkan(fallback_key) abort
   return feed
 endfunction
 
-function s:i1(key, with_sticky = v:false) abort
+function s:ins(key, with_sticky = v:false) abort
   if a:with_sticky && !mode#is_direct_v2(a:key)
-    let feed = s:i2({ 'string': '', 'store': '', 'func': 'sticky' })
+    let feed = s:handle_spec({ 'string': '', 'store': '', 'func': 'sticky' })
 
     let key = a:key->tolower()
-    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i1('{key}')\<cr>")
+    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}ins('{key}')\<cr>")
     return
   endif
 
   let spec = s:get_spec(a:key)
 
-  let feed = s:i2(spec)
+  let feed = s:handle_spec(spec)
 
   if feed ==# ''
-    call s:i3()
+    call s:display_marks()
     if s:current_store_name == 'machi'
       call utils#debounce(funcref('s:henkan_fuzzy'), 100)
       " TODO machi->chokuに更新されたタイミングでs:feed("\<c-e>")する
     endif
   else
-    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
+    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}display_marks()\<cr>")
   endif
 endfunction
 
@@ -344,7 +344,7 @@ let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
 let s:current_store_name = 'choku'
 let s:phase_kouho = v:false
-function s:i2(args) abort
+function s:handle_spec(args) abort
   let prev_store_name = s:current_store_name
   let spec = a:args
 
@@ -438,7 +438,7 @@ function s:i2(args) abort
   return ''
 endfunction
 
-function s:i3(...) abort
+function s:display_marks(...) abort
   let hlname = ''
   if store#is_blank('choku')
     let [lnum, col] = getpos('.')[1:2]
