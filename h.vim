@@ -1,6 +1,12 @@
+source ./utils.vim
+
+if !exists('*keytrans') || exists(':defer') != 2
+  call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
+  finish
+endif
+
 source ./inline_mark.vim
 source ./converters.vim
-source ./utils.vim
 source ./opts.vim
 source ./store.vim
 source ./henkan_list.vim
