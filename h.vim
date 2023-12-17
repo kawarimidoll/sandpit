@@ -28,6 +28,12 @@ function h#enable() abort
   augroup h#augroup
     autocmd!
     autocmd CompleteChanged * call s:on_complete_changed(v:event)
+    " InsertLeaveだと<c-c>を使用した際に発火しないため
+    " ModeChangedを使用する
+    autocmd ModeChanged i:*
+          \   if mode(1) !~ '^n\?i'
+          \ |   call h#disable()
+          \ | endif
   augroup END
 
   let s:keys_to_remaps = []
@@ -82,6 +88,9 @@ function h#disable(escape = v:false) abort
   let s:current_store_name = 'choku'
 
   let s:is_enable = v:false
+  if mode() !=# 'i'
+    return
+  endif
   if a:escape
     let after_feed ..= "\<esc>"
     " call timer_start(1, {->call('h#feed', ["\<esc>"])})
