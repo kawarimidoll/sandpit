@@ -12,6 +12,25 @@ source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
 
+let s:phase = #{ current: '', previous: '', reason: '' }
+" function s:phase_full_get() abort
+"   return s:phase
+" endfunction
+" function s:phase_get() abort
+"   return s:phase.current
+" endfunction
+function s:phase_is(name) abort
+  return s:phase.current ==# a:name
+endfunction
+function s:phase_was(name) abort
+  return s:phase.previous ==# a:name
+endfunction
+function s:phase_set(name, reason) abort
+  let s:phase.previous = s:phase.current
+  let s:phase.current = a:name
+  let s:phase.reason = a:reason
+endfunction
+
 function s:feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
@@ -58,7 +77,7 @@ function h#enable() abort
 
   call store#clear()
   call mode#clear()
-  let s:current_store_name = 'hanpa'
+  call s:phase_set('hanpa', 'clear')
 
   let s:is_enable = v:true
 endfunction
@@ -93,7 +112,7 @@ function h#disable(escape = v:false) abort
 
   call store#clear()
   call mode#clear()
-  let s:current_store_name = 'hanpa'
+  call s:phase_set('hanpa', 'clear')
 
   let s:is_enable = v:false
   if mode() !=# 'i'
@@ -236,14 +255,14 @@ function s:sticky() abort
     return ''
   endif
 
-  if s:current_store_name == 'machi'
+  if s:phase_is('machi')
     if store#is_present('machi')
-      let s:current_store_name = 'okuri'
+      call s:phase_set('okuri', 'sticky: start okuri')
     endif
-  elseif s:current_store_name == 'okuri'
+  elseif s:phase_is('okuri')
   " nop
   else
-    let s:current_store_name = 'machi'
+    call s:phase_set('machi', 'sticky: start machi')
   endif
   return ''
 endfunction
@@ -255,12 +274,12 @@ function s:backspace() abort
   elseif store#is_present('okuri')
     call store#pop('okuri')
     if store#is_blank('okuri')
-      let s:current_store_name = 'machi'
+      call s:phase_set('machi', 'backspace: blank okuri')
     endif
   elseif store#is_present('machi')
     call store#pop('machi')
     if store#is_blank('machi')
-      let s:current_store_name = 'hanpa'
+      call s:phase_set('hanpa', 'backspace: blank machi')
       if mode#is_start_sticky()
         call mode#set_anyway('hira')
       endif
@@ -272,7 +291,7 @@ function s:backspace() abort
 endfunction
 
 function s:kakutei(fallback_key) abort
-  let s:current_store_name = 'hanpa'
+  call s:phase_set('hanpa', 'kakutei')
   let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
   call store#clear('kouho')
   call store#clear('machi')
@@ -318,9 +337,10 @@ function s:ins(key, with_sticky = v:false) abort
 
   if feed ==# ''
     call s:display_marks()
-    if s:current_store_name == 'machi'
+    if s:phase_is('machi')
       call utils#debounce(funcref('s:henkan_fuzzy'), 100)
-      " TODO machi->hanpaに更新されたタイミングでs:feed("\<c-e>")する
+    elseif s:phase_was('machi') && s:phase_is('hanpa')
+      call s:feed("\<c-e>")
     endif
   else
     call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}display_marks()\<cr>")
@@ -331,10 +351,8 @@ let s:show_hanpa_namespace = 'SHOW_hanpa_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
 let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
-let s:current_store_name = 'hanpa'
 let s:phase_kouho = v:false
 function s:handle_spec(args) abort
-  let prev_store_name = s:current_store_name
   let spec = a:args
 
   if !s:is_complete_selected() && mode#is_direct_v2(get(spec, 'key', ''))
@@ -413,11 +431,11 @@ function s:handle_spec(args) abort
     let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
   endif
 
-  if s:current_store_name == 'hanpa' || feed !~ '\p'
+  if s:phase_is('hanpa') || feed !~ '\p'
     return feed
-  elseif s:current_store_name == 'machi'
+  elseif s:phase_is('machi')
     call store#push('machi', feed)
-  elseif s:current_store_name == 'okuri'
+  elseif s:phase_is('okuri')
     call store#push('okuri', feed)
 
     if store#is_blank('hanpa')
