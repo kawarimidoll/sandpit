@@ -78,7 +78,8 @@ function h#disable(escape = v:false) abort
   call inline_mark#clear(s:show_machi_namespace)
   call inline_mark#clear(s:show_kouho_namespace)
   call inline_mark#clear(s:show_choku_namespace)
-  let after_feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
+  let after_feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi'))
+        \ .. store#get('okuri') .. store#get('choku')
 
   for k in s:keys_to_remaps
     try
