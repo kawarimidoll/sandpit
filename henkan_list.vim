@@ -217,7 +217,7 @@ function! s:parse_henkan_list_v2(lines, jisyo) abort
             \ 'empty': 1,
             \ 'user_data': { 'yomi': trim(yomi), 'path': a:jisyo.path }
             \ })
-            " \ 'info': $'{a:jisyo.mark}{info}',
+      " \ 'info': $'{a:jisyo.mark}{info}',
     endfor
   endfor
 
@@ -260,12 +260,12 @@ function! henkan_list#update_manual_v2(machi, okuri = '') abort
   " 効率的ではないが数値の変換候補はそれほどの量にはならない想定なので気にしない
   let num_henkan_list = []
   for item in henkan_list
-    if item.word =~ '#4' ||
-          \ (item.word =~ '#8' && numstr_list->len() > 1) || (item.word =~ '#8' && numstr_list[0] !~ '\d\d')
+    if item['abbr'] =~ '#4' ||
+          \ (item['abbr'] =~ '#9' && numstr_list->len() > 1) || (item['abbr'] =~ '#9' && numstr_list[0] !~ '\d\d')
       continue
     endif
     for numstr in numstr_list
-      let item.word = item.word->substitute('#0', numstr, '')
+      let item['abbr'] = item['abbr']->substitute('#0', numstr, '')
             \ ->substitute('#1', converters#numconv1(numstr), '')
             \ ->substitute('#2', converters#numconv2(numstr), '')
             \ ->substitute('#3', converters#numconv3(numstr), '')
