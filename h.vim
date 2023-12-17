@@ -453,29 +453,33 @@ function s:display_marks(...) abort
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
-  if store#is_blank('kouho')
-    call inline_mark#clear(s:show_kouho_namespace)
-    if store#is_blank('machi')
-      call inline_mark#clear(s:show_machi_namespace)
-    else
-      let hlname = opts#get('highlight_machi')
-      call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), hlname)
-    endif
-  else
+  if s:phase_is('machi')
+    let hlname = opts#get('highlight_machi')
+  endif
+  if store#is_present('kouho')
     call inline_mark#clear(s:show_machi_namespace)
     let hlname = opts#get('highlight_kouho')
     call inline_mark#put_text(s:show_kouho_namespace, store#get('kouho'), hlname)
-  endif
-  if store#is_blank('okuri')
-    call inline_mark#clear(s:show_okuri_namespace)
+  elseif store#is_present('machi')
+    call inline_mark#clear(s:show_kouho_namespace)
+    let hlname = opts#get('highlight_machi')
+    call inline_mark#put_text(s:show_machi_namespace, store#get('machi'), hlname)
   else
+    call inline_mark#clear(s:show_kouho_namespace)
+    call inline_mark#clear(s:show_machi_namespace)
+  endif
+  if s:phase_is('okuri')
     let hlname = opts#get('highlight_okuri')
-    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'), hlname)
   endif
-  if store#is_blank('hanpa')
-    call inline_mark#clear(s:show_hanpa_namespace)
+  if store#is_present('okuri')
+    call inline_mark#put_text(s:show_okuri_namespace, store#get('okuri'), hlname)
   else
+    call inline_mark#clear(s:show_okuri_namespace)
+  endif
+  if store#is_present('hanpa')
     call inline_mark#put_text(s:show_hanpa_namespace, store#get('hanpa'), hlname)
+  else
+    call inline_mark#clear(s:show_hanpa_namespace)
   endif
 endfunction
 
