@@ -94,7 +94,7 @@ function opts#parse(opts) abort
 
     let jisyo.mark = get(jisyo, 'mark', '')
     let encoding = get(jisyo, 'encoding', '') ==# '' ? 'auto' : jisyo.encoding
-    let jisyo.grep_cmd = $'{rg_cmd} --encoding {encoding} "^:q:" {jisyo.path}'
+    let jisyo.grep_cmd = $'{rg_cmd} --encoding {encoding} --regexp "^:q:" {jisyo.path}'
   endfor
 
   " かなテーブル

@@ -28,7 +28,7 @@ function s:parse_henkan_list(lines, jisyo, okuri = '') abort
 endfunction
 
 function s:gen_henkan_query(str, opts = {}) abort
-  let str = a:str
+  let str = a:str->escape('()[]{}.*+?^$|\')
   if opts#get('merge_tsu')
     let str = substitute(str, 'っ\+', 'っ', 'g')
   endif
