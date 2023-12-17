@@ -12,7 +12,7 @@ source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
 
-let s:phase = #{ current: '', previous: '', reason: '' }
+let s:phase = { 'current': '', 'previous': '', 'reason': '' }
 " function s:phase_full_get() abort
 "   return s:phase
 " endfunction
@@ -25,10 +25,14 @@ endfunction
 function s:phase_was(name) abort
   return s:phase.previous ==# a:name
 endfunction
-function s:phase_set(name, reason) abort
+function s:phase_set(name, reason = '') abort
   let s:phase.previous = s:phase.current
   let s:phase.current = a:name
   let s:phase.reason = a:reason
+endfunction
+function s:phase_forget() abort
+  let s:phase.previous = ''
+  let s:phase.reason = ''
 endfunction
 
 function s:feed(str) abort
@@ -77,7 +81,7 @@ function h#enable() abort
 
   call store#clear()
   call mode#clear()
-  call s:phase_set('hanpa', 'clear')
+  call s:phase_set('hanpa')
 
   let s:is_enable = v:true
 endfunction
@@ -112,7 +116,7 @@ function h#disable(escape = v:false) abort
 
   call store#clear()
   call mode#clear()
-  call s:phase_set('hanpa', 'clear')
+  call s:phase_set('hanpa')
 
   let s:is_enable = v:false
   if mode() !=# 'i'
@@ -322,6 +326,7 @@ function s:henkan(fallback_key) abort
 endfunction
 
 function s:ins(key, with_sticky = v:false) abort
+  call s:phase_forget()
   if a:with_sticky && !mode#is_direct_v2(a:key)
   " TODO direct modeの変換候補を選択した状態で大文字を入力した場合の対処
     let feed = s:handle_spec({ 'string': '', 'store': '', 'func': 'sticky' })
@@ -351,6 +356,7 @@ let s:show_hanpa_namespace = 'SHOW_hanpa_NAMESPACE'
 let s:show_machi_namespace = 'SHOW_MACHI_NAMESPACE'
 let s:show_okuri_namespace = 'SHOW_OKURI_NAMESPACE'
 let s:show_kouho_namespace = 'SHOW_KOUHO_NAMESPACE'
+" kouho状態の判定は他のphaseとは独立して判定する
 let s:phase_kouho = v:false
 function s:handle_spec(args) abort
   let spec = a:args
