@@ -65,6 +65,11 @@ function! mode#set_alt(mode_name) abort
   echo $'{mode#current_name()} mode'
   return s:current_mode
 endfunction
+function! mode#set_anyway(mode_name) abort
+  let s:current_mode = s:mode_dict[a:mode_name]
+  echo $'{mode#current_name()} mode'
+  return s:current_mode
+endfunction
 
 " initialize dict
 for [key, val] in items(s:mode_dict)

@@ -228,7 +228,7 @@ function! s:backspace() abort
     if store#is_blank('machi')
       let s:current_store_name = 'choku'
       if mode#is_start_sticky()
-        call mode#set('hira')
+        call mode#set_anyway('hira')
       endif
     endif
   else
@@ -244,7 +244,7 @@ function! s:kakutei(fallback_key) abort
   call store#clear('machi')
   call store#clear('okuri')
   if mode#is_start_sticky()
-    call mode#set('hira')
+    call mode#set_anyway('hira')
   endif
   return feed ==# '' ? utils#trans_special_key(a:fallback_key) : feed
 endfunction
