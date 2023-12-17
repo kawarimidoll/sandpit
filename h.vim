@@ -60,8 +60,6 @@ function h#enable() abort
   call mode#clear()
   let s:current_store_name = 'choku'
 
-  let s:phase = { 'choku': '', 'machi': '', 'okuri': '' }
-
   let s:is_enable = v:true
 endfunction
 
@@ -160,14 +158,12 @@ function s:get_spec(key) abort
       return spec
     endif
     let [kana, roma; _rest] = opts#get('kana_table')[current]->split('\A*\zs') + ['']
-    " call store#set('choku', roma)
     let spec.string = kana
     let spec.store = roma
     return spec
   elseif has_key(opts#get('preceding_keys_dict'), current)
     let spec.message = 'full candidate'
     " 完成はしていないが、先行入力の可能性がある場合
-    " call store#set('choku', current)
     let spec.store = current
     return spec
   endif
@@ -317,6 +313,7 @@ endfunction
 
 function s:ins(key, with_sticky = v:false) abort
   if a:with_sticky && !mode#is_direct_v2(a:key)
+  " TODO direct modeの変換候補を選択した状態で大文字を入力した場合の対処
     let feed = s:handle_spec({ 'string': '', 'store': '', 'func': 'sticky' })
 
     let key = a:key->tolower()
@@ -417,6 +414,7 @@ function s:handle_spec(args) abort
   let s:phase_kouho = next_kouho
 
   if allow_convert
+    " TODO カタカナモードでも変換できるようにする
     let feed = mode#convert(feed)
   endif
 
