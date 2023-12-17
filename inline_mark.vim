@@ -56,8 +56,8 @@ if has('nvim')
     call nvim_buf_set_extmark(0, ns_id, a:lnum - 1, a:col - 1, {
           \   'virt_text': [[text, hl]],
           \   'virt_text_pos': 'inline',
-          \   'right_gravity': v:false
           \ })
+          " \   'right_gravity': v:false
   endfunction
 else
   let s:prop_types = {}
@@ -85,7 +85,8 @@ else
     let text = get(a:opts, 'text', '')
     let name = get(a:opts, 'name', s:file_name)
 
-    let opts = {'highlight': hl, 'start_incl':1, 'end_incl':1}
+    let opts = {'highlight': hl}
+    " let opts = {'highlight': hl, 'start_incl':1, 'end_incl':1}
     if get(s:prop_types, name, {}) != opts
       if prop_type_get(name)->empty()
         call prop_type_add(name, opts)
