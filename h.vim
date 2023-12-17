@@ -78,7 +78,6 @@ function h#disable(escape = v:false) abort
   call inline_mark#clear(s:show_machi_namespace)
   call inline_mark#clear(s:show_kouho_namespace)
   call inline_mark#clear(s:show_choku_namespace)
-  " call h#feed(store#get('machi') .. store#get('okuri') .. store#get('choku'))
   let after_feed = store#get('machi') .. store#get('okuri') .. store#get('choku')
 
   for k in s:keys_to_remaps
@@ -103,7 +102,6 @@ function h#disable(escape = v:false) abort
   endif
   if a:escape
     let after_feed ..= "\<esc>"
-    " call timer_start(1, {->call('h#feed', ["\<esc>"])})
   endif
   call s:feed(after_feed)
 endfunction
@@ -238,7 +236,6 @@ function s:henkan_start(machistr, okuristr = '') abort
   let comp_list = copy(henkan_list#get())
   let feed = ''
   if !empty(comp_list)
-    " call inline_mark#clear(s:show_machi_namespace)
     call complete(col('.'), comp_list)
     let feed = "\<c-n>"
   endif
