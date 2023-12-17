@@ -16,6 +16,12 @@ function h#feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
+function s:doautocmd(event_name) abort
+  if exists($'#User#{a:event_name}')
+    execute $'doautocmd User {a:event_name}'
+  endif
+endfunction
+
 function s:is_complete_selected() abort
   return complete_info(['selected']).selected >= 0
 endfunction
@@ -24,8 +30,10 @@ function h#enable() abort
   if s:is_enable
     return
   endif
+  call s:doautocmd('h_autocmd_enable_pre')
+  defer s:doautocmd('h_autocmd_enable_post')
 
-  augroup h#augroup
+  augroup h_inner_augroup
     autocmd!
     autocmd CompleteChanged * call s:on_complete_changed(v:event)
     " InsertLeaveだと<c-c>を使用した際に発火しないため
@@ -61,8 +69,10 @@ function h#disable(escape = v:false) abort
   if !s:is_enable
     return
   endif
+  call s:doautocmd('h_autocmd_disable_pre')
+  defer s:doautocmd('h_autocmd_disable_post')
 
-  autocmd! h#augroup
+  autocmd! h_inner_augroup
 
   call inline_mark#clear(s:show_okuri_namespace)
   call inline_mark#clear(s:show_machi_namespace)
@@ -103,6 +113,8 @@ function h#toggle() abort
 endfunction
 
 function h#init(opts = {}) abort
+  call s:doautocmd('h_autocmd_initialize_pre')
+  defer s:doautocmd('h_autocmd_initialize_post')
   try
     call opts#parse(a:opts)
   catch
