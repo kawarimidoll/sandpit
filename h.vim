@@ -377,9 +377,8 @@ function s:handle_spec(args) abort
     " handle func
     if spec.func ==# 'sticky'
       if s:is_complete_selected()
-        let feed = s:kakutei('') .. $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
+        let feed = s:kakutei('')
         let after_sticky = v:true
-        let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
       else
         let feed = s:sticky()
       endif
