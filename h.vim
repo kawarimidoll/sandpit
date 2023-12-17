@@ -12,7 +12,7 @@ source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
 
-function h#feed(str) abort
+function s:feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
@@ -105,7 +105,7 @@ function h#disable(escape = v:false) abort
     let after_feed ..= "\<esc>"
     " call timer_start(1, {->call('h#feed', ["\<esc>"])})
   endif
-  call h#feed(after_feed)
+  call s:feed(after_feed)
 endfunction
 
 function h#toggle() abort
@@ -220,7 +220,7 @@ function s:henkan_fuzzy() abort
     " この時点で挿入モードから抜けてしまっている可能性がある
     return
   elseif empty(comp_list) && pumvisible()
-    call h#feed("\<c-e>")
+    call s:feed("\<c-e>")
     return
   endif
   let machi_pos = inline_mark#get('machi')
@@ -322,7 +322,7 @@ function s:i1(key, with_sticky = v:false) abort
     let feed = s:i2({ 'string': '', 'store': '', 'func': 'sticky' })
 
     let key = a:key->tolower()
-    call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i1('{key}')\<cr>")
+    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i1('{key}')\<cr>")
     return
   endif
 
@@ -334,10 +334,10 @@ function s:i1(key, with_sticky = v:false) abort
     call s:i3()
     if s:current_store_name == 'machi'
       call utils#debounce(funcref('s:henkan_fuzzy'), 100)
-      " TODO machi->chokuに更新されたタイミングでh#feed("\<c-e>")する
+      " TODO machi->chokuに更新されたタイミングでs:feed("\<c-e>")する
     endif
   else
-    call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
+    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
   endif
 endfunction
 
