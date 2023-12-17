@@ -277,3 +277,32 @@ function! henkan_list#update_manual_v2(machi, okuri = '') abort
   endfor
   let s:latest_henkan_list = num_henkan_list
 endfunction
+
+function! henkan_list#update_fuzzy_v2(str, exact_match = v:false) abort
+  let query = s:gen_henkan_query(a:str)
+  let suffix = a:exact_match ? '' : '[^!-~]*'
+
+  " let numstr_list = a:machi->split('\D\+')
+  " if !empty(numstr_list)
+  "   let query = query->substitute('\d\+', '#', 'g')
+  " endif
+
+  let already_add_dict = {}
+  let henkan_list = []
+  for jisyo in opts#get('jisyo_list')
+    let lines = jisyo.grep_cmd->substitute(':q:', $'{query}{suffix} /', '')->systemlist()
+    let kouho_list = s:parse_henkan_list_v2(lines, jisyo)
+    for kouho in kouho_list
+      if !has_key(already_add_dict, kouho.abbr)
+        let already_add_dict[kouho.abbr] = 1
+        call add(henkan_list, kouho)
+      endif
+    endfor
+  endfor
+
+  if opts#get('sort_auto_complete_by_length')
+    call sort(henkan_list, {a, b -> strcharlen(a.user_data.yomi) - strcharlen(b.user_data.yomi)})
+  endif
+
+  let s:latest_fuzzy_henkan_list = henkan_list
+endfunction

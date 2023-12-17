@@ -179,6 +179,28 @@ function! s:get_spec(key) abort
   return spec
 endfunction
 
+function! s:henkan_fuzzy() abort
+  let s:henkan_context = {
+        \ 'machi': store#get('machi'),
+        \ 'okuri': store#get('okuri'),
+        \ }
+  " echowindow 'henkan' a:machistr a:okuristr
+  let exact_match = store#get('machi')->strcharlen() < 5
+  call henkan_list#update_fuzzy_v2(store#get('machi'), exact_match)
+  let comp_list = copy(henkan_list#get_fuzzy())
+  if mode() !=# 'i'
+    " タイマー実行しており、さらに変換リストの構築に時間がかかるため、
+    " この時点で挿入モードから抜けてしまっている可能性がある
+    return
+  elseif empty(comp_list) && pumvisible()
+    call h#feed("\<c-e>")
+    return
+  endif
+  let machi_pos = inline_mark#get('machi')
+  let col = machi_pos->empty() ? col('.') : machi_pos[1]
+  call complete(col, comp_list)
+endfunction
+
 function! s:henkan_start(machistr, okuristr = '') abort
   let s:henkan_context = {
         \ 'machi': a:machistr,
@@ -283,6 +305,10 @@ function! s:i1(key, with_sticky = v:false) abort
 
   if feed ==# ''
     call s:i3()
+    if s:current_store_name == 'machi'
+      call utils#debounce(funcref('s:henkan_fuzzy'), 100)
+      " TODO machi->chokuに更新されたタイミングでh#feed("\<c-e>")する
+    endif
   else
     call h#feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}i3()\<cr>")
   endif
