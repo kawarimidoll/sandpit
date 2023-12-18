@@ -2,6 +2,12 @@ function opts#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
 
+function s:create_file(path) abort
+  call fnamemodify(a:path, ':p:h')
+        \ ->iconv(&encoding, &termencoding)
+        \ ->mkdir('p')
+endfunction
+
 function opts#parse(opts) abort
   " マーカー
   let s:henkan_marker = get(a:opts, 'henkan_marker', '▽')
@@ -20,15 +26,41 @@ function opts#parse(opts) abort
   let s:highlight_hanpa = get(a:opts, 'highlight_hanpa', '')
   let s:highlight_machi = get(a:opts, 'highlight_machi', 'Search')
   let s:highlight_kouho = get(a:opts, 'highlight_kouho', 'IncSearch')
-  let s:highlight_okuri = get(a:opts, 'highlight_okuri', 'Visual')
+  let s:highlight_okuri = get(a:opts, 'highlight_okuri', 'ErrorMsg')
 
   let s:phase_dict = s:states
+
+  " 自動補完待機時間 (負数の場合は自動補完しない)
+  let s:suggest_wait_ms = get(a:opts, 'suggest_wait_ms', -1)
+  " 自動補完候補順序 jisyo / code / length
+  let s:suggest_sort_by = get(a:opts, 'suggest_sort_by', 'jisyo')
+  " 自動補完前方一致最小文字数
+  let s:suggest_prefix_match_minimum = get(a:opts, 'suggest_prefix_match_minimum', 5)
+
+  " 各項目を変換リスト末尾に追加
+  " let s:list_add_hiragana = get(a:opts, 'list_add_hiragana', v:false)
+  " let s:list_add_zen_katakana = get(a:opts, 'list_add_zen_katakana', v:false)
+  " let s:list_add_han_katakana = get(a:opts, 'list_add_han_katakana', v:false)
+  " let s:list_add_han_alphabet = get(a:opts, 'list_add_han_alphabet', v:false)
+  " let s:list_add_zen_alphabet = get(a:opts, 'list_add_zen_alphabet', v:false)
+
+  " デバッグログ出力先パス
+  let s:debug_log_path = get(a:opts, 'debug_log_path', '')->expand()
+  if !empty(s:debug_log_path)
+    if isdirectory(s:debug_log_path)
+      throw $"debug_log_path is directory {s:debug_log_path}"
+    endif
+    " 指定されたパスにファイルがなければ作成する
+    if glob(s:debug_log_path)->empty()
+      call s:create_file(s:debug_log_path)
+    endif
+  endif
 
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)
 
   " 自動補完を文字数でソートする
-  let s:sort_auto_complete_by_length = get(a:opts, 'min_auto_complete_length', v:false)
+  let s:sort_auto_complete_by_length = get(a:opts, 'sort_auto_complete_by_length', v:false)
 
   " enable時にtextwidthを0にする
   let s:textwidth_zero = get(a:opts, 'textwidth_zero', v:false)
@@ -56,6 +88,7 @@ function opts#parse(opts) abort
 
   " かな入力中に確定しないアルファベットを削除する
   let s:del_odd_char = get(a:opts, 'del_odd_char', v:false)
+  let s:put_hanpa = get(a:opts, 'put_hanpa', v:false)
 
   let rg_cmd = 'rg --no-line-number'
   if abbrev_ignore_case
@@ -64,15 +97,13 @@ function opts#parse(opts) abort
 
   " ユーザー辞書
   " デフォルトは~/.cache/vim/SKK-JISYO.user
-  let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', expand('~/.cache/vim/SKK-JISYO.user'))
-  if s:user_jisyo_path !~ '^/'
-    throw $"user_jisyo_path must be absolute path {s:user_jisyo_path}"
+  let s:user_jisyo_path = get(a:opts, 'user_jisyo_path', '~/.cache/vim/SKK-JISYO.user')->expand()
+  if isdirectory(s:user_jisyo_path)
+    throw $"user_jisyo_path is directory {s:user_jisyo_path}"
   endif
   " 指定されたパスにファイルがなければ作成する
   if glob(s:user_jisyo_path)->empty()
-    call fnamemodify(s:user_jisyo_path, ':p:h')
-          \ ->iconv(&encoding, &termencoding)
-          \ ->mkdir('p')
+    call s:create_file(s:user_jisyo_path)
     call writefile([
           \ ';; フォーマットは以下',
           \ ';; yomi /(henkan(;setsumei)?/)+',
