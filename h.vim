@@ -47,6 +47,10 @@ function s:feed(str) abort
   call feedkeys(a:str, 'ni')
 endfunction
 
+function s:current_complete_item() abort
+  let info = complete_info(['items', 'selected'])
+  return info.selected < 0 ? {} : info.items[info.selected]
+endfunction
 function s:is_complete_selected() abort
   return complete_info(['selected']).selected >= 0
 endfunction
@@ -144,8 +148,15 @@ function h#init(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
+function s:on_kakutei_special(user_data) abort
+  echomsg '未実装' a:user_data.special
+endfunction
+
 function s:on_complete_changed(event) abort
-  call store#set('kouho', get(a:event.completed_item, 'abbr', ''))
+  let user_data = get(a:event.completed_item, 'user_data', {})
+  let kouho = has_key(user_data, 'special') ? get(user_data, 'yomi', '')
+        \ : get(a:event.completed_item, 'abbr', '')
+  call store#set('kouho', kouho)
   call s:display_marks()
 endfunction
 
@@ -245,15 +256,44 @@ function s:henkan_fuzzy() abort
   call complete(col, comp_list)
 endfunction
 
+function s:make_special_henkan_item(opts) abort
+  let yomi = store#get('machi')
+  let okuri = store#get('okuri')
+  let pos = getpos('.')[1:2]
+
+  let user_data = { 'yomi': yomi, 'len': strcharlen(yomi), 'special': a:opts.special }
+  let user_data.context = {
+        \   'pos': pos,
+        \   'machi': yomi,
+        \   'okuri': okuri,
+        \   'consonant': utils#consonant1st(okuri),
+        \   'is_trailing': pos[1] == col('$')
+        \ }
+  return {
+        \ 'word': '', 'abbr': a:opts.abbr, 'menu': get(a:opts, 'menu', ''),
+        \ 'empty': v:true, 'dup': v:true, 'user_data': user_data
+        \ }
+endfunction
+
 function s:henkan_start() abort
   " echowindow 'henkan' a:machistr a:okuristr
   call henkan_list#update_manual_v2(store#get('machi'), store#get('okuri'))
   let comp_list = copy(henkan_list#get())
-  if !empty(comp_list)
-    call complete(col('.'), comp_list)
-    return "\<c-n>"
+  let list_len = len(comp_list)
+
+  if opts#get('use_google_cgi')
+    call add(comp_list, s:make_special_henkan_item({
+          \ 'abbr': '[Google変換]',
+          \ 'special': 'google'
+          \ }))
   endif
-  return ''
+  call add(comp_list, s:make_special_henkan_item({
+        \ 'abbr': '[辞書登録]',
+        \ 'special': 'new_word'
+        \ }))
+
+  call complete(col('.'), comp_list)
+  return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
 function s:sticky() abort
@@ -393,6 +433,13 @@ function s:handle_spec(args) abort
     elseif spec.func ==# 'backspace'
       let feed = s:backspace()
     elseif spec.func ==# 'kakutei'
+      if s:is_complete_selected()
+        let user_data = s:current_complete_item()->get('user_data', {})
+        let special = get(user_data, 'special', '')
+        if special !=# ''
+          call timer_start(0, {->s:on_kakutei_special(user_data)})
+        endif
+      endif
       let feed = s:kakutei(spec.key) .. store#get('hanpa')
       call store#clear()
     elseif spec.func ==# 'henkan'
