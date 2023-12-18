@@ -16,17 +16,24 @@ function utils#getcharpos(pos = '.') abort
   return getcharpos(a:pos)[1:2]
 endfunction
 
-function utils#get_string(from, to, auto_swap = v:false) abort
+" from, to: 2点のバイト座標
+" opts.auto_swap: trueの場合、fromとtoの前後を気にしない
+" opts.exclusive: trueの場合、最後の文字は含まない
+function utils#get_string(from, to, opts = {}) abort
   let compared = utils#compare_pos(a:from, a:to)
-  if compared == 0 || (compared < 0 && !a:auto_swap)
+  if compared < 0 && !get(a:opts, 'auto_swap', v:false)
     return ''
   endif
 
-  let [from, to] = compared > 0 ? [a:from, a:to] : [a:to, a:from]
+  let [from, to] = compared >= 0 ? [a:from, a:to] : [a:to, a:from]
 
   let lines = getline(from[0], to[0])
-  let lines[-1] = slice(lines[-1], 0, to[1]-1)
-  let lines[0] = slice(lines[0], from[1]-1)
+  let from_idx = from[1]-1
+  let to_idx = to[1]-1
+  let last_line_till_pos = to_idx > 0 ? lines[-1][0 : to_idx-1] : ''
+  let last_char = get(a:opts, 'exclusive', v:false) ? '' : lines[-1][to_idx : ]->slice(0, 1)
+  let lines[-1] = last_line_till_pos .. last_char
+  let lines[0] = lines[0][from_idx : ]
   return join(lines, "\n")
 endfunction
 
