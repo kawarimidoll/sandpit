@@ -189,18 +189,22 @@ function s:get_spec(key) abort
     return spec
   endif
 
+  " ここまでで値がヒットせず、put_hanpaがfalseなら、
+  " storeに残っていた半端な文字をバッファに載せずに消す
+  let spec.string = opts#get('put_hanpa') ? store#get('hanpa') : ''
+
   if has_key(opts#get('kana_table'), a:key)
     let spec.reason = 'alone:found'
     " 先行入力を無視して単体で完成した場合
     if type(opts#get('kana_table')[a:key]) == v:t_dict
       call extend(spec, opts#get('kana_table')[a:key])
+      " 値が辞書ならput_hanpaに関らずstringは削除
+      " storeに値を保存する
+      let spec.string = ''
       let spec.store = store#get('hanpa')
     else
-      " specが文字列でdel_odd_charがfalseの場合、
-      " storeに残っていた半端な文字をバッファに載せずに消す
-      let prefix = opts#get('del_odd_char') ? '' : store#get('hanpa')
       let [kana, roma; _rest] = opts#get('kana_table')[a:key]->split('\A*\zs') + ['']
-      let spec.string = prefix .. kana
+      let spec.string ..= kana
       let spec.store = roma
     endif
 
@@ -214,17 +218,14 @@ function s:get_spec(key) abort
 
   let spec.reason = 'unfound'
   " ここまで完成しない（かなテーブルに定義が何もない）場合
-  " specが文字列でdel_odd_charがfalseの場合、
-  " storeに残っていた半端な文字をバッファに載せずに消す
-  let prefix = opts#get('del_odd_char') ? '' : store#get('hanpa')
-  let spec.string = prefix .. a:key
+  let spec.string ..= a:key
   let spec.store = ''
   return spec
 endfunction
 
 function s:henkan_fuzzy() abort
   " echowindow 'henkan' a:machistr a:okuristr
-  let exact_match = store#get('machi')->strcharlen() < 5
+  let exact_match = store#get('machi')->strcharlen() < opts#get('suggest_prefix_match_minimum')
   call henkan_list#update_fuzzy_v2(store#get('machi'), exact_match)
   let comp_list = copy(henkan_list#get_fuzzy())
   if mode() !=# 'i'
@@ -341,7 +342,9 @@ function s:ins(key, with_sticky = v:false) abort
   if feed ==# ''
     call s:display_marks()
     if s:phase_is('machi')
-      call utils#debounce(funcref('s:henkan_fuzzy'), 100)
+      if opts#get('suggest_wait_ms') >= 0
+        call utils#debounce(funcref('s:henkan_fuzzy'), opts#get('suggest_wait_ms'))
+      endif
     elseif s:phase_was('machi') && s:phase_is('hanpa')
       call s:feed("\<c-e>")
     endif
@@ -497,12 +500,14 @@ call h#init({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.nicoime'), 'encoding': 'utf-8', 'mark': '[N]' },
       \ ],
-      \ 'min_auto_complete_length': 3,
-      \ 'sort_auto_complete_by_length': v:true,
+      \ 'henkan_sort_by': 'jisyo',
+      \ 'suggest_wait_ms': 200,
+      \ 'suggest_prefix_match_minimum': 5,
+      \ 'suggest_sort_by': 'length',
+      \ 'debug_log': '',
       \ 'use_google_cgi': v:true,
       \ 'merge_tsu': v:true,
       \ 'trailing_n': v:true,
-      \ 'textwidth_zero': v:true,
       \ 'abbrev_ignore_case': v:true,
-      \ 'del_odd_char': v:true,
+      \ 'put_hanpa': v:true,
       \ })

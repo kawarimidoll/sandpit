@@ -287,8 +287,10 @@ function henkan_list#update_fuzzy_v2(str, exact_match = v:false) abort
   let suffix = a:exact_match ? '' : '[^!-~]*'
   let henkan_list = s:populate_henkan_list(query .. suffix)
 
-  if opts#get('sort_auto_complete_by_length')
-    call sort(henkan_list, {a, b -> a.user_data.len - b.user_data.len})
+  if opts#get('suggest_sort_by') ==# 'length'
+    call sort(henkan_list, {a,b -> a.user_data.len - b.user_data.len})
+  elseif opts#get('suggest_sort_by') ==# 'code'
+    call sort(henkan_list, {a,b -> utils#strcmp(a.user_data.yomi, b.user_data.yomi)})
   endif
 
   let s:latest_fuzzy_henkan_list = henkan_list
