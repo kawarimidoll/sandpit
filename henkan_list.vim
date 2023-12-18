@@ -277,7 +277,7 @@ endfunction
 " 送りあり検索→machi='しら',okuri='べ'
 function henkan_list#update_manual_v2(machi, okuri = '') abort
   let query = s:gen_henkan_query(a:machi)
-  let suffix = a:okuri ==# '' ? '' : utils#consonant(strcharpart(a:okuri, 0, 1))
+  let suffix = utils#consonant1st(a:okuri)
 
   let s:latest_henkan_list = s:populate_henkan_list(query .. suffix)
 endfunction

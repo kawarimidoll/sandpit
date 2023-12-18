@@ -77,7 +77,15 @@ for c in consonant_list
 endfor
 
 function utils#consonant(char) abort
-  return s:consonant_dict[a:char]
+  return get(s:consonant_dict, a:char, '')
+endfunction
+
+function utils#consonant1st(str) abort
+  return utils#consonant(utils#charat(a:str, 0))
+endfunction
+
+function utils#charat(str, idx) abort
+  return get(utils#strsplit(a:str), a:idx, '')
 endfunction
 
 function utils#strsplit(str) abort
@@ -102,6 +110,10 @@ function utils#do_user(event_name) abort
   if exists($'#User#{a:event_name}')
     execute $'doautocmd User {a:event_name}'
   endif
+endfunction
+
+function utils#strcmp(left, right) abort
+  return a:left ==# a:right ? 0 : a:left ># a:right ? 1 : -1
 endfunction
 
 " run last one call in wait time
