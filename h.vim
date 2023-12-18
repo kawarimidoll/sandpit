@@ -236,7 +236,7 @@ function s:get_spec(key) abort
 endfunction
 
 function s:henkan_fuzzy() abort
-  " echowindow 'henkan' a:machistr a:okuristr
+  " echowindow 'henkan_start' store#get('machi') store#get('okuri')
   let exact_match = store#get('machi')->strcharlen() < opts#get('suggest_prefix_match_minimum')
   call henkan_list#update_fuzzy_v2(store#get('machi'), exact_match)
   let comp_list = copy(henkan_list#get_fuzzy())
@@ -276,7 +276,7 @@ function s:make_special_henkan_item(opts) abort
 endfunction
 
 function s:henkan_start() abort
-  " echowindow 'henkan' a:machistr a:okuristr
+  " echowindow 'henkan_start' store#get('machi') store#get('okuri')
   call henkan_list#update_manual_v2(store#get('machi'), store#get('okuri'))
   let comp_list = copy(henkan_list#get())
   let list_len = len(comp_list)
@@ -371,7 +371,7 @@ endfunction
 function s:ins(key, with_sticky = v:false) abort
   call s:phase_forget()
   if a:with_sticky && !mode#is_direct_v2(a:key)
-  " TODO direct modeの変換候補を選択した状態で大文字を入力した場合の対処
+    " TODO direct modeの変換候補を選択した状態で大文字を入力した場合の対処
     let feed = s:handle_spec({ 'string': '', 'store': '', 'func': 'sticky' })
 
     let key = a:key->tolower()
@@ -552,7 +552,6 @@ call h#init({
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.emoji'), 'encoding': 'utf-8' },
       \   { 'path': expand('~/.cache/vim/SKK-JISYO.nicoime'), 'encoding': 'utf-8', 'mark': '[N]' },
       \ ],
-      \ 'henkan_sort_by': 'jisyo',
       \ 'suggest_wait_ms': 200,
       \ 'suggest_prefix_match_minimum': 5,
       \ 'suggest_sort_by': 'length',
