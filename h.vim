@@ -233,6 +233,9 @@ function s:henkan_fuzzy() abort
     " タイマー実行しており、さらに変換リストの構築に時間がかかるため、
     " この時点で挿入モードから抜けてしまっている可能性がある
     return
+  elseif s:phase_kouho
+    " 手動変換が開始していたら何もしない
+    return
   elseif empty(comp_list) && pumvisible()
     call s:feed("\<c-e>")
     return
