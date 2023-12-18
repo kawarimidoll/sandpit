@@ -148,6 +148,52 @@ function h#init(opts = {}) abort
   let s:is_enable = v:false
 endfunction
 
+" p1からp2までのバッファの文字列を変換する
+" p1, p2: 2点のバイト座標
+" opts.okuri: 送り文字列
+" opts.exclusive: trueの場合、最後の文字は含まない
+function h#henkan_buffer(p1, p2, opts = {}) abort
+  let exclusive = get(a:opts, 'exclusive', v:false)
+  if a:p1[0] != a:p2[0]
+    call utils#echoerr('同じ行である必要があります')
+    return
+  elseif a:p1[1] == a:p2[1] && exclusive
+    call utils#echoerr('異なる列である必要があります')
+    return
+  endif
+
+  let machi = utils#get_string(a:p1, a:p2, {'auto_swap': v:true, 'exclusive': exclusive})
+  let okuri = get(a:opts, 'okuri', '')
+  if !okuri->empty() && machi =~# okuri .. '$'
+    let machi = substitute(machi, okuri .. '$', '', '')
+  endif
+
+  call cursor(utils#compare_pos(a:p1, a:p2) > 0 ? a:p2 : a:p1)
+
+  let s:henkan_buffer_context = { 'machi': machi, 'okuri': okuri }
+  let feed = "\<esc>"
+  let feed ..= exclusive ? 'i' : 'a'
+  let feed ..= $"\<cmd>call {expand('<SID>')}henkan_buffer_2()\<cr>"
+  call s:feed(feed)
+endfunction
+" feedkeysを挟んだ処理の前後関係を保証するため、関数を複数に分ける
+function s:henkan_buffer_2() abort
+  let target = s:henkan_buffer_context.machi .. s:henkan_buffer_context.okuri
+  let feed = repeat("\<bs>", strcharlen(target))
+  let feed ..= $"\<cmd>call h#enable()\<cr>\<cmd>call {expand('<SID>')}henkan_buffer_3()\<cr>"
+  call s:feed(feed)
+endfunction
+function s:henkan_buffer_3() abort
+  call store#set('machi', s:henkan_buffer_context.machi)
+  call store#set('okuri', s:henkan_buffer_context.okuri)
+  let next_phase = s:henkan_buffer_context.okuri ==# '' ? 'machi' : 'okuri'
+  call s:phase_set(next_phase, 'henkan_buffer')
+  call s:display_marks()
+  let feed = s:henkan_start()
+  call s:feed(feed)
+endfunction
+" xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2], {'okuri':'り'})<cr>
+
 function s:on_kakutei_special(user_data) abort
   echomsg '未実装' a:user_data.special
 endfunction
