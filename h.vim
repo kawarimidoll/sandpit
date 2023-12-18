@@ -6,6 +6,7 @@ if !exists('*keytrans') || exists(':defer') != 2
 endif
 
 source ./inline_mark.vim
+source ./google_cgi.vim
 source ./converters.vim
 source ./opts.vim
 source ./store.vim
@@ -195,6 +196,36 @@ endfunction
 " xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2], {'okuri':'り'})<cr>
 
 function s:on_kakutei_special(user_data) abort
+  let context = a:user_data.context
+  let yomi = a:user_data.yomi
+  let special = a:user_data.special
+
+  if special ==# 'google'
+    let google_result = google_cgi#henkan(yomi)
+    if google_result ==# ''
+      call utils#echoerr('Google変換で結果が得られませんでした。')
+      return
+    endif
+
+    let comp_list = [s:make_special_henkan_item({
+          \ 'abbr': google_result,
+          \ 'menu': 'Google変換',
+          \ 'yomi': yomi,
+          \ 'special': 'set_to_user_jisyo',
+          \ 'skip_put': v:false,
+          \ })]
+
+    call complete(context.pos[1], comp_list)
+    return
+  endif
+
+  if special ==# 'set_to_user_jisyo'
+    let menu = context.menu ==# '' ? '' : $';{context.menu}'
+    let line = $'{yomi} /{context.abbr}{menu}/'
+    call writefile([line], opts#get('user_jisyo_path'), "a")
+    return
+  endif
+
   echomsg '未実装' a:user_data.special
 endfunction
 
