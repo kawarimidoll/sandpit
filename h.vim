@@ -3,6 +3,9 @@ source ./utils.vim
 if !exists('*keytrans') || exists(':defer') != 2
   call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
   finish
+elseif !executable('rg')
+  call utils#echoerr('ripgrep (rg) が必要です https://github.com/BurntSushi/ripgrep')
+  finish
 endif
 
 source ./inline_mark.vim
