@@ -9,6 +9,7 @@ source ./inline_mark.vim
 source ./google_cgi.vim
 source ./converters.vim
 source ./opts.vim
+source ./user_jisyo.vim
 source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
@@ -194,6 +195,7 @@ function s:henkan_buffer_3() abort
   call s:feed(feed)
 endfunction
 " xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2], {'okuri':'り'})<cr>
+" xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2])<cr>
 
 function s:on_kakutei_special(user_data) abort
   let context = a:user_data.context
@@ -226,7 +228,12 @@ function s:on_kakutei_special(user_data) abort
     return
   endif
 
-  echomsg '未実装' a:user_data.special
+  if special ==# 'new_word'
+    call user_jisyo#add_word(context)
+    return
+  endif
+
+  call utils#echoerr('未実装 ' .. special)
 endfunction
 
 function s:on_complete_changed(event) abort
