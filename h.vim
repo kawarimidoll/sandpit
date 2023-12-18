@@ -11,32 +11,10 @@ source ./converters.vim
 source ./opts.vim
 source ./user_jisyo.vim
 source ./store.vim
+source ./phase.vim
 source ./henkan_list.vim
 source ./mode.vim
 source ./cmd_buf.vim
-
-let s:phase = { 'current': '', 'previous': '', 'reason': '' }
-" function s:phase_full_get() abort
-"   return s:phase
-" endfunction
-" function s:phase_get() abort
-"   return s:phase.current
-" endfunction
-function s:phase_is(name) abort
-  return s:phase.current ==# a:name
-endfunction
-function s:phase_was(name) abort
-  return s:phase.previous ==# a:name
-endfunction
-function s:phase_set(name, reason = '') abort
-  let s:phase.previous = s:phase.current
-  let s:phase.current = a:name
-  let s:phase.reason = a:reason
-endfunction
-function s:phase_forget() abort
-  let s:phase.previous = ''
-  let s:phase.reason = ''
-endfunction
 
 function s:mark_put(target, hlname) abort
   call inline_mark#put_text(a:target, store#get(a:target), a:hlname)
@@ -89,7 +67,7 @@ function h#enable() abort
 
   call store#clear()
   call mode#clear()
-  call s:phase_set('hanpa')
+  call phase#set('hanpa')
 
   let s:is_enable = v:true
 endfunction
@@ -121,7 +99,7 @@ function h#disable(escape = v:false) abort
 
   call store#clear()
   call mode#clear()
-  call s:phase_set('hanpa')
+  call phase#set('hanpa')
 
   let s:is_enable = v:false
   if mode() !=# 'i'
@@ -189,7 +167,7 @@ function s:henkan_buffer_3() abort
   call store#set('machi', s:henkan_buffer_context.machi)
   call store#set('okuri', s:henkan_buffer_context.okuri)
   let next_phase = s:henkan_buffer_context.okuri ==# '' ? 'machi' : 'okuri'
-  call s:phase_set(next_phase, 'henkan_buffer')
+  call phase#set(next_phase, 'henkan_buffer')
   call s:display_marks()
   let feed = s:henkan_start()
   call s:feed(feed)
@@ -399,14 +377,14 @@ function s:sticky() abort
     return ''
   endif
 
-  if s:phase_is('machi')
+  if phase#is('machi')
     if store#is_present('machi')
-      call s:phase_set('okuri', 'sticky: start okuri')
+      call phase#set('okuri', 'sticky: start okuri')
     endif
-  elseif s:phase_is('okuri')
+  elseif phase#is('okuri')
   " nop
   else
-    call s:phase_set('machi', 'sticky: start machi')
+    call phase#set('machi', 'sticky: start machi')
   endif
   return ''
 endfunction
@@ -418,12 +396,12 @@ function s:backspace() abort
   elseif store#is_present('okuri')
     call store#pop('okuri')
     if store#is_blank('okuri')
-      call s:phase_set('machi', 'backspace: blank okuri')
+      call phase#set('machi', 'backspace: blank okuri')
     endif
   elseif store#is_present('machi')
     call store#pop('machi')
     if store#is_blank('machi')
-      call s:phase_set('hanpa', 'backspace: blank machi')
+      call phase#set('hanpa', 'backspace: blank machi')
       if mode#is_start_sticky()
         call mode#set_anyway('hira')
       endif
@@ -435,7 +413,7 @@ function s:backspace() abort
 endfunction
 
 function s:kakutei(fallback_key) abort
-  call s:phase_set('hanpa', 'kakutei')
+  call phase#set('hanpa', 'kakutei')
   let feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi')) .. store#get('okuri')
   call store#clear('kouho')
   call store#clear('machi')
@@ -466,7 +444,7 @@ function s:henkan(fallback_key) abort
 endfunction
 
 function s:ins(key, with_sticky = v:false) abort
-  call s:phase_forget()
+  call phase#forget()
   if a:with_sticky && !mode#is_direct_v2(a:key)
     " TODO direct modeの変換候補を選択した状態で大文字を入力した場合の対処
     let feed = s:handle_spec({ 'string': '', 'store': '', 'func': 'sticky' })
@@ -482,11 +460,11 @@ function s:ins(key, with_sticky = v:false) abort
 
   if feed ==# ''
     call s:display_marks()
-    if s:phase_is('machi')
+    if phase#is('machi')
       if opts#get('suggest_wait_ms') >= 0
         call utils#debounce(funcref('s:henkan_fuzzy'), opts#get('suggest_wait_ms'))
       endif
-    elseif s:phase_was('machi') && s:phase_is('hanpa')
+    elseif phase#was('machi') && phase#is('hanpa')
       call s:feed("\<c-e>")
     endif
   else
@@ -581,11 +559,11 @@ function s:handle_spec(args) abort
     let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
   endif
 
-  if s:phase_is('hanpa') || feed !~ '\p'
+  if phase#is('hanpa') || feed !~ '\p'
     return feed
-  elseif s:phase_is('machi')
+  elseif phase#is('machi')
     call store#push('machi', feed)
-  elseif s:phase_is('okuri')
+  elseif phase#is('okuri')
     call store#push('okuri', feed)
 
     if store#is_blank('hanpa')
@@ -603,7 +581,7 @@ function s:display_marks(...) abort
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
-  if s:phase_is('machi')
+  if phase#is('machi')
     let hlname = opts#get('highlight_machi')
   endif
   if store#is_present('kouho')
@@ -618,7 +596,7 @@ function s:display_marks(...) abort
     call s:mark_clear('kouho')
     call s:mark_clear('machi')
   endif
-  if s:phase_is('okuri')
+  if phase#is('okuri')
     let hlname = opts#get('highlight_okuri')
   endif
   if store#is_present('okuri')
