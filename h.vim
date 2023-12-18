@@ -154,7 +154,12 @@ endfunction
 
 function s:on_complete_changed(event) abort
   let user_data = get(a:event.completed_item, 'user_data', {})
-  let kouho = has_key(user_data, 'special') ? get(user_data, 'yomi', '')
+  " user_dataがない、またはあってもyomiがない場合は
+  " このプラグインとは関係ない候補のためkouhoは空文字
+  " specialが存在する場合はすぐ変換する必要はないので読みをそのまま表示
+  " それ以外は普通の候補なのでabbrを表示
+  let kouho = (type(user_data) != v:t_dict || !has_key(user_data, 'yomi')) ? ''
+        \ : has_key(user_data, 'special') ? user_data.yomi
         \ : get(a:event.completed_item, 'abbr', '')
   call store#set('kouho', kouho)
   call s:display_marks()
