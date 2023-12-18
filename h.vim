@@ -11,6 +11,7 @@ source ./opts.vim
 source ./store.vim
 source ./henkan_list.vim
 source ./mode.vim
+source ./cmd_buf.vim
 
 let s:phase = { 'current': '', 'previous': '', 'reason': '' }
 " function s:phase_full_get() abort
@@ -486,6 +487,7 @@ function s:display_marks(...) abort
 endfunction
 
 inoremap <c-j> <cmd>call h#toggle()<cr>
+cnoremap <c-j> <cmd>call cmd_buf#run('h#enable')<cr>
 
 inoremap <c-k> <cmd>imap<cr>
 
