@@ -202,10 +202,10 @@ function s:on_complete_changed(event) abort
   let user_data = get(a:event.completed_item, 'user_data', {})
   " user_dataがない、またはあってもyomiがない場合は
   " このプラグインとは関係ない候補のためkouhoは空文字
-  " specialが存在する場合はすぐ変換する必要はないので読みをそのまま表示
+  " skip_putが存在する場合は変換をバッファに反映せず読みをそのまま表示
   " それ以外は普通の候補なのでabbrを表示
   let kouho = (type(user_data) != v:t_dict || !has_key(user_data, 'yomi')) ? ''
-        \ : has_key(user_data, 'special') ? user_data.yomi
+        \ : get(user_data, 'skip_put', v:false) ? user_data.yomi
         \ : get(a:event.completed_item, 'abbr', '')
   call store#set('kouho', kouho)
   call s:display_marks()
@@ -308,12 +308,20 @@ function s:henkan_fuzzy() abort
 endfunction
 
 function s:make_special_henkan_item(opts) abort
-  let yomi = store#get('machi')
-  let okuri = store#get('okuri')
+  let yomi = get(a:opts, 'yomi', store#get('machi'))
+  let okuri = get(a:opts, 'okuri', store#get('okuri'))
   let pos = getpos('.')[1:2]
+  let menu = get(a:opts, 'menu', '')
 
-  let user_data = { 'yomi': yomi, 'len': strcharlen(yomi), 'special': a:opts.special }
+  let user_data = {
+        \ 'yomi': yomi,
+        \ 'len': strcharlen(yomi),
+        \ 'special': a:opts.special,
+        \ 'skip_put': get(a:opts, 'skip_put', v:true)
+        \ }
   let user_data.context = {
+        \   'abbr': a:opts.abbr,
+        \   'menu': menu,
         \   'pos': pos,
         \   'machi': yomi,
         \   'okuri': okuri,
@@ -321,7 +329,7 @@ function s:make_special_henkan_item(opts) abort
         \   'is_trailing': pos[1] == col('$')
         \ }
   return {
-        \ 'word': '', 'abbr': a:opts.abbr, 'menu': get(a:opts, 'menu', ''),
+        \ 'word': '', 'abbr': a:opts.abbr, 'menu': menu,
         \ 'empty': v:true, 'dup': v:true, 'user_data': user_data
         \ }
 endfunction
