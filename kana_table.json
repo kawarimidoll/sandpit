@@ -227,6 +227,7 @@
   "~": "～",
   "z<space>": "　",
   "/": { "mode": "abbrev" },
+  ">": { "func": "zengo" },
   ";": { "func": "sticky" },
   "q": { "mode": "zen_kata" },
   "<cr>": { "func": "kakutei" },

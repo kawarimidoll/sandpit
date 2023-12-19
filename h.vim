@@ -382,6 +382,23 @@ function s:henkan_start() abort
   return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
+function s:zengo(key) abort
+  if store#is_present('hanpa')
+    " ひらがなになりきれていない文字が残っている場合はスキップ
+    return ''
+  endif
+  if phase#is('okuri')
+  " nop
+  elseif phase#is('machi')
+    call store#push('machi', a:key)
+    let feed = s:henkan('')
+  else
+    call phase#set('machi', 'zengo: start machi')
+    let feed = a:key
+  endif
+  return feed
+endfunction
+
 function s:sticky() abort
   if store#is_present('hanpa')
     " ひらがなになりきれていない文字が残っている場合はスキップ
@@ -538,6 +555,15 @@ function s:handle_spec(args) abort
     elseif spec.func ==# 'henkan'
       let feed = s:henkan(spec.key)
       let next_kouho = v:true
+    elseif spec.func ==# 'zengo'
+      if s:is_complete_selected()
+        let feed = s:kakutei('')
+        let feed ..= s:zengo(spec.key)
+      else
+        let feed = s:zengo(spec.key)
+      endif
+    else
+      call utils#echoerr('定義されていないfuncが使われました')
     endif
   elseif has_key(spec, 'mode')
     if store#is_present('okuri')
