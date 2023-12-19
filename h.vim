@@ -31,8 +31,7 @@ function s:feed(str) abort
 endfunction
 
 function s:current_complete_item() abort
-  let info = complete_info(['items', 'selected'])
-  return info.selected < 0 ? {} : info.items[info.selected]
+  return s:latest_henkan_item
 endfunction
 function s:is_complete_selected() abort
   return complete_info(['selected']).selected >= 0
@@ -48,6 +47,7 @@ function h#enable() abort
   augroup h_inner_augroup
     autocmd!
     autocmd CompleteChanged * call s:on_complete_changed(v:event)
+    autocmd CompleteDone * let s:latest_henkan_item = {}
     " InsertLeaveだと<c-c>を使用した際に発火しないため
     " ModeChangedを使用する
     autocmd ModeChanged i:*
@@ -71,7 +71,7 @@ function h#enable() abort
   call store#clear()
   call mode#clear()
   call phase#set('hanpa')
-
+  let s:latest_henkan_item = {}
   let s:is_enable = v:true
 endfunction
 
@@ -103,7 +103,7 @@ function h#disable(escape = v:false) abort
   call store#clear()
   call mode#clear()
   call phase#set('hanpa')
-
+  let s:latest_henkan_item = {}
   let s:is_enable = v:false
   if mode() !=# 'i'
     return
@@ -219,13 +219,20 @@ endfunction
 
 function s:on_complete_changed(event) abort
   let user_data = get(a:event.completed_item, 'user_data', {})
+
   " user_dataがない、またはあってもyomiがない場合は
-  " このプラグインとは関係ない候補のためkouhoは空文字
+  " このプラグインとは関係ない候補
+  let s:latest_henkan_item = (type(user_data) != v:t_dict || !has_key(user_data, 'yomi'))
+        \ ? {}
+        \ : a:event.completed_item
+
+  " kouhoを設定
+  " 有効な候補が無い場合は空文字
   " skip_putが存在する場合は変換をバッファに反映せず読みをそのまま表示
   " それ以外は普通の候補なのでabbrを表示
-  let kouho = (type(user_data) != v:t_dict || !has_key(user_data, 'yomi')) ? ''
+  let kouho = empty(s:latest_henkan_item) ? ''
         \ : get(user_data, 'skip_put', v:false) ? user_data.yomi
-        \ : get(a:event.completed_item, 'abbr', '')
+        \ : get(s:latest_henkan_item, 'abbr', '')
   call store#set('kouho', kouho)
   call s:display_marks()
 endfunction
