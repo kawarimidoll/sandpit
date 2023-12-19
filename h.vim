@@ -513,8 +513,7 @@ function s:handle_spec(args) abort
     elseif spec.func ==# 'kakutei'
       if s:is_complete_selected()
         let user_data = s:current_complete_item()->get('user_data', {})
-        let special = get(user_data, 'special', '')
-        if special !=# ''
+        if type(user_data) == v:t_dict && has_key(user_data, 'special')
           call timer_start(0, {->s:on_kakutei_special(user_data)})
         endif
       endif
