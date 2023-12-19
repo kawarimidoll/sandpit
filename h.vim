@@ -582,9 +582,9 @@ function s:handle_spec(args) abort
       endif
     endif
   elseif has_key(spec, 'expr')
-    let feed = call(spec.expr[0], spec.expr[1:])
+    let feed = call(spec.expr, get(spec, 'args', []))
   elseif has_key(spec, 'call')
-    call call(spec.call[0], spec.call[1:])
+    call call(spec.call, get(spec, 'args', []))
   else
     if s:is_complete_selected()
       let feed = s:kakutei('')
