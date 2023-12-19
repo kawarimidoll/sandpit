@@ -34,7 +34,8 @@ function s:current_complete_item() abort
   return s:latest_henkan_item
 endfunction
 function s:is_complete_selected() abort
-  return complete_info(['selected']).selected >= 0
+  " return complete_info(['selected']).selected >= 0
+  return !empty(s:current_complete_item())
 endfunction
 
 function h#enable() abort
@@ -465,6 +466,14 @@ function s:ins(key, with_sticky = v:false) abort
   endif
 
   let spec = s:get_spec(a:key)
+
+  let func = get(spec, 'func', '')
+  let mode = get(spec, 'mode', '')
+  if s:is_complete_selected() && mode ==# '' && index(['kakutei', 'backspace', 'henkan'], func) < 0
+    let feed = s:handle_spec({ 'string': '', 'store': '', 'key': '', 'func': 'kakutei' })
+    call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}ins('{a:key}')\<cr>")
+    return
+  endif
 
   let feed = s:handle_spec(spec)
 
