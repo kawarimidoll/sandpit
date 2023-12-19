@@ -136,6 +136,7 @@ endfunction
 " p1, p2: 2点のバイト座標
 " opts.okuri: 送り文字列
 " opts.exclusive: trueの場合、最後の文字は含まない
+" opts.stay: trueの場合、machi状態になるだけで変換は行なわない
 function h#henkan_buffer(p1, p2, opts = {}) abort
   let exclusive = get(a:opts, 'exclusive', v:false)
   if a:p1[0] != a:p2[0]
@@ -154,7 +155,8 @@ function h#henkan_buffer(p1, p2, opts = {}) abort
 
   call cursor(utils#compare_pos(a:p1, a:p2) > 0 ? a:p2 : a:p1)
 
-  let s:henkan_buffer_context = { 'machi': machi, 'okuri': okuri }
+  let stay = get(a:opts, 'stay', v:false)
+  let s:henkan_buffer_context = { 'machi': machi, 'okuri': okuri, 'stay': stay }
   let feed = "\<esc>"
   let feed ..= exclusive ? 'i' : 'a'
   let feed ..= $"\<cmd>call {expand('<SID>')}henkan_buffer_2()\<cr>"
@@ -173,11 +175,14 @@ function s:henkan_buffer_3() abort
   let next_phase = s:henkan_buffer_context.okuri ==# '' ? 'machi' : 'okuri'
   call phase#set(next_phase, 'henkan_buffer')
   call s:display_marks()
+  if s:henkan_buffer_context.stay
+    return
+  endif
   let feed = s:henkan_start()
   call s:feed(feed)
 endfunction
 " xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2], {'okuri':'り'})<cr>
-" xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2])<cr>
+" xnoremap K <cmd>call h#henkan_buffer(getpos('.')[1:2], getpos('v')[1:2], {'stay':1})<cr>
 
 function s:on_kakutei_special(user_data) abort
   let context = a:user_data.context
