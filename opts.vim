@@ -2,6 +2,10 @@ function opts#default_kana_table() abort
   return json_decode(join(readfile('./kana_table.json'), "\n"))
 endfunction
 
+function opts#default_auto_henkan_characters() abort
+  return 'を、。．，？」！；：);:）”】』》〉｝］〕}]?.,!'
+endfunction
+
 function s:create_file(path) abort
   call fnamemodify(a:path, ':p:h')
         \ ->iconv(&encoding, &termencoding)
@@ -55,6 +59,10 @@ function opts#parse(opts) abort
       call s:create_file(s:debug_log_path)
     endif
   endif
+
+  " 自動変換文字 変換待ち状態でこれらの文字が入力されたら即座に変換を行う
+  " TODO オプトインにする
+  let s:auto_henkan_characters = get(a:opts, 'auto_henkan_characters', opts#default_auto_henkan_characters())
 
   " 自動補完最小文字数 (0の場合は自動補完しない)
   let s:min_auto_complete_length = get(a:opts, 'min_auto_complete_length', 0)

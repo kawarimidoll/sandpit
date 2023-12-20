@@ -95,6 +95,14 @@ function utils#charat(str, idx) abort
   return get(utils#strsplit(a:str), a:idx, '')
 endfunction
 
+function utils#firstchar(str) abort
+  return a:str->substitute('^.\zs.*$', '', '')
+endfunction
+
+function utils#lastchar(str) abort
+  return a:str->substitute('^.*\ze.$', '', '')
+endfunction
+
 function utils#strsplit(str) abort
   " 普通にsplitすると<bs>など<80>k?のコードを持つ文字を正しく切り取れないので対応
   let chars = split(a:str, '\zs')

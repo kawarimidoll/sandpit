@@ -384,6 +384,7 @@ function s:henkan_start() abort
         \ }))
 
   call complete(col('.'), comp_list)
+  let s:phase_kouho = v:true
   return list_len > 0 ? "\<c-n>" : ''
 endfunction
 
@@ -611,7 +612,15 @@ function s:handle_spec(args) abort
   if phase#is('hanpa') || feed !~ '\p'
     return feed
   elseif phase#is('machi')
-    call store#push('machi', feed)
+    if opts#get('auto_henkan_characters') =~# utils#lastchar(feed)
+      " ** EXPERIMENTAL **
+      " machi状態でauto_henkan_charactersに含まれる文字が入力されたら
+      " それをokuriに指定して送り変換を開始する
+      call store#push('okuri', utils#lastchar(feed))
+      return s:henkan_start()
+    else
+      call store#push('machi', feed)
+    endif
   elseif phase#is('okuri')
     call store#push('okuri', feed)
 
