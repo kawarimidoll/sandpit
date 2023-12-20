@@ -38,7 +38,19 @@ function store#push(target, str) abort
 endfunction
 
 function store#pop(target) abort
+  let char = store#get(a:target)->utils#lastchar()
   call store#set(a:target, store#get(a:target)->substitute('.$', '', ''))
+  return char
+endfunction
+
+function store#unshift(target, str) abort
+  call store#set(a:target, a:str .. store#get(a:target))
+endfunction
+
+function store#shift(target) abort
+  let char = store#get(a:target)->utils#firstchar()
+  call store#set(a:target, store#get(a:target)->substitute('^.', '', ''))
+  return char
 endfunction
 
 function store#is_blank(target) abort
