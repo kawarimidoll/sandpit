@@ -73,6 +73,7 @@ function h#enable() abort
   call mode#clear()
   call phase#set('hanpa')
   let s:latest_henkan_item = {}
+  let s:last_machi = ''
   let s:is_enable = v:true
 endfunction
 
@@ -105,6 +106,7 @@ function h#disable(escape = v:false) abort
   call mode#clear()
   call phase#set('hanpa')
   let s:latest_henkan_item = {}
+  let s:last_machi = ''
   let s:is_enable = v:false
   if mode() !=# 'i'
     return
@@ -500,13 +502,14 @@ function s:ins(key, with_sticky = v:false) abort
 
   let feed = s:handle_spec(spec)
 
+  if phase#is('machi') && s:last_machi != store#get('machi') && opts#get('suggest_wait_ms') >= 0
+    call utils#debounce(funcref('s:henkan_fuzzy'), opts#get('suggest_wait_ms'))
+  endif
+  let s:last_machi = store#get('machi')
+
   if feed ==# ''
     call s:display_marks()
-    if phase#is('machi')
-      if opts#get('suggest_wait_ms') >= 0
-        call utils#debounce(funcref('s:henkan_fuzzy'), opts#get('suggest_wait_ms'))
-      endif
-    elseif phase#was('machi') && phase#is('hanpa')
+    if phase#was('machi') && phase#is('hanpa') && pumvisible()
       call s:feed("\<c-e>")
     endif
   else
@@ -575,6 +578,9 @@ function s:handle_spec(args) abort
       if char =~ '^[ぁ-ゖ]$'
         call store#unshift('machi', char)
         let feed = "\<bs>"
+        if phase#is('hanpa')
+          call phase#set('machi', 'extend: start machi')
+        endif
       endif
     elseif spec.func ==# 'shrink'
       call s:mark_clear()
@@ -583,6 +589,9 @@ function s:handle_spec(args) abort
         " machi状態のままバッファを変更するため、bsを仕込む
         " (不可視文字を入れるとバッファを変更するようにしているため)
         let feed = char .. char .. "\<bs>"
+        if store#is_blank('machi')
+          call phase#set('hanpa', 'shrink: blank machi')
+        endif
       endif
     else
       call utils#echoerr('定義されていないfuncが使われました')
