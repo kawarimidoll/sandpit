@@ -89,6 +89,11 @@ function h#enable() abort
     execute $"inoremap {k} <cmd>call {sid}ins('{keytrans(k)}', {val})<cr>"
   endfor
 
+  if opts#get('textwidth_zero')
+    let s:save_textwidth = &textwidth
+    set textwidth=0
+  endif
+
   call mode#clear()
   call h#clear_state('enable')
 
@@ -118,6 +123,11 @@ function h#disable(escape = v:false) abort
       echomsg k v:exception
     endtry
   endfor
+
+  if has_key(s:, 'save_textwidth')
+    let &textwidth = s:save_textwidth
+    unlet! s:save_textwidth
+  endif
 
   call mode#clear()
   call h#clear_state('disable')
