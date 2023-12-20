@@ -671,34 +671,49 @@ function s:display_marks(...) abort
     let hlname = synID(lnum, col-syn_offset, 1)->synIDattr('name')
   endif
 
+  let mark_process_list = []
+
   if phase#is('machi')
     let hlname = opts#get('highlight_machi')
   endif
   if store#is_present('kouho')
-    call s:mark_clear('machi')
-    let hlname = opts#get('highlight_kouho')
-    call s:mark_put('kouho', hlname)
+    call add(mark_process_list, ['clear', 'machi'])
+    let hlname = utils#ifempty(opts#get('highlight_kouho'), hlname)
+    call add(mark_process_list, ['put', 'kouho', hlname])
   elseif store#is_present('machi')
-    call s:mark_clear('kouho')
-    let hlname = opts#get('highlight_machi')
-    call s:mark_put('machi', hlname)
+    call add(mark_process_list, ['clear', 'kouho'])
+    let hlname = utils#ifempty(opts#get('highlight_machi'), hlname)
+    call add(mark_process_list, ['put', 'machi', hlname])
   else
-    call s:mark_clear('kouho')
-    call s:mark_clear('machi')
+    call add(mark_process_list, ['clear', 'kouho'])
+    call add(mark_process_list, ['clear', 'machi'])
   endif
   if phase#is('okuri')
-    let hlname = opts#get('highlight_okuri')
+    let hlname = utils#ifempty(opts#get('highlight_okuri'), hlname)
   endif
   if store#is_present('okuri')
-    call s:mark_put('okuri', hlname)
+    call add(mark_process_list, ['put', 'okuri', hlname])
   else
-    call s:mark_clear('okuri')
+    call add(mark_process_list, ['clear', 'okuri'])
   endif
   if store#is_present('hanpa')
-    call s:mark_put('hanpa', hlname)
+    call add(mark_process_list, ['put', 'hanpa', hlname])
   else
-    call s:mark_clear('hanpa')
+    call add(mark_process_list, ['clear', 'hanpa'])
   endif
+
+  if has('nvim')
+    " vimとneovimでは同一座標にmarkが打たれたときの表示順が逆
+    call reverse(mark_process_list)
+  endif
+
+  for process in mark_process_list
+    if process[0] ==# 'clear'
+      call s:mark_clear(process[1])
+    else
+      call s:mark_put(process[1], process[2])
+    endif
+  endfor
 endfunction
 
 inoremap <c-j> <cmd>call h#toggle()<cr>
