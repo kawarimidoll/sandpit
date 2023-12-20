@@ -1,6 +1,7 @@
 source ./utils.vim
 
-if !exists('*keytrans') || exists(':defer') != 2
+" vim 2146以前ではE340が出るため使用不可 https://github.com/vim/vim/issues/13609
+if !exists('*keytrans') || exists(':defer') != 2 || (!has('nvim') && !has('patch-9.0.2146'))
   call utils#echoerr('このバージョンの' .. v:progname .. 'はサポートしていません')
   finish
 elseif !executable('rg')
