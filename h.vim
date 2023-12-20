@@ -34,7 +34,7 @@ endfunction
 function s:current_complete_item() abort
   return s:latest_henkan_item
 endfunction
-function s:is_complete_selected() abort
+function s:is_h_complete_selected() abort
   " return complete_info(['selected']).selected >= 0
   return !empty(s:current_complete_item())
 endfunction
@@ -501,7 +501,7 @@ function s:ins(key, with_sticky = v:false) abort
 
   let func = get(spec, 'func', '')
   let mode = get(spec, 'mode', '')
-  if s:is_complete_selected() && mode ==# '' && index(['kakutei', 'backspace', 'henkan'], func) < 0
+  if s:is_h_complete_selected() && mode ==# '' && index(['kakutei', 'backspace', 'henkan'], func) < 0
     let feed = s:handle_spec({ 'string': '', 'store': '', 'key': '', 'func': 'kakutei' })
     call s:feed(utils#trans_special_key(feed) .. $"\<cmd>call {expand('<SID>')}ins('{a:key}')\<cr>")
     return
@@ -529,7 +529,7 @@ let s:phase_kouho = v:false
 function s:handle_spec(args) abort
   let spec = a:args
 
-  if !s:is_complete_selected() && mode#is_direct_v2(get(spec, 'key', ''))
+  if !s:is_h_complete_selected() && mode#is_direct_v2(get(spec, 'key', ''))
     let spec = { 'string': spec.key, 'store': '', 'key': spec.key }
   endif
 
@@ -550,7 +550,7 @@ function s:handle_spec(args) abort
   if has_key(spec, 'func')
     " handle func
     if spec.func ==# 'sticky'
-      if s:is_complete_selected()
+      if s:is_h_complete_selected()
         let feed = s:kakutei('')
         let after_sticky = v:true
       else
@@ -560,7 +560,7 @@ function s:handle_spec(args) abort
     elseif spec.func ==# 'backspace'
       let feed = s:backspace()
     elseif spec.func ==# 'kakutei'
-      if s:is_complete_selected()
+      if s:is_h_complete_selected()
         let user_data = s:current_complete_item()->get('user_data', {})
         if type(user_data) == v:t_dict && has_key(user_data, 'special')
           call timer_start(0, {->s:on_kakutei_special(user_data)})
@@ -572,7 +572,7 @@ function s:handle_spec(args) abort
       let feed = s:henkan(spec.key)
       let next_kouho = v:true
     elseif spec.func ==# 'zengo'
-      if s:is_complete_selected()
+      if s:is_h_complete_selected()
         let feed = s:kakutei('')
         let feed ..= s:zengo(spec.key)
       else
@@ -624,7 +624,7 @@ function s:handle_spec(args) abort
   elseif has_key(spec, 'call')
     call call(spec.call, get(spec, 'args', []))
   else
-    if s:is_complete_selected()
+    if s:is_h_complete_selected()
       let feed = s:kakutei('')
     endif
     let feed ..= spec.string
