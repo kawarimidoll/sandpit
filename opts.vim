@@ -73,6 +73,9 @@ function opts#parse(opts) abort
   " enable時にtextwidthを0にする
   let s:textwidth_zero = get(a:opts, 'textwidth_zero', v:false)
 
+  " 手動変換で候補が一つしかない場合に自動的に確定する
+  let s:kakutei_unique = get(a:opts, 'kakutei_unique', v:false)
+
   " Google CGI変換
   let s:use_google_cgi = get(a:opts, 'use_google_cgi', v:false)
 

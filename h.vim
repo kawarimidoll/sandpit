@@ -374,6 +374,12 @@ function s:henkan_start() abort
   let comp_list = copy(henkan_list#get())
   let list_len = len(comp_list)
 
+  if list_len == 1 && opts#get('kakutei_unique')
+    call store#clear()
+    call phase#set('hanpa', 'kakutei_unique')
+    return comp_list[0].abbr
+  endif
+
   if opts#get('use_google_cgi')
     call add(comp_list, s:make_special_henkan_item({
           \ 'abbr': '[Google変換]',
