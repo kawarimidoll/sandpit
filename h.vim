@@ -39,6 +39,17 @@ function s:is_h_complete_selected() abort
   return !empty(s:current_complete_item())
 endfunction
 
+function h#clear_state(set_reason = 'clear_state') abort
+  call s:mark_clear()
+  call store#clear()
+  call phase#set('hanpa', a:set_reason)
+  let s:latest_henkan_item = {}
+  let s:last_machi = ''
+
+  " kouho状態の判定は他のphaseとは独立して判定する
+  let s:phase_kouho = v:false
+endfunction
+
 function h#enable() abort
   if s:is_enable
     return
@@ -49,7 +60,15 @@ function h#enable() abort
   augroup h_inner_augroup
     autocmd!
     autocmd CompleteChanged * call s:on_complete_changed(v:event)
-    autocmd CompleteDone * let s:latest_henkan_item = {}
+    " 変換が確定したらlatest_henkan_itemをクリアする
+    " is_h_complete_selectedがfalseなのにselectedが有効値の場合は
+    " このプラグイン以外の候補が選択されたと判断して状態をクリアする
+    autocmd CompleteDone *
+          \   if s:is_h_complete_selected()
+          \ |   let s:latest_henkan_item = {}
+          \ | elseif complete_info().selected >= 0
+          \ |   call h#clear_state('CompleteDone')
+          \ | endif
     " InsertLeaveだと<c-c>を使用した際に発火しないため
     " ModeChangedを使用する
     autocmd ModeChanged i:*
@@ -70,11 +89,9 @@ function h#enable() abort
     execute $"inoremap {k} <cmd>call {sid}ins('{keytrans(k)}', {val})<cr>"
   endfor
 
-  call store#clear()
   call mode#clear()
-  call phase#set('hanpa')
-  let s:latest_henkan_item = {}
-  let s:last_machi = ''
+  call h#clear_state('enable')
+
   let s:is_enable = v:true
 endfunction
 
@@ -87,7 +104,6 @@ function h#disable(escape = v:false) abort
 
   autocmd! h_inner_augroup
 
-  call s:mark_clear()
   let after_feed = (store#is_present('kouho') ? store#get('kouho') : store#get('machi'))
         \ .. store#get('okuri') .. store#get('hanpa')
 
@@ -103,11 +119,9 @@ function h#disable(escape = v:false) abort
     endtry
   endfor
 
-  call store#clear()
   call mode#clear()
-  call phase#set('hanpa')
-  let s:latest_henkan_item = {}
-  let s:last_machi = ''
+  call h#clear_state('disable')
+
   let s:is_enable = v:false
   if mode() !=# 'i'
     return
@@ -524,8 +538,6 @@ function s:ins(key, with_sticky = v:false) abort
   endif
 endfunction
 
-" kouho状態の判定は他のphaseとは独立して判定する
-let s:phase_kouho = v:false
 function s:handle_spec(args) abort
   let spec = a:args
 
