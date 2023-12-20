@@ -568,6 +568,22 @@ function s:handle_spec(args) abort
       else
         let feed = s:zengo(spec.key)
       endif
+    elseif spec.func ==# 'extend'
+      call s:mark_clear()
+      let char = utils#leftchar()
+      " 現状、ひらがなのみ対応
+      if char =~ '^[ぁ-ゖ]$'
+        call store#unshift('machi', char)
+        let feed = "\<bs>"
+      endif
+    elseif spec.func ==# 'shrink'
+      call s:mark_clear()
+      if store#is_present('machi')
+        let char = store#shift('machi')
+        " machi状態のままバッファを変更するため、bsを仕込む
+        " (不可視文字を入れるとバッファを変更するようにしているため)
+        let feed = char .. char .. "\<bs>"
+      endif
     else
       call utils#echoerr('定義されていないfuncが使われました')
     endif
@@ -609,7 +625,7 @@ function s:handle_spec(args) abort
     let feed ..= $"\<cmd>call {expand('<SID>')}sticky()\<cr>"
   endif
 
-  if phase#is('hanpa') || feed !~ '\p'
+  if phase#is('hanpa') || utils#hasunprintable(feed)
     return feed
   elseif phase#is('machi')
     if opts#get('auto_henkan_characters') =~# utils#lastchar(feed)

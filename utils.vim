@@ -103,6 +103,19 @@ function utils#lastchar(str) abort
   return a:str->substitute('^.*\ze.$', '', '')
 endfunction
 
+function utils#leftchar() abort
+  let line = getline('.')
+  let lastidx = col('.')-2
+  if line ==# '' || lastidx < 0
+    return ''
+  endif
+  return line[:lastidx]->utils#lastchar()
+endfunction
+
+function utils#hasunprintable(str) abort
+  return a:str !~ '\p' || a:str =~ "\<bs>"
+endfunction
+
 function utils#strsplit(str) abort
   " 普通にsplitすると<bs>など<80>k?のコードを持つ文字を正しく切り取れないので対応
   let chars = split(a:str, '\zs')
