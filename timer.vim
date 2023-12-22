@@ -43,41 +43,67 @@ endfunction
 " nnoremap j j<cmd>call Throttle({->Echoline()}, 1000, [], 'el')<cr>
 " nnoremap k k<cmd>call Throttle({->Echoline()}, 1000, [], 'el')<cr>
 
-function s:strcharscmp(str1, str2) abort
-  return a:str1->split('\zs')->sort()
-        \ == a:str2->split('\zs')->sort()
+function s:listitemscmp(list1, list2) abort
+  return a:list1->copy()->sort() == a:list2->copy()->sort()
 endfunction
 
+let s:chord_specs = {}
+let s:chord_keys = {}
+function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
+  let s:chord_specs[a:timer_name] = {'keys': a:keys, 'wait': a:wait, 'func': a:func, 'args': a:args}
+  for k in a:keys
+    let s:chord_keys[k] = get(s:chord_keys, k, []) + [a:timer_name]
+    execute $'{a:mode}noremap {k} <cmd>call Chord_run("{k}")<cr>'
+  endfor
+endfunction
+
+function Chord_run(key) abort
+  let result = 0
+  for timer_name in s:chord_keys[a:key]
+    let result += Chord(a:key, timer_name)
+  endfor
+  if result == 0
+    " todo ここにfeedkeysのtimerをつくる
+    call feedkeys(a:key, 'ni')
+  endif
+endfunction
+
+call Chord_def('n', ['j', 'k', 'l'], 50, 'my_super', 'execute', ["echo 'my_super!'", ''])
+call Chord_def('n', ['j', ';'], 50, 'my_awesome', 'execute', ["echo 'my_awesome!'", ''])
+call Chord_def('i', ['j', 'k'], 50, 'esc_jk', 'feedkeys', ["\<esc>", 'ni'])
+
 let s:chord_timers = {}
-function Chord(key, wait, timer_name) abort
+function Chord(key, timer_name) abort
   let key = a:key
   let timer_name = a:timer_name
+  let spec = s:chord_specs[timer_name]
+
   if has_key(s:chord_timers, timer_name)
     if has_key(s:chord_timers[timer_name], key)
       call timer_stop(s:chord_timers[timer_name][key])
-      call feedkeys(key, 'ni')
     else
-      let current_keys = s:chord_timers[timer_name]->keys()->join('') .. key
-      if s:strcharscmp(current_keys, timer_name)
+      let current_keys = s:chord_timers[timer_name]->keys()->add(key)
+      if s:listitemscmp(current_keys, spec.keys)
         for timer in s:chord_timers[timer_name]->values()
           call timer_stop(timer)
         endfor
         unlet s:chord_timers[timer_name]
-        echo 'super!'
-        return
+        call call(spec.func, spec.args)
+        return 1
       endif
     endif
   else
     let s:chord_timers[timer_name] = {}
   endif
 
-  let s:chord_timers[timer_name][key] = timer_start(a:wait, {->[
-        \ feedkeys(key, 'ni'),
-        \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", ''),
-        \ ]})
-  echo s:chord_timers
+  let wait = spec.wait
+
+  let s:chord_timers[timer_name][key] = timer_start(wait, {->
+        \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", '')
+        \ })
+  return 0
 endfunction
 
-nnoremap j <cmd>call Chord('j', 50, 'jkl')<cr>
-nnoremap k <cmd>call Chord('k', 50, 'jkl')<cr>
-nnoremap l <cmd>call Chord('l', 50, 'jkl')<cr>
+" nnoremap j <cmd>call Chord('j', 50, 'jkl')<cr>
+" nnoremap k <cmd>call Chord('k', 50, 'jkl')<cr>
+" nnoremap l <cmd>call Chord('l', 50, 'jkl')<cr>
