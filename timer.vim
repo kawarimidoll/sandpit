@@ -48,41 +48,36 @@ function s:strcharscmp(str1, str2) abort
         \ == a:str2->split('\zs')->sort()
 endfunction
 
-" echo s:strcharscmp('str', 'st')
-" echo s:strcharscmp('str', 'stu')
-" echo s:strcharscmp('str', 'str')
-
-" run last one call in wait time
-let s:chord_keys = {}
 let s:chord_timers = {}
-function! Chord(key, wait, timer_name) abort
+function Chord(key, wait, timer_name) abort
   let key = a:key
   let timer_name = a:timer_name
-  if has_key(s:chord_keys, timer_name)
-    if stridx(s:chord_keys[timer_name], key) < 0
-      let s:chord_keys[timer_name] ..= key
-      if s:strcharscmp(s:chord_keys[timer_name], timer_name)
-        call timer_stop(s:chord_timers[timer_name])
-        unlet s:chord_keys[timer_name]
+  if has_key(s:chord_timers, timer_name)
+    if has_key(s:chord_timers[timer_name], key)
+      call timer_stop(s:chord_timers[timer_name][key])
+      call feedkeys(key, 'ni')
+    else
+      let current_keys = s:chord_timers[timer_name]->keys()->join('') .. key
+      if s:strcharscmp(current_keys, timer_name)
+        for timer in s:chord_timers[timer_name]->values()
+          call timer_stop(timer)
+        endfor
         unlet s:chord_timers[timer_name]
         echo 'super!'
         return
       endif
-    else
-      call timer_stop(s:chord_timers[timer_name])
-      call feedkeys(key, 'ni')
     endif
   else
-    let s:chord_keys[timer_name] = key
+    let s:chord_timers[timer_name] = {}
   endif
 
-  let s:chord_timers[timer_name] = timer_start(a:wait, {->[
+  let s:chord_timers[timer_name][key] = timer_start(a:wait, {->[
         \ feedkeys(key, 'ni'),
-        \ execute($"unlet s:chord_keys['{timer_name}']", ''),
-        \ execute($"unlet s:chord_timers['{timer_name}']", ''),
+        \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", ''),
         \ ]})
-  echo s:chord_timers s:chord_keys
+  echo s:chord_timers
 endfunction
 
-nnoremap j <cmd>call Chord('j', 500, 'jk')<cr>
-nnoremap k <cmd>call Chord('k', 500, 'jk')<cr>
+nnoremap j <cmd>call Chord('j', 50, 'jkl')<cr>
+nnoremap k <cmd>call Chord('k', 50, 'jkl')<cr>
+nnoremap l <cmd>call Chord('l', 50, 'jkl')<cr>
