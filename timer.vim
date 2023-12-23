@@ -43,7 +43,7 @@ endfunction
 " nnoremap j j<cmd>call Throttle({->Echoline()}, 1000, [], 'el')<cr>
 " nnoremap k k<cmd>call Throttle({->Echoline()}, 1000, [], 'el')<cr>
 
-function s:listitemscmp(list1, list2) abort
+function s:have_same_items(list1, list2) abort
   return a:list1->copy()->sort() == a:list2->copy()->sort()
 endfunction
 
@@ -86,7 +86,7 @@ endfunction
 function Chord_run(key) abort
   let stop_keys = []
   for timer_name in s:chord_keys[a:key]
-    let stop_keys += Chord(a:key, timer_name)
+    let stop_keys += s:chord_main(a:key, timer_name)
   endfor
 
   if empty(stop_keys)
@@ -103,36 +103,44 @@ call Chord_def('n', ['j', ';'], 'my_awesome', 'execute', ["echo 'my_awesome!'", 
 call Chord_def('i', ['j', 'k'], 'esc_jk', 'feedkeys', ["\<esc>", 'ni'])
 
 let s:chord_timers = {}
-function Chord(key, timer_name) abort
-  let key = a:key
-  let timer_name = a:timer_name
-  let spec = s:chord_specs[timer_name]
-
-  if has_key(s:chord_timers, timer_name)
-    let current_timers = s:chord_timers[timer_name]
-    if has_key(current_timers, key)
-      call timer_stop(current_timers[key])
-    else
-      let current_keys = current_timers->keys()->add(key)
-      if s:listitemscmp(current_keys, spec.keys)
-        for timer in current_timers->values()
-          call timer_stop(timer)
-        endfor
-        unlet s:chord_timers[timer_name]
-        call call(spec.func, spec.args)
-        return current_keys
-      endif
-    endif
-  else
-    let s:chord_timers[timer_name] = {}
+function s:chord_timers.stop(name, key = '') abort dict
+  if a:key ==# ''
+    let result = v:false
+    for k in self.keys(a:name)
+      call timer_stop(self[a:name][k])
+      let result = v:true
+    endfor
+    let self[a:name] = {}
+    return result
   endif
 
-  let s:chord_timers[timer_name][key] = timer_start(g:chord_wait, {->
-        \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", '')
-        \ })
+  if !has_key(self, a:name)
+    let self[a:name] = {}
+  elseif has_key(self[a:name], a:key)
+    call timer_stop(self[a:name][a:key])
+    unlet self[a:name][a:key]
+    return v:true
+  endif
+  return v:false
+endfunction
+function s:chord_timers.set(name, key) abort dict
+  let self[a:name][a:key] = timer_start(g:chord_wait, {->self.stop(a:name, a:key)})
+endfunction
+function s:chord_timers.keys(name) abort dict
+  return self[a:name]->keys()
+endfunction
+function s:chord_main(key, name) abort
+  let spec = s:chord_specs[a:name]
+
+  if !s:chord_timers.stop(a:name, a:key)
+    let current_keys = s:chord_timers.keys(a:name)->add(a:key)
+    if s:have_same_items(current_keys, spec.keys)
+      call s:chord_timers.stop(a:name)
+      call call(spec.func, spec.args)
+      return current_keys
+    endif
+  endif
+  call s:chord_timers.set(a:name, a:key)
+
   return []
 endfunction
-
-" nnoremap j <cmd>call Chord('j', 50, 'jkl')<cr>
-" nnoremap k <cmd>call Chord('k', 50, 'jkl')<cr>
-" nnoremap l <cmd>call Chord('l', 50, 'jkl')<cr>
