@@ -48,8 +48,14 @@ function s:listitemscmp(list1, list2) abort
 endfunction
 
 let g:chord_wait = 50
+
+" タイマー名と設定の対応テーブル
 let s:chord_specs = {}
+
+" キーとタイマー名の対応テーブル
+" このキーが押されたらどのタイマーを起動するのか？の紐付けに使う
 let s:chord_keys = {}
+
 function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
   let s:chord_specs[a:timer_name] = {'keys': a:keys, 'wait': a:wait, 'func': a:func, 'args': a:args}
   for k in a:keys
@@ -59,23 +65,30 @@ function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
 endfunction
 
 let s:delayed_feed = {}
+function s:delayed_feed.exec(key) abort dict
+  if self.stop(a:key)
+    call feedkeys(a:key, 'ni')
+  endif
+endfunction
 function s:delayed_feed.set(key) abort dict
   let key = a:key
-  if has_key(s:delayed_feed, key)
-    call timer_stop(s:delayed_feed[key])
-    call feedkeys(key, 'ni')
-  endif
-  let s:delayed_feed[key] = timer_start(g:chord_wait, {->[
-        \ feedkeys(key, 'ni'),
-        \ execute($"unlet s:delayed_feed['{key}']", ''),
-        \ ] })
+    call self.exec(a:key)
+  let self[a:key] = timer_start(g:chord_wait, {->self.exec(a:key)})
+  " if self.stop(key)
+  "   call feedkeys(key, 'ni')
+  " endif
+  " let s:delayed_feed[key] = timer_start(g:chord_wait, {->[
+  "       \ feedkeys(key, 'ni'),
+  "       \ execute($"unlet s:delayed_feed['{key}']", ''),
+  "       \ ] })
 endfunction
 function s:delayed_feed.stop(key) abort dict
-  let key = a:key
-  if has_key(s:delayed_feed, key)
-    call timer_stop(s:delayed_feed[key])
-    unlet s:delayed_feed[key]
+  if has_key(self, a:key)
+    call timer_stop(self[a:key])
+    unlet self[a:key]
+    return v:true
   endif
+  return v:false
 endfunction
 
 let s:feed_timers = {}
