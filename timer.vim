@@ -47,6 +47,7 @@ function s:listitemscmp(list1, list2) abort
   return a:list1->copy()->sort() == a:list2->copy()->sort()
 endfunction
 
+let g:chord_wait = 50
 let s:chord_specs = {}
 let s:chord_keys = {}
 function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
@@ -57,14 +58,40 @@ function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
   endfor
 endfunction
 
+let s:delayed_feed = {}
+function s:delayed_feed.set(key) abort dict
+  let key = a:key
+  if has_key(s:delayed_feed, key)
+    call timer_stop(s:delayed_feed[key])
+    call feedkeys(key, 'ni')
+  endif
+  let s:delayed_feed[key] = timer_start(g:chord_wait, {->[
+        \ feedkeys(key, 'ni'),
+        \ execute($"unlet s:delayed_feed['{key}']", ''),
+        \ ] })
+endfunction
+function s:delayed_feed.stop(key) abort dict
+  let key = a:key
+  if has_key(s:delayed_feed, key)
+    call timer_stop(s:delayed_feed[key])
+    unlet s:delayed_feed[key]
+  endif
+endfunction
+
+let s:feed_timers = {}
 function Chord_run(key) abort
-  let result = 0
-  for timer_name in s:chord_keys[a:key]
-    let result += Chord(a:key, timer_name)
+  let key = a:key
+  let result = []
+  for timer_name in s:chord_keys[key]
+    let result += Chord(key, timer_name)
   endfor
-  if result == 0
-    " todo ここにfeedkeysのtimerをつくる
-    call feedkeys(a:key, 'ni')
+
+  if empty(result)
+    call s:delayed_feed.set(key)
+  else
+    for k in result
+      call s:delayed_feed.stop(k)
+    endfor
   endif
 endfunction
 
@@ -89,7 +116,7 @@ function Chord(key, timer_name) abort
         endfor
         unlet s:chord_timers[timer_name]
         call call(spec.func, spec.args)
-        return 1
+        return current_keys
       endif
     endif
   else
@@ -101,7 +128,7 @@ function Chord(key, timer_name) abort
   let s:chord_timers[timer_name][key] = timer_start(wait, {->
         \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", '')
         \ })
-  return 0
+  return []
 endfunction
 
 " nnoremap j <cmd>call Chord('j', 50, 'jkl')<cr>
