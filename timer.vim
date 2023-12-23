@@ -56,8 +56,8 @@ let s:chord_specs = {}
 " このキーが押されたらどのタイマーを起動するのか？の紐付けに使う
 let s:chord_keys = {}
 
-function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
-  let s:chord_specs[a:timer_name] = {'keys': a:keys, 'wait': a:wait, 'func': a:func, 'args': a:args}
+function Chord_def(mode, keys, timer_name, func, args = []) abort
+  let s:chord_specs[a:timer_name] = {'keys': a:keys, 'func': a:func, 'args': a:args}
   for k in a:keys
     let s:chord_keys[k] = get(s:chord_keys, k, []) + [a:timer_name]
     execute $'{a:mode}noremap {k} <cmd>call Chord_run("{k}")<cr>'
@@ -65,22 +65,14 @@ function Chord_def(mode, keys, wait, timer_name, func, args = []) abort
 endfunction
 
 let s:delayed_feed = {}
-function s:delayed_feed.exec(key) abort dict
+function s:delayed_feed.eject(key) abort dict
   if self.stop(a:key)
     call feedkeys(a:key, 'ni')
   endif
 endfunction
-function s:delayed_feed.set(key) abort dict
-  let key = a:key
-    call self.exec(a:key)
-  let self[a:key] = timer_start(g:chord_wait, {->self.exec(a:key)})
-  " if self.stop(key)
-  "   call feedkeys(key, 'ni')
-  " endif
-  " let s:delayed_feed[key] = timer_start(g:chord_wait, {->[
-  "       \ feedkeys(key, 'ni'),
-  "       \ execute($"unlet s:delayed_feed['{key}']", ''),
-  "       \ ] })
+function s:delayed_feed.reserve(key) abort dict
+  call self.eject(a:key)
+  let self[a:key] = timer_start(g:chord_wait, {->self.eject(a:key)})
 endfunction
 function s:delayed_feed.stop(key) abort dict
   if has_key(self, a:key)
@@ -91,26 +83,24 @@ function s:delayed_feed.stop(key) abort dict
   return v:false
 endfunction
 
-let s:feed_timers = {}
 function Chord_run(key) abort
-  let key = a:key
-  let result = []
-  for timer_name in s:chord_keys[key]
-    let result += Chord(key, timer_name)
+  let stop_keys = []
+  for timer_name in s:chord_keys[a:key]
+    let stop_keys += Chord(a:key, timer_name)
   endfor
 
-  if empty(result)
-    call s:delayed_feed.set(key)
+  if empty(stop_keys)
+    call s:delayed_feed.reserve(a:key)
   else
-    for k in result
+    for k in stop_keys
       call s:delayed_feed.stop(k)
     endfor
   endif
 endfunction
 
-call Chord_def('n', ['j', 'k', 'l'], 50, 'my_super', 'execute', ["echo 'my_super!'", ''])
-call Chord_def('n', ['j', ';'], 50, 'my_awesome', 'execute', ["echo 'my_awesome!'", ''])
-call Chord_def('i', ['j', 'k'], 50, 'esc_jk', 'feedkeys', ["\<esc>", 'ni'])
+call Chord_def('n', ['j', 'k', 'l'], 'my_super', 'execute', ["echo 'my_super!'", ''])
+call Chord_def('n', ['j', ';'], 'my_awesome', 'execute', ["echo 'my_awesome!'", ''])
+call Chord_def('i', ['j', 'k'], 'esc_jk', 'feedkeys', ["\<esc>", 'ni'])
 
 let s:chord_timers = {}
 function Chord(key, timer_name) abort
@@ -119,12 +109,13 @@ function Chord(key, timer_name) abort
   let spec = s:chord_specs[timer_name]
 
   if has_key(s:chord_timers, timer_name)
-    if has_key(s:chord_timers[timer_name], key)
-      call timer_stop(s:chord_timers[timer_name][key])
+    let current_timers = s:chord_timers[timer_name]
+    if has_key(current_timers, key)
+      call timer_stop(current_timers[key])
     else
-      let current_keys = s:chord_timers[timer_name]->keys()->add(key)
+      let current_keys = current_timers->keys()->add(key)
       if s:listitemscmp(current_keys, spec.keys)
-        for timer in s:chord_timers[timer_name]->values()
+        for timer in current_timers->values()
           call timer_stop(timer)
         endfor
         unlet s:chord_timers[timer_name]
@@ -136,9 +127,7 @@ function Chord(key, timer_name) abort
     let s:chord_timers[timer_name] = {}
   endif
 
-  let wait = spec.wait
-
-  let s:chord_timers[timer_name][key] = timer_start(wait, {->
+  let s:chord_timers[timer_name][key] = timer_start(g:chord_wait, {->
         \ execute($"unlet s:chord_timers['{timer_name}']['{key}']", '')
         \ })
   return []
