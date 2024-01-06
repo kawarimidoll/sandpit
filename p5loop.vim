@@ -50,7 +50,6 @@ function s:draw_wrapper(obj) abort
     call call(a:obj.draw, [])
   endif
   try
-
     if has_key(a:obj, 'keypressed')
       let c = getchar(0)
       if c != 0
@@ -73,7 +72,7 @@ function p5loop#run(obj = {}) abort
   call s:timer_stop(obj)
   silent enew
 
-  setlocal buftype=nowrite bufhidden=wipe noswapfile
+  setlocal buftype=nowrite bufhidden=wipe noswapfile nonumber
   execute 'autocmd BufLeave <buffer> ++once '
         \ .. $'if p5loop#is_running(s:p5objs[{obj.id}])'
         \ .. $' | call p5loop#stop(s:p5objs[{obj.id}])'
