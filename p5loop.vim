@@ -1,21 +1,23 @@
 function p5loop#play(obj = {}) abort
   let obj = a:obj ?? self
-  call p5loop#pause(obj)
-  let obj.timer_id = timer_start(obj.interval, {->s:draw_wrapper(obj)}, {'repeat': -1})
+  let obj.is_looping = 1
 endfunction
 function p5loop#pause(obj = {}) abort
   let obj = a:obj ?? self
-  if p5loop#is_running(obj)
-    call timer_stop(obj.timer_id)
-    unlet! obj.timer_id
-  endif
+  let obj.is_looping = 0
 endfunction
 function p5loop#toggle(obj = {}) abort
   let obj = a:obj ?? self
-  if p5loop#is_running(obj)
-    call obj.pause()
-  else
-    call obj.play()
+  let obj.is_looping = !obj.is_looping
+endfunction
+
+function s:timer_start(obj) abort
+  let a:obj.timer_id = timer_start(a:obj.interval, {->s:draw_wrapper(a:obj)}, {'repeat': -1})
+endfunction
+function s:timer_stop(obj) abort
+  if p5loop#is_running(a:obj)
+    call timer_stop(a:obj.timer_id)
+    unlet! a:obj.timer_id
   endif
 endfunction
 
@@ -27,6 +29,7 @@ endfunction
 function p5loop#stop(obj = {}) abort
   let obj = a:obj ?? self
   call p5loop#pause(obj)
+  call s:timer_stop(obj)
 
   for [name, value] in items(obj.saveopts)
     if type(value) == v:t_string
@@ -42,15 +45,24 @@ function p5loop#stop(obj = {}) abort
 endfunction
 
 function s:draw_wrapper(obj) abort
-  try
+  if a:obj.is_looping
     let a:obj.framecount += 1
     call call(a:obj.draw, [])
+  endif
+  try
+
+    if has_key(a:obj, 'keypressed')
+      let c = getchar(0)
+      if c != 0
+        call a:obj.keypressed(nr2char(c))
+      endif
+    endif
   catch
     call call(a:obj.stop, [])
     if has_key(a:obj, 'catch')
       call call(a:obj.catch, [v:throwpoint, v:exception])
     else
-      echoerr v:exception
+      echoerr v:throwpoint v:exception
     endif
   endtry
 endfunction
@@ -58,7 +70,7 @@ endfunction
 function p5loop#run(obj = {}) abort
   let obj = a:obj ?? self
 
-  call p5loop#pause(obj)
+  call s:timer_stop(obj)
   silent enew
 
   setlocal buftype=nowrite bufhidden=wipe noswapfile
@@ -82,11 +94,12 @@ function p5loop#run(obj = {}) abort
     if has_key(a:obj, 'catch')
       call call(a:obj.catch, [v:throwpoint, v:exception])
     else
-      echoerr v:exception
+      echoerr v:throwpoint v:exception
     endif
   endtry
 
   call p5loop#play(obj)
+  call s:timer_start(obj)
 endfunction
 
 let s:id = 0
@@ -98,6 +111,7 @@ function p5loop#new() abort
         \ width: winwidth(0),
         \ height: winheight(0),
         \ interval: 100,
+        \ is_looping: 0,
         \ framecount: 0,
         \ setoptions: {},
         \ }
@@ -107,7 +121,6 @@ function p5loop#new() abort
   let p5obj.play = {->p5loop#play(p5obj)}
   let p5obj.pause = {->p5loop#pause(p5obj)}
   let p5obj.toggle = {->p5loop#toggle(p5obj)}
-  " \ catch: {t,e->0},
   let s:p5objs[s:id] = p5obj
   return p5obj
 endfunction
@@ -128,5 +141,13 @@ endfunction
 " endfunction
 " function MyP5.after_stop() abort
 "   echomsg 'final frame:' self.framecount
+" endfunction
+" function MyP5.catch(throwpoint, exception) abort
+"   echomsg 'catch' a:throwpoint a:exception
+" endfunction
+" function MyP5.keypressed(key) abort
+"   if a:key == "g"
+"     echomsg 'g is pressed!'
+"   endif
 " endfunction
 " call MyP5.run()
