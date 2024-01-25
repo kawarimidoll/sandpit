@@ -58,21 +58,7 @@ endfunction
 
 function s:display_sixel(sixel, lnum, cnum) abort
   let [sixel, lnum, cnum] = [a:sixel, a:lnum, a:cnum]
-  let pos = has('nvim') ? $'{lnum+1};{cnum+2}' : $'{lnum};{cnum}'
-  call s:echoraw($"\x1b[{pos}H" .. sixel)
-endfunction
-
-let s:loop_cnt = 0
-
-function s:loop_img(paths, pos, height, wait, cnt = 0) abort
-  let cnt = a:cnt + 1
-  if cnt >= len(a:paths)-1
-    let cnt = 0
-  endif
-  call timer_start(a:wait, {->[
-        \ s:put_img(a:paths[cnt], a:pos, a:height),
-        \ s:loop_img(a:paths, a:pos, a:height, a:wait, cnt),
-        \ ]})
+  call s:echoraw($"\x1b[{lnum};{cnum}H" .. sixel)
 endfunction
 
 function s:show_animation() abort
@@ -83,7 +69,7 @@ endfunction
 
 let s:last_offset = []
 function s:show_img() abort
-  if mode() == 'c'
+  if !s:enable()
     return
   endif
 
@@ -93,13 +79,18 @@ function s:show_img() abort
 
   let lnum = &lines-&cmdheight
 
-  let left = s:is_number(s:left_offset) ? s:left_offset : call(s:left_offset, [])
-  let right = s:is_number(s:right_offset) ? s:right_offset : call(s:right_offset, [])
+  let left = s:left_offset()
+  let right = s:right_offset()
+  " let left = s:is_number(s:left_offset) ? s:left_offset : call(s:left_offset, [])
+  " let right = s:is_number(s:right_offset) ? s:right_offset : call(s:right_offset, [])
   let length = &columns - left - right
+  if length < 0
+    return
+  endif
 
   let offset = [left, right]
   if s:last_offset != offset
-    if empty(s:last_offset)
+    if !empty(s:last_offset)
       execute "normal! \<c-l>"
     endif
     let s:last_offset = offset
@@ -153,6 +144,17 @@ function rimiline#start(opts) abort
     call s:echoerr('invalid type: right_offset should be number or funcref')
   endif
 
+  if s:is_number(s:left_offset)
+    let s:left_offset = {->a:opts.left_offset}
+  endif
+  if s:is_number(s:right_offset)
+    let s:right_offset = {->a:opts.right_offset}
+  endif
+
+  let s:enable = !has_key(a:opts, 'enable') ? {->v:true}
+        \ : s:is_func(a:opts.enable) ? a:opts.enable
+        \ : {->a:opts.enable}
+
   let interval = get(a:opts, 'interval', 400)
 
   let animation = get(a:opts, 'animation', v:false)
@@ -165,36 +167,38 @@ function rimiline#start(opts) abort
 
   if animation
     for i in [1,2,3,4]
-      call add(img_names, $'{s:MAIN_IMG_BASE}{i}')
       call s:main_images.push($'{s:MAIN_IMG_BASE}{i}')
       if wave
-        call add(img_names, $'{s:TRAIL_IMG_BASE}{i}')
         call s:trail_images.push($'{s:TRAIL_IMG_BASE}{i}')
       endif
     endfor
     if !wave
-      call add(img_names, $'{s:TRAIL_IMG_BASE}0')
       call s:trail_images.push($'{s:TRAIL_IMG_BASE}0')
     endif
   else
-    call add(img_names, $'{s:MAIN_IMG_BASE}1')
     call s:main_images.push($'{s:MAIN_IMG_BASE}1')
 
-    call add(img_names, $'{s:TRAIL_IMG_BASE}{wave ? 1 : 0}')
     call s:trail_images.push($'{s:TRAIL_IMG_BASE}{wave ? 1 : 0}')
   endif
 
+  call extend(img_names, s:main_images.items)
+  call extend(img_names, s:trail_images.items)
   for name in img_names
     call s:load_img(name, size)
   endfor
 
   augroup rimiline_inner
-    autocmd VimResized * call s:show_img()
+    autocmd VimResized,WinResized,WinEnter * call timer_start(0, {->s:show_img()})
   augroup END
 
-  let s:timer_id = timer_start(interval,
-        \ animation ? {->s:show_animation()} : {->s:show_img()},
-        \ {'repeat': -1})
+  if animation
+    let s:timer_id = timer_start(interval, {->s:show_animation()}, {'repeat': -1})
+  else
+    call timer_start(0, {->s:show_img()})
+    augroup rimiline_inner
+      autocmd CursorMoved * call s:show_img()
+    augroup END
+  endif
 endfunction
 
 func rimiline#debug()
@@ -206,5 +210,6 @@ call rimiline#start({
       \ 'left_offset': {->strcharlen(bufname()) + 20},
       \ 'right_offset': 21,
       \ 'animation': v:true,
+      \ 'enable': {->winnr() == winnr('1h') && winnr() == winnr('1l')},
       \ 'wave': v:true,
       \ })

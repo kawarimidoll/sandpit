@@ -49,6 +49,15 @@ endfunction
 
 let g:chord_wait = 50
 
+" let s:chord_defs = {
+"       \ 'timer1': {
+"       \    'keys': [],
+"       \    'func': {->},
+"       \    'args': [],
+"       \    'timers': {}
+"       \  },
+"       \}
+
 " タイマー名と設定の対応テーブル
 let s:chord_specs = {}
 
@@ -56,10 +65,20 @@ let s:chord_specs = {}
 " このキーが押されたらどのタイマーを起動するのか？の紐付けに使う
 let s:chord_keys = {}
 
-function Chord_def(mode, keys, timer_name, func, args = []) abort
-  let s:chord_specs[a:timer_name] = {'keys': a:keys, 'func': a:func, 'args': a:args}
-  for k in a:keys
-    let s:chord_keys[k] = get(s:chord_keys, k, []) + [a:timer_name]
+function Chord_def(mode, notes, func, args = []) abort
+  if a:notes =~ '^[^ !-~]$'
+    echomsg 'invalid note found'
+    return
+  endif
+  for notes in s:chord_specs->keys()
+    if s:have_same_items(notes->split('\zs'), a:notes->split('\zs'))
+      echomsg 'already defined'
+      return
+    endif
+  endfor
+  let s:chord_specs[a:notes] = {'func': a:func, 'args': a:args}
+  for k in a:notes->split('\zs')
+    let s:chord_keys[k] = get(s:chord_keys, k, []) + [a:notes]
     execute $'{a:mode}noremap {k} <cmd>call Chord_run("{k}")<cr>'
   endfor
 endfunction
@@ -98,9 +117,9 @@ function Chord_run(key) abort
   endif
 endfunction
 
-call Chord_def('n', ['j', 'k', 'l'], 'my_super', 'execute', ["echo 'my_super!'", ''])
-call Chord_def('n', ['j', ';'], 'my_awesome', 'execute', ["echo 'my_awesome!'", ''])
-call Chord_def('i', ['j', 'k'], 'esc_jk', 'feedkeys', ["\<esc>", 'ni'])
+call Chord_def('n', 'jkl', 'execute', ["echo 'my_super!'", ''])
+call Chord_def('n', 'j;', 'execute', ["echo 'my_awesome!'", ''])
+call Chord_def('i', 'jk', 'feedkeys', ["\<esc>", 'ni'])
 
 let s:chord_timers = {}
 function s:chord_timers.stop(name, key = '') abort dict
@@ -134,7 +153,7 @@ function s:chord_main(key, name) abort
 
   if !s:chord_timers.stop(a:name, a:key)
     let current_keys = s:chord_timers.keys(a:name)->add(a:key)
-    if s:have_same_items(current_keys, spec.keys)
+    if s:have_same_items(current_keys, a:name->split('\zs'))
       call s:chord_timers.stop(a:name)
       call call(spec.func, spec.args)
       return current_keys
