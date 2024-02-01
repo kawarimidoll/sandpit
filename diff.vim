@@ -20,7 +20,7 @@ call sign_define([
 
 let s:group = 'GitHunk'
 function s:put_signs(hunk_info) abort
-  let [old_lines, new_start, new_lines] = split(a:hunk_info, ',')[1:]->map('str2nr(v:val)')
+  let [old_lines, new_start, new_lines] = a:hunk_info[1:]
   " echomsg [a:hunk_info, old_lines, new_start, new_lines]
   let bn = bufnr()
   let list = []
@@ -54,13 +54,31 @@ function s:put_signs(hunk_info) abort
   call sign_placelist(list)
 endfunction
 
+let s:hunk_cache = {}
 function GetHunk() abort
+  let bufnr = bufnr()
+  if get(s:hunk_cache, bufnr, {})->get('changedtick', 0) == b:changedtick
+    return s:hunk_cache[bufnr].hunks
+  endif
+  echo $'bufnr {bufnr} re-hunk'
   let cmd = $'git --no-pager diff -U0 --no-color --no-ext-diff {@%}'
-        \ .. ' | grep ''^@@'' '
-        \ .. ' | sed -r ''s/[-+]([0-9]+) /\1,1,/g'' '
-        \ .. ' | sed -r ''s/^[-@ ]*([0-9]+,[0-9]+)[ ,+]+([0-9]+,[0-9]+)[, ].*/\1,\2/'' '
-  return systemlist(cmd)
+        \ .. '| grep ^@@'
+        \ .. '| sed -r ''s/[-+]([0-9]+) /\1,1,/g'''
+        \ .. '| sed -r ''s/^[-@ ]*([0-9]+,[0-9]+)[ ,+]+([0-9]+,[0-9]+)[, ].*/\1,\2/'''
+  let s:hunk_cache[bufnr] = {
+        \ 'hunks': systemlist(cmd)->map({_,v->eval($'[{v}]')}),
+        \ 'changedtick': b:changedtick
+        \ }
+  return s:hunk_cache[bufnr].hunks
 endfunction
+
+" function GetHunk() abort
+"   let cmd = $'git --no-pager diff -U0 --no-color --no-ext-diff {@%}'
+"         \ .. ' | grep ''^@@'' '
+"         \ .. ' | sed -r ''s/[-+]([0-9]+) /\1,1,/g'' '
+"         \ .. ' | sed -r ''s/^[-@ ]*([0-9]+,[0-9]+)[ ,+]+([0-9]+,[0-9]+)[, ].*/\1,\2/'' '
+"   return systemlist(cmd)
+" endfunction
 
 function HideHunk() abort
   let bn = bufnr()
