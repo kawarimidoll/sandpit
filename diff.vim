@@ -55,7 +55,7 @@ function s:put_signs(hunk_info) abort
 endfunction
 
 let s:hunk_cache = {}
-function GetHunk() abort
+function Gethunk() abort
   let bufnr = bufnr()
   if get(s:hunk_cache, bufnr, {})->get('changedtick', 0) == b:changedtick
     return s:hunk_cache[bufnr].hunks
@@ -72,7 +72,7 @@ function GetHunk() abort
   return s:hunk_cache[bufnr].hunks
 endfunction
 
-" function GetHunk() abort
+" function Gethunk() abort
 "   let cmd = $'git --no-pager diff -U0 --no-color --no-ext-diff {@%}'
 "         \ .. ' | grep ''^@@'' '
 "         \ .. ' | sed -r ''s/[-+]([0-9]+) /\1,1,/g'' '
@@ -80,16 +80,16 @@ endfunction
 "   return systemlist(cmd)
 " endfunction
 
-function HideHunk() abort
+function Hidehunk() abort
   let bn = bufnr()
   call sign_unplace(s:group, {'buffer': bn})
 endfunction
 
-function ShowHunk() abort
+function Showhunk() abort
   set signcolumn=auto
-  call HideHunk()
+  call Hidehunk()
 
-  let output = GetHunk()
+  let output = Gethunk()
   " echomsg output
 
   for line in output
