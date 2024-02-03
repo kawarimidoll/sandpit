@@ -96,3 +96,26 @@ function Showhunk() abort
     call s:put_signs(line)
   endfor
 endfunction
+
+function s:between(num, min, max) abort
+  return a:min <= a:num && a:num <= a:max
+endfunction
+
+function Onhunk() abort
+  let lnum = line('.')
+  for hunk_info in Gethunk()
+    let [new_start, new_lines] = hunk_info[2:]
+    if new_lines == 0
+      " delete
+      if new_start == line
+        return v:true
+      endif
+    else
+      " modify
+      if s:between(lnum, new_start, new_start + new_lines - 1)
+        return v:true
+      endif
+    endif
+    return v:false
+  endfor
+endfunction
