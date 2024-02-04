@@ -47,7 +47,10 @@ function! s:init_diff_win(staged) abort
   setlocal bufhidden=wipe buftype=nofile noswapfile readonly nomodifiable nomodified
   execute $'nnoremap <buffer> <Plug>(stage-line) <cmd>call <sid>stage_line({a:staged})<cr>'
   execute $'xnoremap <buffer> <Plug>(stage-range) <cmd>call <sid>stage_line({a:staged})<cr>'
+  execute $'nnoremap <buffer> <Plug>(stage-hunk) <cmd>call <sid>stage_hunk({a:staged})<cr>'
   execute $'nnoremap <buffer> <Plug>(stage-file) <cmd>call <sid>stage_file({a:staged})<cr>'
+  execute $'nnoremap <buffer> <Plug>(delete-line) <cmd>call <sid>delete_line({a:staged})<cr>'
+  execute $'xnoremap <buffer> <Plug>(delete-line) <cmd>call <sid>delete_line({a:staged})<cr>'
   execute 'nnoremap <buffer> <Plug>(quit) <cmd>tabclose<cr>'
 endfunction
 
@@ -161,6 +164,27 @@ function! s:stage_file(staged) abort
   endif
   call system($'git {a:staged ? "un" : ""}stage {t:my_stage_filename}')
   call s:refresh_diff_win()
+endfunction
+
+function! s:stage_hunk(staged) abort
+  let pat = '^@@ '
+  call search(pat, 'bcW')
+  normal! V
+  if search(pat, 'W')
+    normal! k
+  else
+    normal! G
+  endif
+  call s:stage_line(a:staged)
+endfunction
+
+function! s:delete_line(staged) abort
+  let msg = "Are you sure you want to discard this change (git reset)? It is irreversible.\n"
+        \ .. 'To disable this dialogue, set g:skip_discard_change_warning to true.'
+  let skip_warning = get(g:, 'skip_discard_change_warning', v:false)
+  if a:staged || (!skip_warning && confirm(msg, "&Yes\n&No") == 1)
+    call s:stage_line(v:true)
+  endif
 endfunction
 
 function! s:my_stage_map() abort
