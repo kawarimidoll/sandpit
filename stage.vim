@@ -1,15 +1,15 @@
-highlight! link myDiffTitle Title
-highlight! link myDiffAdded Added
-highlight! link myDiffRemoved Removed
+highlight! link myStageTitle Title
+highlight! link myStageAdded Added
+highlight! link myStageRemoved Removed
 
 function! Showdiff() abort
   let filename = @%
 
   tabnew
-  let t:my_diff_filename = filename
-  setlocal filetype=mydiff
+  let t:my_stage_filename = filename
+  setlocal filetype=mystage
   botright new
-  setlocal filetype=mydiff
+  setlocal filetype=mystage
   call s:refresh_diff_win()
 endfunction
 
@@ -24,20 +24,20 @@ endfunction
 function! s:init_diff_win(staged) abort
   setlocal modifiable noreadonly
   silent %delete_
-  if !a:staged && system('git status --porcelain ' .. t:my_diff_filename)->trim() =~# '?'
+  if !a:staged && system('git status --porcelain ' .. t:my_stage_filename)->trim() =~# '?'
     " new file
     call append(0, repeat([''], 5))
-    silent execute 'read! cat' t:my_diff_filename
-    %substitute/^/+/
+    silent execute 'read! cat' t:my_stage_filename
+    silent %substitute/^/+/e
     call setline(6, $'@@ -0,0 +1,{line("$")-6} @@')
   else
     let cmd = 'read! git --no-pager diff --no-color --no-ext-diff'
-    silent execute cmd a:staged ? "--staged" : "" t:my_diff_filename
+    silent execute cmd a:staged ? "--staged" : "" t:my_stage_filename
   endif
 
-  call matchadd('myDiffTitle', '^@@\v -\d+%(,\d+)? \+\d+%(,\d+)? \V@@')
-  call matchadd('myDiffRemoved', '^-.*')
-  call matchadd('myDiffAdded', '^+.*')
+  call matchadd('myStageTitle', '^@@\v -\d+%(,\d+)? \+\d+%(,\d+)? \V@@')
+  call matchadd('myStageRemoved', '^-.*')
+  call matchadd('myStageAdded', '^+.*')
   normal! gg
   if line('$') == 1
     call setline(1, $'no {a:staged ? "" : "un"}staged changes')
@@ -45,10 +45,10 @@ function! s:init_diff_win(staged) abort
     silent 1,/^@@/-1delete_
   endif
   setlocal bufhidden=wipe buftype=nofile noswapfile readonly nomodifiable nomodified
-  execute $'nnoremap <buffer> <Plug>(diff-stage-line) <cmd>call <sid>stage_line({a:staged})<cr>'
-  execute $'xnoremap <buffer> <Plug>(diff-stage-line) <cmd>call <sid>stage_line({a:staged})<cr>'
-  execute $'nnoremap <buffer> <Plug>(diff-stage-file) <cmd>call <sid>stage_file({a:staged})<cr>'
-  execute 'nnoremap <buffer> <Plug>(diff-quit) <cmd>tabclose<cr>'
+  execute $'nnoremap <buffer> <Plug>(stage-line) <cmd>call <sid>stage_line({a:staged})<cr>'
+  execute $'xnoremap <buffer> <Plug>(stage-range) <cmd>call <sid>stage_line({a:staged})<cr>'
+  execute $'nnoremap <buffer> <Plug>(stage-file) <cmd>call <sid>stage_file({a:staged})<cr>'
+  execute 'nnoremap <buffer> <Plug>(quit) <cmd>tabclose<cr>'
 endfunction
 
 function! s:lastindexof(object, expr) abort
@@ -56,7 +56,7 @@ function! s:lastindexof(object, expr) abort
   return rev_index == -1 ? -1 : len(a:object) - 1 - rev_index
 endfunction
 
-let s:hunk_info_line = {info->$'@@ -{info[0]},{info[1]} +{info[2]},{info[3]} @@'}
+let s:hunk_info_line = {info->$'@@ -{info[0]},{info[1]} +{info[2]},{info[3]} @@{info[4]}'}
 
 function! s:stage_line(staged) abort
   let [l_from, l_to] = [line('.'), line('v')]
@@ -78,8 +78,19 @@ function! s:stage_line(staged) abort
   let first_mark_lnum = l_from + first_mark_idx
   let last_mark_lnum = l_from + last_mark_idx
 
-  let hunk_info_pat = '^@@\v -(\d+)%(,(\d+))? \+(\d+)%(,(\d+))? \V@@'
-  NotifyShow $'first_mark_lnum {first_mark_lnum} last_mark_lnum {last_mark_lnum}'
+  let hunk_info_pat = '^@@\v -(\d+)%(,(\d+))? \+(\d+)%(,(\d+))? \@\@(.*)$'
+  " NotifyShow $'first_mark_lnum {first_mark_lnum} last_mark_lnum {last_mark_lnum}'
+
+  let cmd = 'git apply --cached '
+  " let cmd ..= ' --unidiff-zero '
+  let [old_mark, new_mark, lines_idx] = ['-', '+', 3]
+  if a:staged
+    let cmd ..= '--reverse '
+    let [old_mark, new_mark, lines_idx] = ['+', '-', 1]
+    " %substitute/^+/_/
+    " %substitute/^-/+/
+    " %substitute/^_/-/
+  endif
 
   call cursor(last_mark_lnum, 1)
   let next_hunk_info_lnum = search(hunk_info_pat, 'cnW')
@@ -90,61 +101,80 @@ function! s:stage_line(staged) abort
   if l_to < line('$')
     let last_hunk_info_lnum = search(hunk_info_pat, 'bcnW')
     let last_hunk_info = getline(last_hunk_info_lnum)
-          \ ->matchlist(hunk_info_pat)[1:4]->map('str2nr(v:val??"1")')
+          \ ->matchlist(hunk_info_pat)[1:5]->map({i,v-> i==4 ? v : str2nr(v ?? '1')})
     for l in getline(l_to+1, '$')
-      if l[0] == '+'
-        let last_hunk_info[3] -= 1
-      elseif l[0] == '-'
-        let last_hunk_info[3] += 1
+      if l[0] == new_mark
+        let last_hunk_info[lines_idx] -= 1
+      elseif l[0] == old_mark
+        let last_hunk_info[lines_idx] += 1
       endif
     endfor
     call setline(last_hunk_info_lnum, s:hunk_info_line(last_hunk_info))
-    silent execute $'{l_to+1},$substitute /^-/ /e'
-    silent execute $'{l_to+1},$global /^+/delete_'
+    silent execute $'{l_to+1},$substitute /^{old_mark}/ /e'
+    silent execute $'{l_to+1},$global /^{new_mark}/delete_'
   endif
 
   call cursor(first_mark_lnum, 1)
   let first_hunk_info_lnum = search(hunk_info_pat, 'bcnW')
   if first_hunk_info_lnum < first_mark_lnum - 1
     let first_hunk_info = getline(first_hunk_info_lnum)
-          \ ->matchlist(hunk_info_pat)[1:4]->map('str2nr(v:val??"1")')
+          \ ->matchlist(hunk_info_pat)[1:5]->map({i,v-> i==4 ? v : str2nr(v ?? '1')})
 
     for l in getline(first_hunk_info_lnum, first_mark_lnum - 1)
-      if l[0] == '+'
-        let first_hunk_info[3] -= 1
-      elseif l[0] == '-'
-        let first_hunk_info[3] += 1
+      if l[0] == new_mark
+        let first_hunk_info[lines_idx] -= 1
+      elseif l[0] == old_mark
+        let first_hunk_info[lines_idx] += 1
       endif
     endfor
     call setline(first_hunk_info_lnum, s:hunk_info_line(first_hunk_info))
 
-    silent execute $'{first_hunk_info_lnum},{first_mark_lnum-1}substitute /^-/ /e'
-    silent execute $'{first_hunk_info_lnum},{first_mark_lnum-1}global /^+/delete_'
+    silent execute $'{first_hunk_info_lnum},{first_mark_lnum-1}substitute /^{old_mark}/ /e'
+    silent execute $'{first_hunk_info_lnum},{first_mark_lnum-1}global /^{new_mark}/delete_'
   endif
 
   if first_hunk_info_lnum > 1
     silent execute $'1,{first_hunk_info_lnum-1}global/^/delete_'
   endif
 
-  call append(0, [$'--- a/{t:my_diff_filename}', $'+++ b/{t:my_diff_filename}'])
+  call append(0, [$'--- a/{t:my_stage_filename}', $'+++ b/{t:my_stage_filename}'])
+
+  let tempfile = tempname()
+  call writefile(getline(1, '$'), tempfile)
+  call system(cmd .. tempfile)
+  " NotifyShow tempfile
+
+  if v:shell_error
+    NotifyShow! 'error occurred'
+  elseif a:staged
+    NotifyShow 'successfully unstaged'
+  else
+    NotifyShow 'successfully staged'
+  endif
+
+  call s:refresh_diff_win()
 endfunction
 
 function! s:stage_file(staged) abort
   if line('$') == 1
     return
   endif
-  call system($'git {a:staged ? "un" : ""}stage {t:my_diff_filename}')
+  call system($'git {a:staged ? "un" : ""}stage {t:my_stage_filename}')
   call s:refresh_diff_win()
 endfunction
 
-function! s:my_diff_map() abort
-  nmap <buffer><silent><nowait> <space> <Plug>(diff-stage-line)
-  xmap <buffer><silent><nowait> <space> <Plug>(diff-stage-line)
-  nmap <buffer><silent><nowait> <cr> <Plug>(diff-stage-file)
-  nmap <buffer><silent><nowait> q <Plug>(diff-quit)
+function! s:my_stage_map() abort
+  nmap <buffer><silent><nowait> <space> <Plug>(stage-line)
+  xmap <buffer><silent><nowait> <space> <Plug>(stage-range)
+  nmap <buffer><silent><nowait> <cr> <Plug>(stage-hunk)
+  nmap <buffer><silent><nowait> <s-cr> <Plug>(stage-file)
+  nmap <buffer><silent><nowait> q <Plug>(quit)
+  nnoremap <buffer><silent><nowait> v V
 endfunction
 
-augroup my_diff
+augroup my_stage
   autocmd!
-  autocmd FileType mydiff call s:my_diff_map()
+  autocmd FileType mystage call s:my_stage_map()
 augroup END
+
+command! Stager call Showdiff()
