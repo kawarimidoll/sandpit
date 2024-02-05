@@ -16,8 +16,14 @@ endfunction
 function! s:refresh_diff_win() abort
   1 wincmd w
   call s:init_diff_win(0)
+  if exists('w:saved_stage_win')
+    call winrestview(w:saved_stage_win)
+  endif
   2 wincmd w
   call s:init_diff_win(1)
+  if exists('w:saved_stage_win')
+    call winrestview(w:saved_stage_win)
+  endif
   1 wincmd w
 endfunction
 
@@ -77,6 +83,8 @@ function! s:stage_line(staged) abort
     return
   endif
   let last_mark_idx = s:lastindexof(lines, {_,l -> l =~# '^[-+]'})
+
+  let w:saved_stage_win = winsaveview()
 
   let first_mark_lnum = l_from + first_mark_idx
   let last_mark_lnum = l_from + last_mark_idx
