@@ -1,22 +1,22 @@
-<link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/1f995.png">
 
 <h1>tabs</h1>
 
 <p>
-tabs but with clean attribute values like<br />
-<code>&lt;a href="dog.html" target="#my-tab-panel"&gt;</code>.
+tabs but with clean attribute values like<br>
+<code>&lt;a href=&quot;dog.html&quot; target=&quot;#my-tab-panel&quot;&gt;</code>.
 </p>
 
 <div role="tablist">
-  <a class="tab" href="dog.html" target="#my-tab-panel">Dog</a>
-  <a class="tab" href="cat.html" target="#my-tab-panel">Cat</a>
-  <a class="tab" href="horse.html" target="#my-tab-panel">Horse</a>
+  <a class="tab" role="tab" href="dog.html" target="#my-tab-panel">Dog</a>
+  <a class="tab" role="tab" href="cat.html" target="#my-tab-panel">Cat</a>
+  <a class="tab" role="tab" href="horse.html" target="#my-tab-panel">Horse</a>
 </div>
 
-<!-- The key is to add an iframe with a matching name to every destination -->
 <div id="my-tab-panel" role="tabpanel"></div>
-<iframe hidden name="#my-tab-panel" onload="window.htmz?.(this)" src="dog.html"></iframe>
+<!-- <div id="my-tab-panel" role="tabpanel" data-init="cat.html"></div> -->
 
 <script>
   function htmz(frame) {
@@ -24,4 +24,14 @@ tabs but with clean attribute values like<br />
       .querySelector(frame.name) // use the iframe's name instead of the URL hash
       ?.replaceWith(...frame.contentDocument.body.children);
   }
+  const frames = [...document.querySelectorAll('[id^="my-"]')].map(e => {
+    const { id, dataset: { init } } = e
+    const htmz =
+      `document.getElementById('${id}')?.replaceChildren(...contentDocument.body.children)`
+    const attr = init
+      ? `onload="${htmz}" src="${init}"`
+      : `onload="this.onload=()=>${htmz}"`
+    return `<iframe hidden name="#${id}" ${attr}></iframe>`
+  }).join('');
+  document.body.insertAdjacentHTML('beforeend', `<div>${frames}</div>`)
 </script>
