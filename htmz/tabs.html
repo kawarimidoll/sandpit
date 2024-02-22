@@ -1,21 +1,20 @@
-<meta charset="UTF-8">
-<link rel="stylesheet" href="style.css">
-<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/1f995.png">
-<script defer src="./htmz.js"></script>
+<meta charset=UTF-8>
+<link href=style.css rel=stylesheet>
+<link href=https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/1f995.png rel=icon type=image/png>
+<script defer src=./htmz.js></script>
 
 <h1>tabs</h1>
 
 <p>
 tabs but with clean attribute values like<br>
-<code>&lt;a href=&quot;dog.html&quot; target=&quot;#hz-tab-panel&quot;&gt;</code>.
+<code>&lt;a href=dog target=#hz-tab-panel&gt;</code>.
 </p>
 
-<div role="tablist">
-  <a class="tab" role="tab" href="dog.html" target="#hz-tab-panel">Dog</a>
-  <a class="tab" role="tab" href="cat.html" target="#hz-tab-panel">Cat</a>
-  <a class="tab" role="tab" href="horse.html" target="#hz-tab-panel">Horse</a>
+<div role=tablist>
+  <a class=tab href=dog role=tab target=#hz-tab-panel>Dog</a>
+  <a class=tab href=cat role=tab target=#hz-tab-panel>Cat</a>
+  <a class=tab href=horse role=tab target=#hz-tab-panel>Horse</a>
 </div>
 
-<div id="hz-tab-panel" role="tabpanel"></div>
-<!-- <div id="hz-tab-panel" role="tabpanel" data-src="cat.html"></div> -->
-
+<div role=tabpanel id=hz-tab-panel></div>
+<!-- <div id="hz-tab-panel" role="tabpanel" data-src="cat"></div> -->
