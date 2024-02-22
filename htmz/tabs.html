@@ -6,32 +6,24 @@
 
 <p>
 tabs but with clean attribute values like<br>
-<code>&lt;a href=&quot;dog.html&quot; target=&quot;#my-tab-panel&quot;&gt;</code>.
+<code>&lt;a href=&quot;dog.html&quot; target=&quot;#hz-tab-panel&quot;&gt;</code>.
 </p>
 
 <div role="tablist">
-  <a class="tab" role="tab" href="dog.html" target="#my-tab-panel">Dog</a>
-  <a class="tab" role="tab" href="cat.html" target="#my-tab-panel">Cat</a>
-  <a class="tab" role="tab" href="horse.html" target="#my-tab-panel">Horse</a>
+  <a class="tab" role="tab" href="dog.html" target="#hz-tab-panel">Dog</a>
+  <a class="tab" role="tab" href="cat.html" target="#hz-tab-panel">Cat</a>
+  <a class="tab" role="tab" href="horse.html" target="#hz-tab-panel">Horse</a>
 </div>
 
-<div id="my-tab-panel" role="tabpanel"></div>
-<!-- <div id="my-tab-panel" role="tabpanel" data-init="cat.html"></div> -->
+<div id="hz-tab-panel" role="tabpanel"></div>
+<!-- <div id="hz-tab-panel" role="tabpanel" data-src="cat.html"></div> -->
 
 <script>
-  function htmz(frame) {
-    document
-      .querySelector(frame.name) // use the iframe's name instead of the URL hash
-      ?.replaceWith(...frame.contentDocument.body.children);
-  }
-  const frames = [...document.querySelectorAll('[id^="my-"]')].map(e => {
-    const { id, dataset: { init } } = e
-    const htmz =
-      `document.getElementById('${id}')?.replaceChildren(...contentDocument.body.children)`
-    const attr = init
-      ? `onload="${htmz}" src="${init}"`
-      : `onload="this.onload=()=>${htmz}"`
-    return `<iframe hidden name="#${id}" ${attr}></iframe>`
+  const frames = [...document.querySelectorAll('[id^="hz-"]')].map(e => {
+    const { id, dataset: { src = '' } } = e
+    const htmz = `document.getElementById('${id}')`
+      + '?.replaceChildren(...contentDocument.body.childNodes)'
+    return `<iframe hidden name="#${id}" onload="${htmz}" src="${src}"></iframe>`
   }).join('');
   document.body.insertAdjacentHTML('beforeend', `<div>${frames}</div>`)
 </script>
