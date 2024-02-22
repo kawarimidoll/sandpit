@@ -1,6 +1,7 @@
 <meta charset="UTF-8">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/1f995.png">
+<script defer src="./htmz.js"></script>
 
 <h1>tabs</h1>
 
@@ -18,12 +19,3 @@ tabs but with clean attribute values like<br>
 <div id="hz-tab-panel" role="tabpanel"></div>
 <!-- <div id="hz-tab-panel" role="tabpanel" data-src="cat.html"></div> -->
 
-<script>
-  const frames = [...document.querySelectorAll('[id^="hz-"]')].map(e => {
-    const { id, dataset: { src = '' } } = e
-    const htmz = `document.getElementById('${id}')`
-      + '?.replaceChildren(...contentDocument.body.childNodes)'
-    return `<iframe hidden name="#${id}" onload="${htmz}" src="${src}"></iframe>`
-  }).join('');
-  document.body.insertAdjacentHTML('beforeend', `<div>${frames}</div>`)
-</script>
