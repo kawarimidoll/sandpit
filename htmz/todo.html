@@ -1,0 +1,34 @@
+<meta charset="UTF-8">
+<link rel="stylesheet" href="todo_style.css">
+<link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/1f995.png">
+<script src="./set_htmz.js" defer></script>
+
+<h1>my todo list</h1>
+
+<form
+    id="todo-form"
+    class="create-form"
+    action="create#create-slot"
+    method="post"
+    >
+    <input name="content" type="text" placeholder="Create todo items..." minlength="1">
+    <button type="submit" aria-label="Create">↵</button>
+</form>
+<script>
+  document.getElementById("todo-form").onsubmit = (e) => {
+    const form = e.target
+    const hiddenElm = document.createElement("input")
+    hiddenElm.setAttribute("type", "hidden")
+    hiddenElm.setAttribute("name", "id")
+    hiddenElm.setAttribute("value", crypto.randomUUID())
+    form.appendChild(hiddenElm);
+    form.submit();
+    form.reset();
+    form.removeChild(hiddenElm);
+    return false;
+  }
+</script>
+
+<ul>
+  <div id="create-slot"></div>
+</ul>
