@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>html-partial-example</title>
+<link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+<link rel="icon" sizes="any" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f9e9.svg">
+<link href="./style.css" rel=stylesheet>
+<script src="./render_partial.js" defer></script>
+
+<render-partial src="./header.html"></render-partial>
+<main>
+  <div>
+  <iframe hidden src="./partial.html" onload="this.replaceWith(...contentDocument.body.childNodes)"></iframe>
+  </div>
+  <render-partial src="./article_list.html"></render-partial>
+</main>
+
+<render-partial src="./footer.html"></render-partial>

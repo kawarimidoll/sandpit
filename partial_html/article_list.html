@@ -1,0 +1,63 @@
+<style>
+section#article-list {
+  > h2 {
+    margin-bottom: 1rem;
+  }
+
+  > article {
+    display: flex;
+    text-align: left;
+    > .icon {
+      width: 20%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      a {
+        display: block;
+        height: 4rem;
+        width: 4rem;
+        img {
+          padding: 0.25rem;
+          width: 100%;
+        }
+      }
+    }
+    > .info {
+      padding-left: 1rem;
+      > time {
+        font-size: .8rem;
+      }
+    }
+  }
+}
+</style>
+<section id="article-list">
+  <h2>Latest articles</h2>
+
+  <article>
+    <div class="icon">
+      <a href="articles/1">
+        <img src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f9e9.svg">
+      </a>
+    </div>
+    <div class="info">
+      <h3>article title</h3>
+      <div>this is simple description of the article</div>
+      <time datetime="2024-02-02T00:00:00+09:00">2024/02/02</time>
+    </div>
+  </article>
+
+  <article>
+    <div class="icon">
+      <a href="articles/2">
+        <img src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f4d6.svg">
+      </a>
+    </div>
+    <div class="info">
+      <h3>my history</h3>
+      <div>I was born in Tokyo.</div>
+      <time datetime="2024-02-01T00:00:00+09:00">2024/02/01</time>
+    </div>
+  </article>
+
+</section>
