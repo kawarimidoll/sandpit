@@ -1,8 +1,13 @@
 <li class="todo-item" id="todo-item-$$id">
+  <form action="clear#todo-item-$$id" method="post">
+    <input type="hidden" name="id" value="$$id">
+    <input type="hidden" name="_method" value="DELETE">
+    <button class="todo-item-clear" aria-label="Clear">✔</button>
+  </form>
   <form action="edit#todo-item-$$id" method="post">
-    <input name="id" type="hidden" value="$$id">
+    <input type="hidden" name="id" value="$$id">
+    <input type="hidden" name="_method" value="PUT">
     <input class="todo-item-content" name="content" type="text" value="$$content" minlength="1">
     <button class="todo-item-save">save</button>
-    <button class="todo-item-clear" formaction="clear#todo-item-$$id" aria-label="Clear">✔</button>
   </form>
 </li>

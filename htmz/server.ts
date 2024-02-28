@@ -13,10 +13,6 @@ function parseParams(
 ): Record<string, string | string[]> {
   if (!text) return {};
   const obj = {};
-  // text.split("&").forEach((p) => {
-  //   const [key, value] = p.split("=");
-  //   obj[key] = decodeURIComponent(value.replace(/\+/g, " "));
-  // });
   (new URLSearchParams(text)).forEach((value, key) => {
     if (Object.hasOwn(key)) {
       if (typeof obj[key] === "string") {
@@ -61,16 +57,24 @@ async function genResponseArgs(request: Request) {
     ext = "html";
   }
 
+  let all = false;
   if (method === "POST") {
     if (Object.hasOwn(params, "id")) {
       db[params["id"]] = params["content"];
     }
   } else if (method === "PUT") {
+    db[params["id"]] = params["content"];
   } else if (method === "DELETE") {
+    if (Object.hasOwn(params, "id")) {
+      delete db[params["id"]];
+    }
   } else {
     // GET
     if (Object.hasOwn(params, "id")) {
       params["content"] = db[params["id"]];
+    }
+    if (Object.hasOwn(params, "all")) {
+      all = true;
     }
   }
 
@@ -91,11 +95,22 @@ async function genResponseArgs(request: Request) {
 
   try {
     const file = await Deno.readTextFile(filename);
-    // return [replaceMarks(prefix + file, params), {
-    return [replaceMarks(file, params), {
-      headers: { "content-type": mimeType },
-      status: 200,
-    }];
+
+    if (all) {
+      const html = Object.entries(db).map(([id, content]) =>
+        replaceMarks(file, { id, content })
+      ).join("");
+
+      return [html, {
+        headers: { "content-type": mimeType },
+        status: 200,
+      }];
+    } else {
+      return [replaceMarks(file, params), {
+        headers: { "content-type": mimeType },
+        status: 200,
+      }];
+    }
   } catch (e) {
     console.warn(e);
     if (e.name === "NotFound") {

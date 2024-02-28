@@ -16,11 +16,11 @@
 </form>
 <script>
   document.getElementById("todo-form").onsubmit = (e) => {
-    const form = e.target
-    const hiddenElm = document.createElement("input")
-    hiddenElm.setAttribute("type", "hidden")
-    hiddenElm.setAttribute("name", "id")
-    hiddenElm.setAttribute("value", crypto.randomUUID())
+    const form = e.target;
+    const hiddenElm = document.createElement("input");
+    hiddenElm.setAttribute("type", "hidden");
+    hiddenElm.setAttribute("name", "id");
+    hiddenElm.setAttribute("value", crypto.randomUUID());
     form.appendChild(hiddenElm);
     form.submit();
     form.reset();
@@ -31,4 +31,10 @@
 
 <ul>
   <div id="create-slot"></div>
+
+  <iframe
+      hidden
+      src="./edit.html?all=1"
+      onload="this.replaceWith(...contentDocument.body.childNodes)"
+      ></iframe>
 </ul>
