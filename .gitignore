@@ -1,0 +1,8 @@
+# erlang
+.eunit
+*.o
+*.beam
+*.plt
+.rebar3
+_build/
+_checkouts/
