@@ -14,7 +14,7 @@ $(TARGET): $(SRC)
 
 # make run
 run: $(TARGET)
-	./$(TARGET)
+	TERM=xterm-1003 ./$(TARGET)
 
 # make clean
 clean:
