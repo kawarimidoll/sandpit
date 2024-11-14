@@ -1,3 +1,4 @@
+// https://www.blackslate.io/articles/pglite-run-postgresql-locally-in-node-bun-and-also-in-browser
 import { PGlite } from "@electric-sql/pglite";
 
 const db = new PGlite();
