@@ -3,6 +3,9 @@
 # eslint
 .eslintcache
 
+# db
+data/
+
 # dependencies
 /node_modules
 /.pnp
