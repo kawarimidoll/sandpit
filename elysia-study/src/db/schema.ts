@@ -1,4 +1,4 @@
-import { serial, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { createInsertSchema } from 'drizzle-typebox'
 
 export const books = pgTable('books', {
@@ -9,4 +9,12 @@ export const books = pgTable('books', {
   updatedAt: timestamp({ withTimezone: true }).defaultNow(),
 })
 
-export const insertBookSchema = createInsertSchema(books)
+const { properties, ...rest } = createInsertSchema(books)
+delete properties.bookId
+delete properties.createdAt
+delete properties.updatedAt
+
+export const insertBookSchema = { ...rest, properties }
+
+console.log('insertBookSchema')
+console.log(insertBookSchema)
