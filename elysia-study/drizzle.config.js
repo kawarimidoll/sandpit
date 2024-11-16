@@ -4,7 +4,7 @@ export const LOCAL_DB_URL = 'data'
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './src/schema.ts',
+  schema: './src/db/schema.ts',
   out: './drizzle',
   dbCredentials: {
     url: LOCAL_DB_URL,
