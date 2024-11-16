@@ -10,4 +10,5 @@ export default defineConfig({
     url: LOCAL_DB_URL,
   },
   driver: 'pglite',
+  casing: 'snake_case',
 })
