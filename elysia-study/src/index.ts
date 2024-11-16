@@ -2,12 +2,13 @@ import { swagger } from '@elysiajs/swagger'
 import { Elysia, t } from 'elysia'
 import {
   createBook,
+  createBookSchema,
   deleteBook,
   fetchBook,
   fetchBooks,
   updateBook,
+  updateBookSchema,
 } from './books'
-import { insertBookSchema } from './db/schema'
 
 const app = new Elysia()
 
@@ -31,7 +32,7 @@ app.get('/books/:id', ({ params: { id } }) => fetchBook(id), {
  * Create book
  */
 app.post('/books', ({ body }) => createBook(body), {
-  body: insertBookSchema,
+  body: createBookSchema,
 })
 
 /**
@@ -44,7 +45,7 @@ app.put(
     params: t.Object({
       id: t.Numeric(),
     }),
-    body: insertBookSchema,
+    body: updateBookSchema,
   },
 )
 

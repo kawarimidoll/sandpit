@@ -1,4 +1,6 @@
+import { type Static, Type } from '@sinclair/typebox'
 import { eq } from 'drizzle-orm'
+import { createInsertSchema } from 'drizzle-typebox'
 import { db } from './db/instance'
 import { books } from './db/schema'
 
@@ -10,11 +12,13 @@ export function fetchBook(id: number) {
   return db.select().from(books).where(eq(books.bookId, id))
 }
 
-export function createBook(bookData: Omit<typeof books.$inferInsert, 'bookId' | 'createdAt' | 'updatedAt'>) {
+export const createBookSchema = Type.Pick(createInsertSchema(books), ['title', 'author'])
+export function createBook(bookData: Static<createBookSchema>) {
   return db.insert(books).values(bookData).returning()
 }
 
-export function updateBook(id: number, bookData: Partial<typeof books.$inferInsert>) {
+export const updateBookSchema = Type.Partial(createBookSchema)
+export function updateBook(id: number, bookData: Static<updateBookSchema>) {
   return db.update(books).set(bookData).where(eq(books.bookId, id)).returning()
 }
 
