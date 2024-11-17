@@ -10,6 +10,8 @@ import {
   updateBookSchema,
 } from './books'
 
+const numericIdParamSchema = t.Object({ id: t.Numeric() })
+
 const app = new Elysia()
 
 app.use(swagger())
@@ -23,9 +25,7 @@ app.get('/books', () => fetchBooks())
  * Get book by id
  */
 app.get('/books/:id', ({ params: { id } }) => fetchBook(id), {
-  params: t.Object({
-    id: t.Numeric(),
-  }),
+  params: numericIdParamSchema,
 })
 
 /**
@@ -42,9 +42,7 @@ app.put(
   '/books/:id',
   ({ params: { id }, body }) => updateBook(Number(id), body),
   {
-    params: t.Object({
-      id: t.Numeric(),
-    }),
+    params: numericIdParamSchema,
     body: updateBookSchema,
   },
 )
@@ -55,9 +53,7 @@ app.put(
 // this is not drizzle's delete()
 // eslint-disable-next-line drizzle/enforce-delete-with-where
 app.delete('/books/:id', ({ params: { id } }) => deleteBook(id), {
-  params: t.Object({
-    id: t.Numeric(),
-  }),
+  params: numericIdParamSchema,
 })
 
 app.listen(3000)

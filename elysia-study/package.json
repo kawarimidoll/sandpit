@@ -17,7 +17,6 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.2.13",
     "@elysiajs/swagger": "^1.1.5",
-    "@sinclair/typebox": "^0.34.0",
     "drizzle-orm": "^0.36.3",
     "drizzle-typebox": "^0.1.1",
     "elysia": "^1.1.25"
