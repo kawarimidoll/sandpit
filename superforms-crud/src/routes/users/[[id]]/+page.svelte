@@ -1,5 +1,6 @@
 <script lang='ts'>
   import { page } from '$app/state';
+  import { toast } from 'svelte-sonner';
   import SuperDebug, { superForm } from 'sveltekit-superforms';
 
   const { data } = $props();
@@ -7,7 +8,20 @@
   const { form, errors, constraints, enhance, delayed, message } = superForm(
     data.form,
     // to keep data after editing
-    { resetForm: false },
+    {
+      resetForm: false,
+      onUpdated({ form }) {
+        if (form.message) {
+          // Display the message using a toast library
+          if (page.status >= 400) {
+            toast.error(form.message);
+          }
+          else {
+            toast.success(form.message);
+          }
+        }
+      },
+    },
   );
 </script>
 
