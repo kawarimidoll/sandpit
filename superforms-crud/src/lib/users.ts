@@ -25,3 +25,5 @@ export const users: UserDB = [
     email: 'super@example.com',
   },
 ];
+
+console.log(users);
