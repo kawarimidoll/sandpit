@@ -1,5 +1,5 @@
-import { users, userId, userSchema } from '$lib/users';
-import { error, fail } from '@sveltejs/kit';
+import { userId, users, userSchema } from '$lib/users';
+import { error, redirect } from '@sveltejs/kit';
 import { message, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 
@@ -29,10 +29,17 @@ export async function load({ params }) {
 
 export const actions = {
   default: async ({ request }) => {
-    const form = await superValidate(request, zod(crudSchema));
-    console.log(form);
+    const formData = await request.formData();
+    const form = await superValidate(formData, zod(crudSchema));
+    console.log({ formData, form });
+
+    if (formData.has('delay')) {
+      await new Promise(r => setTimeout(r, 4000));
+    }
+
     if (!form.valid) {
-      return fail(400, { form });
+      // message() will return status 400 implicitly when form isn't valid
+      return message(form, 'Invalid form data.');
     };
 
     if (!form.data.id) {
@@ -43,15 +50,21 @@ export const actions = {
 
       return message(form, 'User created!');
     }
+
+    const index = users.findIndex(u => u.id === form.data.id);
+    if (index < 0) {
+      console.log('User not found.');
+      return message(form, 'User not found.', { status: 404 });
+    }
+    if (formData.has('delete')) {
+      // DELETE user
+      // We just update the user in the array, but in a real app you would save it to a database.
+      users.splice(index, 1);
+      throw redirect(303, '/users');
+    }
     else {
       // UPDATE user
       // We just update the user in the array, but in a real app you would save it to a database.
-      const index = users.findIndex(u => u.id === form.data.id);
-      if (index < 0) {
-        console.log('User not found.');
-        return error(404, 'User not found.');
-      }
-
       users[index] = { ...form.data, id: form.data.id };
       return message(form, 'User updated!');
     }

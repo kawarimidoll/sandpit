@@ -62,7 +62,18 @@
     {/if}
   </label>
 
-  <button>Submit</button>
+  <button disabled={$delayed}>Submit</button>
+  <button name='delay' class='delay' disabled={$delayed}>Submit delayed</button>
+  {#if $form.id}
+    <!-- eslint-disable no-alert -->
+    <button
+      name='delete'
+      onclick={e => !confirm('Are you sure?') && e.preventDefault()}
+      class='danger'
+      disabled={$delayed}>Delete user</button>
+    <!-- eslint-enable no-alert -->
+  {/if}
+
   {#if $delayed}
     <span>Working...</span>
   {/if}
@@ -79,4 +90,22 @@
 .invalid {
   color: red;
 }
+
+.danger {
+  background-color: brown;
+}
+
+.delay {
+  background-color: darkblue;
+}
+
+button:disabled {
+  background-color: lightgray;
+}
+
+hr {
+  width: 100%;
+  margin-block: 2em;
+}
+
 </style>
