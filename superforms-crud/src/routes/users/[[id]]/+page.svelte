@@ -11,11 +11,26 @@
   );
 </script>
 
-{#if $message}
-  <h3 class={{ invalid: page.status >= 400 }}>
-    {$message}
-  </h3>
-{/if}
+<h1>Users</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Id</th>
+      <th>Name</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody>
+    {#each data.users as user}
+      <tr>
+        <td><a href='/users/{user.id}'>{user.id}</td>
+        <td>{user.name}</td>
+        <td>{user.email}</td>
+      </tr>
+    {/each}
+  </tbody>
+</table>
 
 <h2>{!$form.id ? 'Create' : 'Update'} user </h2>
 
@@ -50,6 +65,9 @@
   <button>Submit</button>
   {#if $delayed}
     <span>Working...</span>
+  {/if}
+  {#if $message}
+    <span class={{ invalid: page.status >= 400 }}>{$message}</span>
   {/if}
 </form>
 
