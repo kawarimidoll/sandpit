@@ -1,5 +1,6 @@
 import { userId, users, userSchema } from '$lib/users';
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
+import { redirect } from 'sveltekit-flash-message/server';
 import { message, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 
@@ -12,6 +13,7 @@ const crudSchema = userSchema.extend({
 // A fundamental idea in Superforms:
 // you can pass either empty data or an entity partially matching the schema to superValidate,
 // and it will generate default values for any non-specified fields, ensuring type safety.
+// https://superforms.rocks/default-values
 
 export async function load({ params }) {
   // READ user
@@ -28,7 +30,7 @@ export async function load({ params }) {
 }
 
 export const actions = {
-  default: async ({ request }) => {
+  default: async ({ request, cookies }) => {
     const formData = await request.formData();
     const form = await superValidate(formData, zod(crudSchema));
     console.log({ formData, form });
@@ -60,7 +62,7 @@ export const actions = {
       // DELETE user
       // We just update the user in the array, but in a real app you would save it to a database.
       users.splice(index, 1);
-      throw redirect(303, '/users');
+      return redirect('/users', 'User deleted!', cookies);
     }
     else {
       // UPDATE user

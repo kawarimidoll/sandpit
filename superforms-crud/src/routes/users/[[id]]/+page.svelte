@@ -1,6 +1,9 @@
 <script lang='ts'>
   import { page } from '$app/state';
+  // store is deprecated but sveltekit-flash-message uses it
+  import { page as pageStore } from '$app/stores';
   import { toast } from 'svelte-sonner';
+  import { getFlash } from 'sveltekit-flash-message';
   import SuperDebug, { superForm } from 'sveltekit-superforms';
 
   const { data } = $props();
@@ -9,6 +12,7 @@
     data.form,
     // to keep data after editing
     {
+      taintedMessage: true,
       resetForm: false,
       onUpdated({ form }) {
         if (form.message) {
@@ -23,6 +27,18 @@
       },
     },
   );
+
+  const flash = getFlash(pageStore);
+  $effect(() => {
+    if ($flash) {
+      if (page.status >= 400) {
+        toast.error($flash);
+      }
+      else {
+        toast.success($flash);
+      }
+    }
+  });
 </script>
 
 <h1>Users</h1>
