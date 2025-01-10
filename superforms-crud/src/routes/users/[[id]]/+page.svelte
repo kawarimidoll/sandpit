@@ -1,4 +1,5 @@
 <script lang='ts'>
+  import type { PageServerData } from './$types';
   import { page } from '$app/state';
   // store is deprecated but sveltekit-flash-message uses it
   import { page as pageStore } from '$app/stores';
@@ -6,7 +7,7 @@
   import { getFlash } from 'sveltekit-flash-message';
   import SuperDebug, { superForm } from 'sveltekit-superforms';
 
-  const { data } = $props();
+  const { data }: { data: PageServerData } = $props();
 
   const { form, errors, constraints, enhance, delayed, message } = superForm(
     data.form,
