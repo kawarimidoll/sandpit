@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   // store is deprecated but sveltekit-flash-message uses it
   import { page as pageStore } from '$app/stores';
+  import { userLevels } from '$lib/users';
   import { toast } from 'svelte-sonner';
   import { getFlash } from 'sveltekit-flash-message';
   import SuperDebug, { superForm } from 'sveltekit-superforms';
@@ -50,6 +51,7 @@
       <th>Id</th>
       <th>Name</th>
       <th>Email</th>
+      <th>Level</th>
     </tr>
   </thead>
   <tbody>
@@ -58,6 +60,7 @@
         <td><a href='/users/{user.id}'>{user.id}</td>
         <td>{user.name}</td>
         <td>{user.email}</td>
+        <td>{user.level}</td>
       </tr>
     {/each}
   </tbody>
@@ -90,6 +93,19 @@
       {...$constraints.email} />
     {#if $errors.email}
       <span class='invalid'>{$errors.email}</span>
+    {/if}
+  </label>
+
+  <label>
+    Level<br />
+    <select name='level' bind:value={$form.level}>
+      <option value='' disabled>Select a level</option>
+      {#each userLevels as level}
+        <option value={level}>{level}</option>
+      {/each}
+    </select>
+    {#if $errors.level}
+      <span class='invalid'>{$errors.level}</span>
     {/if}
   </label>
 
