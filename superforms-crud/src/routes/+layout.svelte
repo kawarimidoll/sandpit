@@ -1,13 +1,24 @@
 <script lang='ts'>
+  import { page } from '$app/state';
   import { Toaster } from 'svelte-sonner';
+
   const { children } = $props();
+
+  const navs = [
+    { href: '/', text: 'Top' },
+    { href: '/users', text: 'Users' },
+  ];
 </script>
 
 <Toaster />
 
 <header>
-  <a href='/'>Top</a>
-  <a href='/users'>Users</a>
+  {#each navs as { href, text }}
+    <a {href} class={{ active: href === '/'
+      ? page.url.pathname === href
+      : page.url.pathname.startsWith(href),
+    }}>{text}</a>
+  {/each}
 </header>
 
 {@render children()}
@@ -18,8 +29,8 @@ header {
   a {
     display: inline-block;
     padding: 1rem;
-    &:hover{
-border: none;
+    &.active {
+      border-bottom: 2px solid #45d;
     }
   }
 }
