@@ -19,14 +19,14 @@ export async function load({ params }) {
   // READ user
   const user = users.find(u => u.id === params.id);
 
-  if (params.id && !user) {
+  if (params.id && params.id !== 'new' && !user) {
     console.log('User not found.');
     throw error(404, 'User not found.');
   }
 
   // If user is null, default values for the schema will be returned.
   const form = await superValidate(user, zod(crudSchema));
-  return { form, users };
+  return { form, users, isNew: params.id && params.id === 'new' };
 }
 
 export const actions = {

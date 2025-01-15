@@ -45,6 +45,8 @@
 
 <h1>Users</h1>
 
+<a href='/users/new' class='button'>Add new user</a>
+
 <table>
   <thead>
     <tr>
@@ -67,6 +69,22 @@
 </table>
 
 <h2>{!$form.id ? 'Create' : 'Update'} user </h2>
+
+{#if $form.id || data.isNew}
+  <!-- https://qiita.com/maabow/items/9757a25eb5a8badaeb28 -->
+  <div class='modal' id='modal'>
+    <a href='/users' class='modal-background' aria-label='close'></a>
+    <div class='modal-wrapper'>
+      <a href='/users' class='close'>&times;</a>
+      <div class='modal-content'>
+        <h2>{!$form.id ? 'Create' : 'Update'} user</h2>
+        <p>This is a pseudo modal content. </p>
+        <p>{!$form.id ? 'Create' : 'Update'} form comes here:</p>
+        <p>WIP</p>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <form method='POST' use:enhance>
   <input type='hidden' name='id' bind:value={$form.id} />
@@ -134,6 +152,60 @@
 <SuperDebug data={$form} />
 
 <style>
+/* like a button of sakura-css */
+a.button {
+  color: #f9f9f9 !important;
+  line-height: 1.15;
+  &:hover {
+    border-width: 1px;
+  }
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(0 0 0 / 60%);
+
+  .modal-background {
+    cursor: default;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+  }
+
+  .modal-wrapper {
+    position: relative;
+    width: 80%;
+    max-width: 500px;
+    max-height: 70%;
+    padding: 20px;
+    margin: auto;
+    overflow: scroll;
+    background-color: #FEFEFE;
+    border-radius: 5px;
+
+    .close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      transform: translate(50%, -50%);
+    }
+  }
+}
+
 .invalid {
   color: red;
 }
