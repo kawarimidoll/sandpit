@@ -1,6 +1,9 @@
 <script lang='ts'>
   import { page } from '$app/state';
   import { Toaster } from 'svelte-sonner';
+  import { setupViewTransition } from 'sveltekit-view-transition';
+
+  const { transition } = setupViewTransition();
 
   const { children } = $props();
 
@@ -12,7 +15,7 @@
 
 <Toaster />
 
-<header>
+<header use:transition={'header'}>
   {#each navs as { href, text }}
     <a {href} class={{ active: href === '/'
       ? page.url.pathname === href
@@ -29,8 +32,20 @@ header {
   a {
     display: inline-block;
     padding: 1rem;
-    &.active {
-      border-bottom: 2px solid #45d;
+    position: relative;
+    &:hover {
+      border-bottom: none;
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    &.active::before {
+      view-transition-name: active-page;
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #45d;
     }
   }
 }
