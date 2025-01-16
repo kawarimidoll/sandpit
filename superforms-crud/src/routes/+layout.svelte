@@ -3,7 +3,7 @@
   import { Toaster } from 'svelte-sonner';
   import { setupViewTransition } from 'sveltekit-view-transition';
 
-  const { transition } = setupViewTransition();
+  setupViewTransition();
 
   const { children } = $props();
 
@@ -15,7 +15,7 @@
 
 <Toaster />
 
-<header use:transition={'header'}>
+<header>
   {#each navs as { href, text }}
     <a {href} class={{ active: href === '/'
       ? page.url.pathname === href
