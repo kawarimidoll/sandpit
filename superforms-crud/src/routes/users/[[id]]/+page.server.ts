@@ -1,7 +1,7 @@
 import { userId, users, userSchema } from '$lib/users';
 import { error } from '@sveltejs/kit';
 import { redirect } from 'sveltekit-flash-message/server';
-import { message, superValidate } from 'sveltekit-superforms';
+import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 
 // id is required in userSchema, but it should be null when creating a new user
@@ -48,15 +48,20 @@ export const actions = {
       // CREATE user
       // We just push the new user to the array, but in a real app you would save it to a database.
       const user = { ...form.data, id: userId() };
-      users.push(user);
 
+      // Check if email already exists
+      if (users.some(u => u.email === user.email)) {
+        return setError(form, 'email', 'Email already exists.', { status: 409 });
+      }
+
+      users.push(user);
       return message(form, 'User created!');
     }
 
     const index = users.findIndex(u => u.id === form.data.id);
     if (index < 0) {
       console.log('User not found.');
-      return message(form, 'User not found.', { status: 404 });
+      return setError(form, '', 'User not found.', { status: 404 });
     }
     if (formData.has('delete')) {
       // DELETE user
@@ -66,6 +71,10 @@ export const actions = {
     }
     else {
       // UPDATE user
+      // Check if email already exists
+      if (users.some(u => u.email === form.data.email && u.id !== form.data.id)) {
+        return setError(form, 'email', 'Email already exists.', { status: 409 });
+      }
       // We just update the user in the array, but in a real app you would save it to a database.
       users[index] = { ...form.data, id: form.data.id };
       return message(form, 'User updated!');
