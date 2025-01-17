@@ -1,5 +1,6 @@
 <script lang='ts'>
   import type { PageServerData } from './$types';
+  import { dev } from '$app/environment';
   import { page } from '$app/state';
   // store is deprecated but sveltekit-flash-message uses it
   import { page as pageStore } from '$app/stores';
@@ -68,8 +69,6 @@
   </tbody>
 </table>
 
-<h2>{!$form.id ? 'Create' : 'Update'} user </h2>
-
 {#if $form.id || data.isNew}
   <!-- https://qiita.com/maabow/items/9757a25eb5a8badaeb28 -->
   <div class='modal' id='modal'>
@@ -78,78 +77,76 @@
       <a href='/users' class='close'>&times;</a>
       <div class='modal-content'>
         <h2>{!$form.id ? 'Create' : 'Update'} user</h2>
-        <p>This is a pseudo modal content. </p>
-        <p>{!$form.id ? 'Create' : 'Update'} form comes here:</p>
-        <p>WIP</p>
+        <form method='POST' use:enhance>
+          <input type='hidden' name='id' bind:value={$form.id} />
+
+          <label>
+            Name<br />
+            <input
+              name='name'
+              aria-invalid={$errors.name ? 'true' : undefined}
+              bind:value={$form.name}
+              {...$constraints.name} />
+            {#if $errors.name}
+              <span class='invalid'>{$errors.name}</span>
+            {/if}
+          </label>
+
+          <label>
+            E-mail<br />
+            <input
+              name='email'
+              type='email'
+              aria-invalid={$errors.email ? 'true' : undefined}
+              bind:value={$form.email}
+              {...$constraints.email} />
+            {#if $errors.email}
+              <span class='invalid'>{$errors.email}</span>
+            {/if}
+          </label>
+
+          <label>
+            Level<br />
+            <select name='level' bind:value={$form.level}>
+              <option value='' disabled>Select a level</option>
+              {#each userLevels as level}
+                <option value={level}>{level}</option>
+              {/each}
+            </select>
+            {#if $errors.level}
+              <span class='invalid'>{$errors.level}</span>
+            {/if}
+          </label>
+
+          <button disabled={$delayed}>Submit</button>
+          <button name='delay' class='delay' disabled={$delayed}>Submit delayed</button>
+          {#if $form.id}
+            <!-- eslint-disable no-alert -->
+            <button
+              name='delete'
+              onclick={e => !confirm('Are you sure?') && e.preventDefault()}
+              class='danger'
+              disabled={$delayed}>Delete user</button>
+            <!-- eslint-enable no-alert -->
+          {/if}
+
+          {#if $delayed}
+            <span>Working...</span>
+          {/if}
+          {#if $message}
+            <span class={{ invalid: page.status >= 400 }}>{$message}</span>
+          {/if}
+        </form>
+
+        {#if dev}
+          <div style='margin-top: 1rem;'>
+            <SuperDebug data={$form} display={dev} />
+          </div>
+        {/if}
       </div>
     </div>
   </div>
 {/if}
-
-<form method='POST' use:enhance>
-  <input type='hidden' name='id' bind:value={$form.id} />
-
-  <label>
-    Name<br />
-    <input
-      name='name'
-      aria-invalid={$errors.name ? 'true' : undefined}
-      bind:value={$form.name}
-      {...$constraints.name} />
-    {#if $errors.name}
-      <span class='invalid'>{$errors.name}</span>
-    {/if}
-  </label>
-
-  <label>
-    E-mail<br />
-    <input
-      name='email'
-      type='email'
-      aria-invalid={$errors.email ? 'true' : undefined}
-      bind:value={$form.email}
-      {...$constraints.email} />
-    {#if $errors.email}
-      <span class='invalid'>{$errors.email}</span>
-    {/if}
-  </label>
-
-  <label>
-    Level<br />
-    <select name='level' bind:value={$form.level}>
-      <option value='' disabled>Select a level</option>
-      {#each userLevels as level}
-        <option value={level}>{level}</option>
-      {/each}
-    </select>
-    {#if $errors.level}
-      <span class='invalid'>{$errors.level}</span>
-    {/if}
-  </label>
-
-  <button disabled={$delayed}>Submit</button>
-  <button name='delay' class='delay' disabled={$delayed}>Submit delayed</button>
-  {#if $form.id}
-    <!-- eslint-disable no-alert -->
-    <button
-      name='delete'
-      onclick={e => !confirm('Are you sure?') && e.preventDefault()}
-      class='danger'
-      disabled={$delayed}>Delete user</button>
-    <!-- eslint-enable no-alert -->
-  {/if}
-
-  {#if $delayed}
-    <span>Working...</span>
-  {/if}
-  {#if $message}
-    <span class={{ invalid: page.status >= 400 }}>{$message}</span>
-  {/if}
-</form>
-
-<hr>
-
-<SuperDebug data={$form} />
 
 <style>
 /* like a button of sakura-css */
@@ -165,7 +162,7 @@ a.button {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -220,11 +217,6 @@ a.button {
 
 button:disabled {
   background-color: lightgray;
-}
-
-hr {
-  width: 100%;
-  margin-block: 2em;
 }
 
 </style>
