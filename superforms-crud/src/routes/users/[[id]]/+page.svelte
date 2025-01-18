@@ -69,6 +69,12 @@
   </tbody>
 </table>
 
+{#snippet errorSpan(key: keyof typeof $errors)}
+  {#if $errors[key]}
+    <span class='invalid'>{$errors[key]}</span>
+  {/if}
+{/snippet}
+
 {#if $form.id || data.isNew}
   <!-- https://qiita.com/maabow/items/9757a25eb5a8badaeb28 -->
   <div class='modal' id='modal'>
@@ -87,9 +93,7 @@
               aria-invalid={$errors.name ? 'true' : undefined}
               bind:value={$form.name}
               {...$constraints.name} />
-            {#if $errors.name}
-              <span class='invalid'>{$errors.name}</span>
-            {/if}
+            {@render errorSpan('name')}
           </label>
 
           <label>
@@ -100,9 +104,7 @@
               aria-invalid={$errors.email ? 'true' : undefined}
               bind:value={$form.email}
               {...$constraints.email} />
-            {#if $errors.email}
-              <span class='invalid'>{$errors.email}</span>
-            {/if}
+            {@render errorSpan('email')}
           </label>
 
           <label>
@@ -113,9 +115,7 @@
                 <option value={level}>{level}</option>
               {/each}
             </select>
-            {#if $errors.level}
-              <span class='invalid'>{$errors.level}</span>
-            {/if}
+            {@render errorSpan('level')}
           </label>
 
           <button disabled={$delayed}>Submit</button>
