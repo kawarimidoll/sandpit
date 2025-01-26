@@ -109,7 +109,7 @@
 
           <label>
             Level<br />
-            <select name='level' bind:value={$form.level}>
+            <select name='level' bind:value={$form.level} {...$constraints.level}>
               <option value='' disabled>Select a level</option>
               {#each userLevels as level}
                 <option value={level}>{level}</option>
