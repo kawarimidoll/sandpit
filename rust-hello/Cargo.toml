@@ -1,0 +1,10 @@
+[[bin]]
+name = "app"
+path = "src/main.rs"
+
+[package]
+name = "rust-hello"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
