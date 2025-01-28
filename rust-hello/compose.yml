@@ -4,6 +4,20 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+  postgres:
+    image: postgres:15
+    ports:
+      - 5432:5432
+    volumes:
+      - db:/var/lib/postgres/data
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app
 
 volumes:
   db:
